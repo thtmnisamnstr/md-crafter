@@ -1,0 +1,210 @@
+/* VS Code Dark+ Theme */
+:root, .dark {
+  --editor-bg: #1e1e1e;
+  --editor-fg: #d4d4d4;
+  --editor-line: #2d2d2d;
+  --editor-selection: #264f78;
+  --editor-comment: #6a9955;
+  --editor-accent: #007acc;
+  
+  --sidebar-bg: #252526;
+  --sidebar-fg: #cccccc;
+  --sidebar-hover: #2a2d2e;
+  --sidebar-active: #37373d;
+  
+  --tab-bg: #2d2d2d;
+  --tab-fg: #969696;
+  --tab-active: #1e1e1e;
+  --tab-hover: #323232;
+  --tab-border: #3c3c3c;
+  
+  --status-bg: #007acc;
+  --status-fg: #ffffff;
+  
+  --scrollbar-thumb: #424242;
+  --scrollbar-thumb-hover: #4f4f4f;
+  
+  --code-bg: #2d2d30;
+  --code-fg: #9cdcfe;
+  
+  --success: #4ec9b0;
+  --error: #f14c4c;
+  --warning: #cca700;
+  --info: #3794ff;
+}
+
+/* VS Code Light+ Theme */
+.light {
+  --editor-bg: #ffffff;
+  --editor-fg: #333333;
+  --editor-line: #f3f3f3;
+  --editor-selection: #add6ff;
+  --editor-comment: #008000;
+  --editor-accent: #0066b8;
+  
+  --sidebar-bg: #f3f3f3;
+  --sidebar-fg: #333333;
+  --sidebar-hover: #e8e8e8;
+  --sidebar-active: #d4d4d4;
+  
+  --tab-bg: #ececec;
+  --tab-fg: #333333;
+  --tab-active: #ffffff;
+  --tab-hover: #e0e0e0;
+  --tab-border: #e0e0e0;
+  
+  --status-bg: #0066b8;
+  --status-fg: #ffffff;
+  
+  --scrollbar-thumb: #c1c1c1;
+  --scrollbar-thumb-hover: #a8a8a8;
+  
+  --code-bg: #f5f5f5;
+  --code-fg: #0451a5;
+  
+  --success: #388a34;
+  --error: #e51400;
+  --warning: #bf8803;
+  --info: #0066b8;
+}
+
+/* Monokai Theme */
+.monokai {
+  --editor-bg: #272822;
+  --editor-fg: #f8f8f2;
+  --editor-line: #3e3d32;
+  --editor-selection: #49483e;
+  --editor-comment: #75715e;
+  --editor-accent: #a6e22e;
+  
+  --sidebar-bg: #1e1f1c;
+  --sidebar-fg: #f8f8f2;
+  --sidebar-hover: #3e3d32;
+  --sidebar-active: #49483e;
+  
+  --tab-bg: #1e1f1c;
+  --tab-fg: #75715e;
+  --tab-active: #272822;
+  --tab-hover: #3e3d32;
+  --tab-border: #3e3d32;
+  
+  --status-bg: #a6e22e;
+  --status-fg: #272822;
+  
+  --scrollbar-thumb: #49483e;
+  --scrollbar-thumb-hover: #5c5a4e;
+  
+  --code-bg: #3e3d32;
+  --code-fg: #66d9ef;
+  
+  --success: #a6e22e;
+  --error: #f92672;
+  --warning: #e6db74;
+  --info: #66d9ef;
+}
+
+/* Dracula Theme */
+.dracula {
+  --editor-bg: #282a36;
+  --editor-fg: #f8f8f2;
+  --editor-line: #44475a;
+  --editor-selection: #44475a;
+  --editor-comment: #6272a4;
+  --editor-accent: #bd93f9;
+  
+  --sidebar-bg: #21222c;
+  --sidebar-fg: #f8f8f2;
+  --sidebar-hover: #44475a;
+  --sidebar-active: #44475a;
+  
+  --tab-bg: #21222c;
+  --tab-fg: #6272a4;
+  --tab-active: #282a36;
+  --tab-hover: #343746;
+  --tab-border: #44475a;
+  
+  --status-bg: #bd93f9;
+  --status-fg: #282a36;
+  
+  --scrollbar-thumb: #44475a;
+  --scrollbar-thumb-hover: #6272a4;
+  
+  --code-bg: #44475a;
+  --code-fg: #8be9fd;
+  
+  --success: #50fa7b;
+  --error: #ff5555;
+  --warning: #f1fa8c;
+  --info: #8be9fd;
+}
+
+/* GitHub Dark Theme */
+.github-dark {
+  --editor-bg: #0d1117;
+  --editor-fg: #c9d1d9;
+  --editor-line: #161b22;
+  --editor-selection: #388bfd33;
+  --editor-comment: #8b949e;
+  --editor-accent: #58a6ff;
+  
+  --sidebar-bg: #010409;
+  --sidebar-fg: #c9d1d9;
+  --sidebar-hover: #161b22;
+  --sidebar-active: #21262d;
+  
+  --tab-bg: #010409;
+  --tab-fg: #8b949e;
+  --tab-active: #0d1117;
+  --tab-hover: #161b22;
+  --tab-border: #21262d;
+  
+  --status-bg: #58a6ff;
+  --status-fg: #0d1117;
+  
+  --scrollbar-thumb: #30363d;
+  --scrollbar-thumb-hover: #484f58;
+  
+  --code-bg: #161b22;
+  --code-fg: #79c0ff;
+  
+  --success: #3fb950;
+  --error: #f85149;
+  --warning: #d29922;
+  --info: #58a6ff;
+}
+
+/* Nord Theme */
+.nord {
+  --editor-bg: #2e3440;
+  --editor-fg: #d8dee9;
+  --editor-line: #3b4252;
+  --editor-selection: #434c5e;
+  --editor-comment: #616e88;
+  --editor-accent: #88c0d0;
+  
+  --sidebar-bg: #2e3440;
+  --sidebar-fg: #d8dee9;
+  --sidebar-hover: #3b4252;
+  --sidebar-active: #434c5e;
+  
+  --tab-bg: #2e3440;
+  --tab-fg: #616e88;
+  --tab-active: #3b4252;
+  --tab-hover: #434c5e;
+  --tab-border: #4c566a;
+  
+  --status-bg: #88c0d0;
+  --status-fg: #2e3440;
+  
+  --scrollbar-thumb: #4c566a;
+  --scrollbar-thumb-hover: #616e88;
+  
+  --code-bg: #3b4252;
+  --code-fg: #81a1c1;
+  
+  --success: #a3be8c;
+  --error: #bf616a;
+  --warning: #ebcb8b;
+  --info: #81a1c1;
+}
+

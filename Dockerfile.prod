@@ -1,0 +1,73 @@
+# Production Dockerfile for md-edit
+# Server only, connects to external PostgreSQL or MySQL database
+# Designed for scalable deployments
+
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY packages/shared/package*.json ./packages/shared/
+COPY packages/server/package*.json ./packages/server/
+COPY packages/web/package*.json ./packages/web/
+
+# Install all dependencies (including dev for building)
+RUN npm ci
+
+# Copy source code
+COPY tsconfig.base.json ./
+COPY packages/shared ./packages/shared
+COPY packages/server ./packages/server
+COPY packages/web ./packages/web
+
+# Build shared package
+RUN npm run build -w @md-edit/shared
+
+# Build web app
+RUN npm run build -w @md-edit/web
+
+# Production image
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install production dependencies
+COPY package*.json ./
+COPY packages/shared/package*.json ./packages/shared/
+COPY packages/server/package*.json ./packages/server/
+
+# Install with PostgreSQL and MySQL support
+RUN npm ci --omit=dev && \
+    npm install pg mysql2 --save
+
+# Copy built files
+COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder /app/packages/server/src ./packages/server/src
+COPY --from=builder /app/packages/web/dist ./packages/web/dist
+COPY --from=builder /app/tsconfig.base.json ./
+COPY --from=builder /app/packages/shared/tsconfig.json ./packages/shared/
+COPY --from=builder /app/packages/server/tsconfig.json ./packages/server/
+
+# Environment variables (override at runtime)
+ENV NODE_ENV=production
+ENV PORT=3001
+ENV CORS_ORIGIN=*
+ENV MAX_DOCUMENT_VERSIONS=50
+
+# Database connection string (required at runtime)
+# Examples:
+# PostgreSQL: postgresql://user:password@host:5432/mdeditor
+# MySQL: mysql://user:password@host:3306/mdeditor
+# ENV DATABASE_URL=
+
+# Expose port
+EXPOSE 3001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3001/api/health || exit 1
+
+# Start server
+CMD ["node", "--loader", "ts-node/esm", "packages/server/src/index.ts"]
+

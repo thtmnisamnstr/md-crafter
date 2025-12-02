@@ -1,0 +1,54 @@
+# Docker Compose for md-edit with PostgreSQL
+# Production-ready setup with external database
+
+version: '3.8'
+
+services:
+  md-edit:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: md-edit-app
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - DATABASE_URL=postgresql://mdeditor:mdeditor_password@postgres:5432/mdeditor
+      - CORS_ORIGIN=*
+      - MAX_DOCUMENT_VERSIONS=50
+      # Google API (optional)
+      # - VITE_GOOGLE_CLIENT_ID=your-client-id
+      # - VITE_GOOGLE_API_KEY=your-api-key
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: md-edit-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=mdeditor
+      - POSTGRES_PASSWORD=mdeditor_password
+      - POSTGRES_DB=mdeditor
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mdeditor -d mdeditor"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  postgres-data:
+    driver: local
+

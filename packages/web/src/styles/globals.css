@@ -1,0 +1,332 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--editor-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* Monaco editor overrides */
+.monaco-editor {
+  font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', Consolas, monospace !important;
+}
+
+.monaco-editor .margin {
+  background-color: var(--editor-bg) !important;
+}
+
+/* Tab styling */
+.tab {
+  @apply flex items-center gap-2 px-3 py-2 text-sm cursor-pointer border-r border-tab-border;
+  background: var(--tab-bg);
+  color: var(--tab-fg);
+  transition: background-color 0.15s ease;
+}
+
+.tab:hover {
+  background: var(--tab-hover);
+}
+
+.tab.active {
+  background: var(--tab-active);
+  border-bottom: 2px solid var(--editor-accent);
+}
+
+.tab .close-btn {
+  @apply opacity-0 hover:opacity-100 p-0.5 rounded transition-opacity;
+}
+
+.tab:hover .close-btn {
+  @apply opacity-70;
+}
+
+/* Command palette */
+.command-palette-overlay {
+  @apply fixed inset-0 bg-black/50 flex items-start justify-center pt-20 z-50;
+  backdrop-filter: blur(2px);
+}
+
+.command-palette {
+  @apply w-full max-w-xl bg-sidebar-bg border border-tab-border rounded-lg shadow-2xl overflow-hidden;
+}
+
+.command-palette-input {
+  @apply w-full px-4 py-3 bg-transparent border-b border-tab-border text-editor-fg outline-none;
+  font-size: 14px;
+}
+
+.command-palette-input::placeholder {
+  color: var(--editor-comment);
+}
+
+.command-palette-list {
+  @apply max-h-80 overflow-y-auto;
+}
+
+.command-palette-item {
+  @apply px-4 py-2 cursor-pointer flex items-center gap-3;
+  color: var(--editor-fg);
+}
+
+.command-palette-item:hover,
+.command-palette-item.selected {
+  background: var(--sidebar-hover);
+}
+
+.command-palette-item .shortcut {
+  @apply ml-auto text-xs opacity-60;
+}
+
+/* Sync status indicator */
+.sync-indicator {
+  @apply inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded;
+}
+
+.sync-indicator.synced {
+  @apply text-green-400;
+}
+
+.sync-indicator.syncing {
+  @apply text-blue-400;
+}
+
+.sync-indicator.pending {
+  @apply text-yellow-400;
+}
+
+.sync-indicator.conflict {
+  @apply text-red-400;
+}
+
+.sync-indicator.offline {
+  @apply text-gray-400;
+}
+
+/* Sidebar */
+.sidebar {
+  @apply flex flex-col h-full;
+  background: var(--sidebar-bg);
+  color: var(--sidebar-fg);
+}
+
+.sidebar-section {
+  @apply flex flex-col;
+}
+
+.sidebar-header {
+  @apply flex items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wider opacity-70;
+}
+
+.sidebar-item {
+  @apply flex items-center gap-2 px-3 py-1.5 cursor-pointer text-sm;
+  transition: background-color 0.15s ease;
+}
+
+.sidebar-item:hover {
+  background: var(--sidebar-hover);
+}
+
+.sidebar-item.active {
+  background: var(--sidebar-active);
+}
+
+/* Markdown preview */
+.markdown-preview {
+  @apply p-6 overflow-auto h-full;
+  background: var(--editor-bg);
+  color: var(--editor-fg);
+}
+
+.markdown-preview h1 {
+  @apply text-3xl font-bold mb-4 pb-2 border-b border-tab-border;
+}
+
+.markdown-preview h2 {
+  @apply text-2xl font-semibold mb-3 mt-6 pb-1 border-b border-tab-border;
+}
+
+.markdown-preview h3 {
+  @apply text-xl font-semibold mb-2 mt-4;
+}
+
+.markdown-preview h4 {
+  @apply text-lg font-semibold mb-2 mt-3;
+}
+
+.markdown-preview p {
+  @apply mb-4 leading-relaxed;
+}
+
+.markdown-preview ul, .markdown-preview ol {
+  @apply mb-4 pl-6;
+}
+
+.markdown-preview li {
+  @apply mb-1;
+}
+
+.markdown-preview ul li {
+  @apply list-disc;
+}
+
+.markdown-preview ol li {
+  @apply list-decimal;
+}
+
+.markdown-preview code {
+  @apply px-1.5 py-0.5 rounded text-sm font-mono;
+  background: var(--code-bg);
+  color: var(--code-fg);
+}
+
+.markdown-preview pre {
+  @apply p-4 rounded-lg mb-4 overflow-x-auto;
+  background: var(--code-bg);
+}
+
+.markdown-preview pre code {
+  @apply p-0 bg-transparent;
+}
+
+.markdown-preview blockquote {
+  @apply pl-4 border-l-4 italic my-4;
+  border-color: var(--editor-accent);
+  color: var(--editor-comment);
+}
+
+.markdown-preview a {
+  color: var(--editor-accent);
+  @apply underline;
+}
+
+.markdown-preview table {
+  @apply w-full mb-4 border-collapse;
+}
+
+.markdown-preview th, .markdown-preview td {
+  @apply px-3 py-2 border border-tab-border text-left;
+}
+
+.markdown-preview th {
+  background: var(--sidebar-bg);
+}
+
+.markdown-preview img {
+  @apply max-w-full h-auto rounded;
+}
+
+.markdown-preview hr {
+  @apply my-6 border-t border-tab-border;
+}
+
+/* Modal */
+.modal-overlay {
+  @apply fixed inset-0 bg-black/60 flex items-center justify-center z-50;
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  @apply bg-sidebar-bg border border-tab-border rounded-lg shadow-2xl max-w-lg w-full mx-4;
+}
+
+.modal-header {
+  @apply flex items-center justify-between px-4 py-3 border-b border-tab-border;
+}
+
+.modal-body {
+  @apply p-4;
+}
+
+.modal-footer {
+  @apply flex justify-end gap-2 px-4 py-3 border-t border-tab-border;
+}
+
+/* Buttons */
+.btn {
+  @apply px-4 py-2 rounded font-medium text-sm transition-colors;
+}
+
+.btn-primary {
+  background: var(--editor-accent);
+  @apply text-white hover:opacity-90;
+}
+
+.btn-secondary {
+  @apply bg-gray-600 text-white hover:bg-gray-500;
+}
+
+.btn-ghost {
+  @apply bg-transparent hover:bg-sidebar-hover;
+  color: var(--editor-fg);
+}
+
+/* Input */
+.input {
+  @apply w-full px-3 py-2 rounded border border-tab-border bg-editor-bg text-editor-fg outline-none;
+  transition: border-color 0.15s ease;
+}
+
+.input:focus {
+  border-color: var(--editor-accent);
+}
+
+/* Toast notifications */
+.toast-container {
+  @apply fixed bottom-4 right-4 flex flex-col gap-2 z-50;
+}
+
+.toast {
+  @apply px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 text-sm;
+  background: var(--sidebar-bg);
+  border: 1px solid var(--tab-border);
+}
+
+.toast.success {
+  @apply border-l-4 border-l-green-500;
+}
+
+.toast.error {
+  @apply border-l-4 border-l-red-500;
+}
+
+.toast.warning {
+  @apply border-l-4 border-l-yellow-500;
+}
+
+.toast.info {
+  @apply border-l-4 border-l-blue-500;
+}
+
