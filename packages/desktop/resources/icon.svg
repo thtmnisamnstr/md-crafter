@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1d4ed8;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#60a5fa;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background rounded square -->
+  <rect x="32" y="32" width="448" height="448" rx="64" ry="64" fill="url(#bg)"/>
+  
+  <!-- Document shape -->
+  <path d="M160 96 L352 96 L400 144 L400 416 L112 416 L112 96 L160 96 Z" fill="white" opacity="0.95"/>
+  
+  <!-- Document fold -->
+  <path d="M352 96 L352 144 L400 144 Z" fill="#e5e7eb"/>
+  
+  <!-- MD text -->
+  <text x="256" y="300" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="120" fill="url(#bg)">MD</text>
+  
+  <!-- Markdown hash symbol -->
+  <g transform="translate(256, 180)" fill="#3b82f6">
+    <rect x="-50" y="-20" width="100" height="8" rx="2"/>
+    <rect x="-50" y="12" width="100" height="8" rx="2"/>
+    <rect x="-30" y="-35" width="8" height="70" rx="2" transform="rotate(-15)"/>
+    <rect x="22" y="-35" width="8" height="70" rx="2" transform="rotate(-15)"/>
+  </g>
+</svg>
+

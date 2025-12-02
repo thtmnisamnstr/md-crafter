@@ -10,26 +10,50 @@
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:web\"",
     "dev:server": "npm run dev -w @md-edit/server",
     "dev:web": "npm run dev -w @md-edit/web",
-    "dev:desktop": "npm run dev -w @md-edit/desktop",
-    "build": "npm run build -w @md-edit/shared && npm run build -w @md-edit/server && npm run build -w @md-edit/web",
-    "build:desktop": "npm run build -w @md-edit/desktop",
+    "dev:desktop": "npm run build:shared && npm run dev -w @md-edit/desktop",
+    "build": "npm run build:shared && npm run build:server && npm run build:web",
+    "build:shared": "npm run build -w @md-edit/shared",
+    "build:server": "npm run build -w @md-edit/server",
+    "build:web": "npm run build -w @md-edit/web",
+    "build:desktop": "npm run build && npm run build -w @md-edit/desktop",
+    "build:all": "npm run build && npm run build -w @md-edit/desktop",
+    "package:desktop": "npm run build:desktop && npm run package -w @md-edit/desktop",
+    "package:desktop:mac": "npm run build:desktop && npm run package:mac -w @md-edit/desktop",
+    "package:desktop:win": "npm run build:desktop && npm run package:win -w @md-edit/desktop",
+    "package:desktop:linux": "npm run build:desktop && npm run package:linux -w @md-edit/desktop",
     "lint": "eslint packages/*/src --ext .ts,.tsx",
     "format": "prettier --write \"packages/*/src/**/*.{ts,tsx,css}\"",
-    "clean": "rimraf packages/*/dist packages/*/node_modules node_modules"
+    "clean": "rimraf packages/*/dist packages/*/node_modules node_modules",
+    "clean:dist": "rimraf packages/*/dist",
+    "verify-builds": "bash scripts/verify-builds.sh",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:shared": "vitest run --project packages/shared",
+    "test:server": "vitest run --project packages/server",
+    "test:web": "vitest run --project packages/web",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:desktop": "npm run build:desktop && bash scripts/test-desktop-build.sh"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
     "@types/node": "^20.10.0",
     "@typescript-eslint/eslint-plugin": "^6.13.0",
     "@typescript-eslint/parser": "^6.13.0",
+    "@vitest/coverage-v8": "^4.0.15",
     "concurrently": "^8.2.2",
     "eslint": "^8.55.0",
     "eslint-config-prettier": "^9.1.0",
+    "jsdom": "^27.2.0",
     "prettier": "^3.1.0",
     "rimraf": "^5.0.5",
-    "typescript": "^5.3.2"
+    "typescript": "^5.3.2",
+    "vitest": "^4.0.15"
   },
   "engines": {
     "node": ">=18.0.0"
   }
 }
-

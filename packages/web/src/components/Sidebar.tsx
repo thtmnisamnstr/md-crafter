@@ -49,15 +49,16 @@ export function Sidebar() {
   };
 
   return (
-    <div className="sidebar h-full flex flex-col">
+    <nav className="sidebar h-full flex flex-col" role="navigation" aria-label="File explorer">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-tab-border">
         <span className="font-semibold text-sm">md-edit</span>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1" role="toolbar" aria-label="File actions">
           <button
             onClick={createNewDocument}
             className="p-1.5 rounded hover:bg-sidebar-hover"
             title="New Document"
+            aria-label="Create new document"
           >
             <Plus size={16} />
           </button>
@@ -180,13 +181,14 @@ export function Sidebar() {
           <button
             onClick={logout}
             className="sidebar-item w-full justify-center text-sm opacity-70 hover:opacity-100"
+            aria-label="Sign out"
           >
-            <LogOut size={14} />
+            <LogOut size={14} aria-hidden="true" />
             <span>Sign Out</span>
           </button>
         </div>
       )}
-    </div>
+    </nav>
   );
 }
 

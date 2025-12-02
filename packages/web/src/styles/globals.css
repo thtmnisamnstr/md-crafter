@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom utility class for border-tab-border */
+@layer utilities {
+  .border-tab-border {
+    border-color: var(--tab-border);
+  }
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -329,4 +336,3 @@ body {
 .toast.info {
   @apply border-l-4 border-l-blue-500;
 }
-

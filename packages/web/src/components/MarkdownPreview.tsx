@@ -1,4 +1,4 @@
-import { useMemo, useRef, useEffect, useState } from 'react';
+import { useMemo, useRef, useEffect } from 'react';
 import { marked } from 'marked';
 import { MDXPreview } from './MDXPreview';
 
@@ -78,7 +78,7 @@ export function MarkdownPreview({ content, isMdx = false }: MarkdownPreviewProps
 
   // Add IDs to headers for anchor links
   const processedHtml = useMemo(() => {
-    return html.replace(/<(h[1-6])>([^<]+)<\/\1>/gi, (match, tag, text) => {
+    return html.replace(/<(h[1-6])>([^<]+)<\/\1>/gi, (_match, tag, text) => {
       const id = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
       return `<${tag} id="${id}">${text}</${tag}>`;
     });

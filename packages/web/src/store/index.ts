@@ -16,6 +16,7 @@ export interface Tab {
   syncStatus: SyncStatusType;
   isCloudSynced: boolean;
   savedContent: string; // Last saved content for diff
+  isWelcome?: boolean; // Flag for welcome tab
 }
 
 export interface RecentFile {
@@ -223,9 +224,22 @@ export const useStore = create<AppState>()(
           }
         }
         
-        // Create a welcome tab if no tabs
+        // Create a welcome tab if no tabs (first run)
         if (get().tabs.length === 0) {
-          get().createNewDocument();
+          const tabId = 'welcome-tab';
+          const welcomeTab: Tab = {
+            id: tabId,
+            documentId: null,
+            title: 'Welcome',
+            content: '',
+            language: 'markdown',
+            isDirty: false,
+            syncStatus: 'local',
+            isCloudSynced: false,
+            savedContent: '',
+            isWelcome: true,
+          };
+          set({ tabs: [welcomeTab], activeTabId: tabId });
         }
       },
 

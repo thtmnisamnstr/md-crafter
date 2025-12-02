@@ -29,8 +29,11 @@ export async function compileMdx(source: string): Promise<{
 /**
  * Run compiled MDX code and return the component
  */
-export async function runMdx(code: string, components: Record<string, React.ComponentType<any>>): Promise<{
-  default: React.ComponentType<{ components?: Record<string, React.ComponentType<any>> }>;
+export async function runMdx(
+  code: string, 
+  _components?: Record<string, React.ComponentType<unknown>>
+): Promise<{
+  default: React.ComponentType<{ components?: Record<string, React.ComponentType<unknown>> }>;
 } | null> {
   try {
     const result = await run(code, {
@@ -38,7 +41,9 @@ export async function runMdx(code: string, components: Record<string, React.Comp
       baseUrl: import.meta.url,
     });
     
-    return result as any;
+    return result as {
+      default: React.ComponentType<{ components?: Record<string, React.ComponentType<unknown>> }>;
+    };
   } catch (error) {
     console.error('Error running MDX:', error);
     return null;

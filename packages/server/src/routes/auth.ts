@@ -28,6 +28,7 @@ authRouter.post('/token', async (req: Request, res: Response) => {
       email: email || null,
       api_token: apiToken,
       settings_json: JSON.stringify(DEFAULT_USER_SETTINGS),
+      token_expires_at: null, // Tokens don't expire by default
       created_at: now,
       updated_at: now,
     };

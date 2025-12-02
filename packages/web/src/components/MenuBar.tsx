@@ -75,6 +75,8 @@ function Menu({ label, items, isOpen, onOpen, onClose }: MenuProps) {
   return (
     <div className="relative" ref={menuRef}>
       <button
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
         className={clsx(
           'px-3 py-1 text-sm rounded hover:bg-sidebar-hover transition-colors',
           isOpen && 'bg-sidebar-hover'
@@ -513,18 +515,20 @@ export function MenuBar() {
       submenu: [
         {
           id: 'split-none',
-          label: 'No Split',
+          label: 'No Split' + (splitMode === 'none' ? ' ✓' : ''),
           action: () => setSplitMode('none'),
         },
         {
-          id: 'split-horizontal',
-          label: 'Split Horizontal',
-          action: () => setSplitMode('horizontal'),
+          id: 'split-vertical',
+          label: 'Split Right' + (splitMode === 'vertical' ? ' ✓' : ''),
+          shortcut: '⌘\\',
+          action: () => setSplitMode(splitMode === 'vertical' ? 'none' : 'vertical'),
         },
         {
-          id: 'split-vertical',
-          label: 'Split Vertical',
-          action: () => setSplitMode('vertical'),
+          id: 'split-horizontal',
+          label: 'Split Down' + (splitMode === 'horizontal' ? ' ✓' : ''),
+          shortcut: '⌘⇧\\',
+          action: () => setSplitMode(splitMode === 'horizontal' ? 'none' : 'horizontal'),
         },
       ],
     },

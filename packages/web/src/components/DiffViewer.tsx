@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { DiffEditor } from '@monaco-editor/react';
 import { useStore } from '../store';
-import { X, Columns, AlignLeft, FileText, History } from 'lucide-react';
+import { X, Columns, AlignLeft, FileText } from 'lucide-react';
 import clsx from 'clsx';
 
 interface DiffViewerProps {

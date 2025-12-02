@@ -240,11 +240,11 @@ export function PrintView({ content, title, onClose }: PrintViewProps) {
       if (!iframe?.contentDocument?.body) return;
 
       const opt = {
-        margin: [15, 15, 15, 15],
+        margin: [15, 15, 15, 15] as [number, number, number, number],
         filename: title.replace(/\.(md|mdx|markdown)$/i, '') + '.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
+        image: { type: 'jpeg' as const, quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
       };
 
       await html2pdf().set(opt).from(iframe.contentDocument.body).save();

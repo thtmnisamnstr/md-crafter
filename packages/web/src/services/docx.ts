@@ -11,9 +11,11 @@ import {
   WidthType,
   BorderStyle,
   AlignmentType,
-  ExternalHyperlink,
 } from 'docx';
-import { marked } from 'marked';
+import { marked, type Token, type Tokens } from 'marked';
+
+// Type aliases for marked types
+type MarkedToken = Token;
 
 /**
  * Import a .docx file and convert to markdown
@@ -21,7 +23,8 @@ import { marked } from 'marked';
 export async function importDocx(file: File): Promise<string> {
   const arrayBuffer = await file.arrayBuffer();
   
-  const result = await mammoth.convertToMarkdown({ arrayBuffer }, {
+  // Use convertToHtml and then convert to markdown manually
+  const result = await mammoth.convertToHtml({ arrayBuffer }, {
     styleMap: [
       "p[style-name='Heading 1'] => h1:fresh",
       "p[style-name='Heading 2'] => h2:fresh",
@@ -36,7 +39,61 @@ export async function importDocx(file: File): Promise<string> {
     console.warn('Docx import warnings:', result.messages);
   }
   
-  return result.value;
+  // Convert HTML to Markdown
+  return htmlToMarkdown(result.value);
+}
+
+/**
+ * Convert HTML to Markdown (simple converter)
+ */
+function htmlToMarkdown(html: string): string {
+  let md = html;
+  
+  // Convert headings
+  md = md.replace(/<h1>(.*?)<\/h1>/gi, '# $1\n\n');
+  md = md.replace(/<h2>(.*?)<\/h2>/gi, '## $1\n\n');
+  md = md.replace(/<h3>(.*?)<\/h3>/gi, '### $1\n\n');
+  md = md.replace(/<h4>(.*?)<\/h4>/gi, '#### $1\n\n');
+  md = md.replace(/<h5>(.*?)<\/h5>/gi, '##### $1\n\n');
+  md = md.replace(/<h6>(.*?)<\/h6>/gi, '###### $1\n\n');
+  
+  // Convert paragraphs
+  md = md.replace(/<p>(.*?)<\/p>/gi, '$1\n\n');
+  
+  // Convert strong/bold
+  md = md.replace(/<strong>(.*?)<\/strong>/gi, '**$1**');
+  md = md.replace(/<b>(.*?)<\/b>/gi, '**$1**');
+  
+  // Convert em/italic
+  md = md.replace(/<em>(.*?)<\/em>/gi, '*$1*');
+  md = md.replace(/<i>(.*?)<\/i>/gi, '*$1*');
+  
+  // Convert links
+  md = md.replace(/<a href="(.*?)">(.*?)<\/a>/gi, '[$2]($1)');
+  
+  // Convert code
+  md = md.replace(/<code>(.*?)<\/code>/gi, '`$1`');
+  md = md.replace(/<pre>(.*?)<\/pre>/gis, '```\n$1\n```\n\n');
+  
+  // Convert lists
+  md = md.replace(/<ul>(.*?)<\/ul>/gis, (_, content) => {
+    return content.replace(/<li>(.*?)<\/li>/gi, '- $1\n') + '\n';
+  });
+  md = md.replace(/<ol>(.*?)<\/ol>/gis, (_, content) => {
+    let counter = 1;
+    return content.replace(/<li>(.*?)<\/li>/gi, () => `${counter++}. $1\n`) + '\n';
+  });
+  
+  // Convert line breaks
+  md = md.replace(/<br\s*\/?>/gi, '\n');
+  
+  // Remove remaining HTML tags
+  md = md.replace(/<[^>]+>/g, '');
+  
+  // Clean up multiple newlines
+  md = md.replace(/\n{3,}/g, '\n\n');
+  
+  return md.trim();
 }
 
 /**
@@ -67,7 +124,7 @@ export async function exportDocx(markdown: string, filename: string): Promise<vo
 /**
  * Convert marked tokens to docx elements
  */
-function tokensToDocx(tokens: marked.Token[]): (Paragraph | Table)[] {
+function tokensToDocx(tokens: MarkedToken[]): (Paragraph | Table)[] {
   const elements: (Paragraph | Table)[] = [];
   
   for (const token of tokens) {
@@ -85,17 +142,17 @@ function tokensToDocx(tokens: marked.Token[]): (Paragraph | Table)[] {
 /**
  * Convert a single token to docx element(s)
  */
-function tokenToDocx(token: marked.Token): Paragraph | Table | (Paragraph | Table)[] | null {
+function tokenToDocx(token: MarkedToken): Paragraph | Table | (Paragraph | Table)[] | null {
   switch (token.type) {
     case 'heading':
       return new Paragraph({
-        heading: getHeadingLevel(token.depth),
-        children: inlineTokensToRuns(token.tokens || []),
+        heading: getHeadingLevel((token as Tokens.Heading).depth),
+        children: inlineTokensToRuns((token as Tokens.Heading).tokens || []),
       });
     
     case 'paragraph':
       return new Paragraph({
-        children: inlineTokensToRuns(token.tokens || []),
+        children: inlineTokensToRuns((token as Tokens.Paragraph).tokens || []),
         spacing: { after: 200 },
       });
     
@@ -103,7 +160,7 @@ function tokenToDocx(token: marked.Token): Paragraph | Table | (Paragraph | Tabl
       return new Paragraph({
         children: [
           new TextRun({
-            text: token.text,
+            text: (token as Tokens.Code).text,
             font: 'Consolas',
             size: 20,
           }),
@@ -113,11 +170,11 @@ function tokenToDocx(token: marked.Token): Paragraph | Table | (Paragraph | Tabl
       });
     
     case 'blockquote':
-      const quoteTokens = token.tokens || [];
-      return quoteTokens.map((t: marked.Token) => {
+      const quoteTokens = (token as Tokens.Blockquote).tokens || [];
+      return quoteTokens.map((t: MarkedToken) => {
         if (t.type === 'paragraph') {
           return new Paragraph({
-            children: inlineTokensToRuns((t as marked.Tokens.Paragraph).tokens || []),
+            children: inlineTokensToRuns((t as Tokens.Paragraph).tokens || []),
             indent: { left: 720 },
             border: {
               left: { style: BorderStyle.SINGLE, size: 24, color: 'CCCCCC' },
@@ -129,8 +186,8 @@ function tokenToDocx(token: marked.Token): Paragraph | Table | (Paragraph | Tabl
       }).filter(Boolean) as Paragraph[];
     
     case 'list':
-      return (token.items || []).map((item: marked.Tokens.ListItem, index: number) => {
-        const bullet = token.ordered ? `${index + 1}.` : '•';
+      return ((token as Tokens.List).items || []).map((item: Tokens.ListItem, index: number) => {
+        const bullet = (token as Tokens.List).ordered ? `${index + 1}.` : '•';
         return new Paragraph({
           children: [
             new TextRun({ text: `${bullet} ` }),
@@ -142,7 +199,7 @@ function tokenToDocx(token: marked.Token): Paragraph | Table | (Paragraph | Tabl
       });
     
     case 'table':
-      return createTable(token);
+      return createTable(token as Tokens.Table);
     
     case 'hr':
       return new Paragraph({
@@ -163,7 +220,7 @@ function tokenToDocx(token: marked.Token): Paragraph | Table | (Paragraph | Tabl
 /**
  * Convert inline tokens to TextRun elements
  */
-function inlineTokensToRuns(tokens: marked.Token[]): TextRun[] {
+function inlineTokensToRuns(tokens: MarkedToken[]): TextRun[] {
   const runs: TextRun[] = [];
   
   for (const token of tokens) {
@@ -231,12 +288,12 @@ function inlineTokensToRuns(tokens: marked.Token[]): TextRun[] {
 /**
  * Get text content from a token
  */
-function getTokenText(token: marked.Token): string {
+function getTokenText(token: MarkedToken): string {
   if ('text' in token) {
-    return (token as any).text;
+    return (token as Tokens.Text).text;
   }
-  if ('tokens' in token && Array.isArray((token as any).tokens)) {
-    return (token as any).tokens.map((t: marked.Token) => getTokenText(t)).join('');
+  if ('tokens' in token && Array.isArray((token as { tokens?: MarkedToken[] }).tokens)) {
+    return ((token as { tokens?: MarkedToken[] }).tokens || []).map((t: MarkedToken) => getTokenText(t)).join('');
   }
   return '';
 }
@@ -244,7 +301,7 @@ function getTokenText(token: marked.Token): string {
 /**
  * Get docx heading level from markdown heading depth
  */
-function getHeadingLevel(depth: number): HeadingLevel {
+function getHeadingLevel(depth: number): (typeof HeadingLevel)[keyof typeof HeadingLevel] {
   switch (depth) {
     case 1: return HeadingLevel.HEADING_1;
     case 2: return HeadingLevel.HEADING_2;
@@ -259,7 +316,7 @@ function getHeadingLevel(depth: number): HeadingLevel {
 /**
  * Create a docx table from markdown table token
  */
-function createTable(token: marked.Tokens.Table): Table {
+function createTable(token: Tokens.Table): Table {
   const rows: TableRow[] = [];
   
   // Header row
@@ -267,12 +324,12 @@ function createTable(token: marked.Tokens.Table): Table {
     rows.push(
       new TableRow({
         tableHeader: true,
-        children: token.header.map((cell) =>
+        children: token.header.map((cell: Tokens.TableCell) =>
           new TableCell({
             children: [
               new Paragraph({
                 children: inlineTokensToRuns(cell.tokens || []),
-                alignment: getAlignment(cell.align),
+                alignment: getAlignment(token.align?.[0]),
               }),
             ],
             shading: { fill: 'F5F5F5' },
@@ -286,12 +343,12 @@ function createTable(token: marked.Tokens.Table): Table {
   for (const row of token.rows || []) {
     rows.push(
       new TableRow({
-        children: row.map((cell, i) =>
+        children: row.map((cell: Tokens.TableCell, i: number) =>
           new TableCell({
             children: [
               new Paragraph({
                 children: inlineTokensToRuns(cell.tokens || []),
-                alignment: getAlignment(token.header?.[i]?.align),
+                alignment: getAlignment(token.align?.[i]),
               }),
             ],
           })
@@ -309,7 +366,7 @@ function createTable(token: marked.Tokens.Table): Table {
 /**
  * Get docx alignment from markdown alignment
  */
-function getAlignment(align?: string | null): AlignmentType {
+function getAlignment(align?: string | null): (typeof AlignmentType)[keyof typeof AlignmentType] {
   switch (align) {
     case 'center': return AlignmentType.CENTER;
     case 'right': return AlignmentType.RIGHT;

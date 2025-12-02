@@ -67,13 +67,10 @@ export function CommandPalette() {
     cloudDocuments,
     openCloudDocument,
     recentFiles,
-    openTab,
     setShowExport,
     toggleZenMode,
     zenMode,
   } = useStore();
-
-  const activeTab = tabs.find((t) => t.id === activeTabId);
 
   // Build commands list
   const commands: Command[] = useMemo(() => {

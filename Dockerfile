@@ -1,5 +1,5 @@
 # Standalone Dockerfile for md-edit
-# Builds both server and web app with SQLite storage
+# Builds both server and web app with SQLite database
 # Single container, ready to run
 
 FROM node:20-alpine AS builder
@@ -21,14 +21,10 @@ COPY packages/shared ./packages/shared
 COPY packages/server ./packages/server
 COPY packages/web ./packages/web
 
-# Build shared package
+# Build all packages in order
 RUN npm run build -w @md-edit/shared
-
-# Build web app
+RUN npm run build -w @md-edit/server
 RUN npm run build -w @md-edit/web
-
-# Build server
-RUN npm run build -w @md-edit/server || true
 
 # Production image
 FROM node:20-alpine
@@ -39,37 +35,41 @@ WORKDIR /app
 COPY package*.json ./
 COPY packages/shared/package*.json ./packages/shared/
 COPY packages/server/package*.json ./packages/server/
+COPY packages/web/package*.json ./packages/web/
 
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --workspace=@md-edit/shared --workspace=@md-edit/server
 
 # Copy built files
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
-COPY --from=builder /app/packages/server/src ./packages/server/src
-COPY --from=builder /app/packages/web/dist ./packages/web/dist
-COPY --from=builder /app/tsconfig.base.json ./
-COPY --from=builder /app/packages/shared/tsconfig.json ./packages/shared/
-COPY --from=builder /app/packages/server/tsconfig.json ./packages/server/
+COPY --from=builder /app/packages/shared/package.json ./packages/shared/
+COPY --from=builder /app/packages/server/dist ./packages/server/dist
+COPY --from=builder /app/packages/server/package.json ./packages/server/
+COPY --from=builder /app/packages/web/dist ./public
 
-# Create data directory
+# Create data directory for SQLite
 RUN mkdir -p /app/data
 
 # Environment variables
 ENV NODE_ENV=production
 ENV PORT=3001
-ENV DB_FILENAME=/app/data/md-edit.json
+ENV DB_PATH=/app/data/md-edit.db
 ENV CORS_ORIGIN=*
 ENV MAX_DOCUMENT_VERSIONS=50
+ENV STATIC_DIR=/app/public
+
+# Google API (optional - set these to enable Google Drive integration)
+# ENV VITE_GOOGLE_CLIENT_ID=
+# ENV VITE_GOOGLE_API_KEY=
 
 # Expose port
 EXPOSE 3001
 
-# Volume for persistent data
+# Volume for persistent SQLite database
 VOLUME ["/app/data"]
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3001/api/health || exit 1
 
-# Start server with static file serving
-CMD ["node", "--loader", "ts-node/esm", "packages/server/src/index.ts"]
-
+# Start server
+CMD ["node", "packages/server/dist/index.js"]

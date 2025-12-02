@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useStore } from '../store';
 import { X, ArrowLeft, ArrowRight, GitMerge } from 'lucide-react';
-import { diffLines, DiffLine } from '@md-edit/shared';
+import { diffLines } from '@md-edit/shared';
 
 export function ConflictModal() {
   const { conflict, resolveConflict, setConflict } = useStore();

@@ -9,7 +9,7 @@ const turndownService = new TurndownService({
 
 // Configure turndown for better conversion
 turndownService.addRule('strikethrough', {
-  filter: ['del', 's', 'strike'],
+  filter: ['del', 's'] as (keyof HTMLElementTagNameMap)[],
   replacement: (content) => `~~${content}~~`,
 });
 

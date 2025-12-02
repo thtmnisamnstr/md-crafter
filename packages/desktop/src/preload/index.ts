@@ -22,7 +22,7 @@ const api = {
   setSyncMapping: (cloudId: string, localPath: string) => ipcRenderer.invoke('sync:set-mapping', cloudId, localPath),
   removeSyncMapping: (cloudId: string) => ipcRenderer.invoke('sync:remove-mapping', cloudId),
 
-  // Event listeners
+  // Event listeners for file operations
   onFileOpened: (callback: (data: { path: string; content: string; name: string }) => void) => {
     ipcRenderer.on('file:opened', (_event, data) => callback(data));
     return () => ipcRenderer.removeAllListeners('file:opened');
@@ -36,7 +36,7 @@ const api = {
     return () => ipcRenderer.removeAllListeners('file:external-change');
   },
 
-  // Menu events
+  // Menu events - File menu
   onMenuNewFile: (callback: () => void) => {
     ipcRenderer.on('menu:new-file', callback);
     return () => ipcRenderer.removeAllListeners('menu:new-file');
@@ -53,6 +53,56 @@ const api = {
     ipcRenderer.on('menu:close-tab', callback);
     return () => ipcRenderer.removeAllListeners('menu:close-tab');
   },
+  
+  // Menu events - Import/Export
+  onMenuImportWord: (callback: () => void) => {
+    ipcRenderer.on('menu:import-word', callback);
+    return () => ipcRenderer.removeAllListeners('menu:import-word');
+  },
+  onMenuImportGoogleDoc: (callback: () => void) => {
+    ipcRenderer.on('menu:import-google-doc', callback);
+    return () => ipcRenderer.removeAllListeners('menu:import-google-doc');
+  },
+  onMenuExportPdf: (callback: () => void) => {
+    ipcRenderer.on('menu:export-pdf', callback);
+    return () => ipcRenderer.removeAllListeners('menu:export-pdf');
+  },
+  onMenuExportWord: (callback: () => void) => {
+    ipcRenderer.on('menu:export-word', callback);
+    return () => ipcRenderer.removeAllListeners('menu:export-word');
+  },
+  onMenuExportHtml: (callback: () => void) => {
+    ipcRenderer.on('menu:export-html', callback);
+    return () => ipcRenderer.removeAllListeners('menu:export-html');
+  },
+  onMenuExportGoogleDrive: (callback: () => void) => {
+    ipcRenderer.on('menu:export-google-drive', callback);
+    return () => ipcRenderer.removeAllListeners('menu:export-google-drive');
+  },
+
+  // Menu events - Edit menu
+  onMenuFind: (callback: () => void) => {
+    ipcRenderer.on('menu:find', callback);
+    return () => ipcRenderer.removeAllListeners('menu:find');
+  },
+  onMenuReplace: (callback: () => void) => {
+    ipcRenderer.on('menu:replace', callback);
+    return () => ipcRenderer.removeAllListeners('menu:replace');
+  },
+  onMenuSearch: (callback: () => void) => {
+    ipcRenderer.on('menu:search', callback);
+    return () => ipcRenderer.removeAllListeners('menu:search');
+  },
+  onMenuCopyForWord: (callback: () => void) => {
+    ipcRenderer.on('menu:copy-for-word', callback);
+    return () => ipcRenderer.removeAllListeners('menu:copy-for-word');
+  },
+  onMenuPasteFromWord: (callback: () => void) => {
+    ipcRenderer.on('menu:paste-from-word', callback);
+    return () => ipcRenderer.removeAllListeners('menu:paste-from-word');
+  },
+
+  // Menu events - View menu
   onMenuToggleSidebar: (callback: () => void) => {
     ipcRenderer.on('menu:toggle-sidebar', callback);
     return () => ipcRenderer.removeAllListeners('menu:toggle-sidebar');
@@ -69,13 +119,31 @@ const api = {
     ipcRenderer.on('menu:settings', callback);
     return () => ipcRenderer.removeAllListeners('menu:settings');
   },
-  onMenuFind: (callback: () => void) => {
-    ipcRenderer.on('menu:find', callback);
-    return () => ipcRenderer.removeAllListeners('menu:find');
+  onMenuZenMode: (callback: () => void) => {
+    ipcRenderer.on('menu:zen-mode', callback);
+    return () => ipcRenderer.removeAllListeners('menu:zen-mode');
   },
-  onMenuReplace: (callback: () => void) => {
-    ipcRenderer.on('menu:replace', callback);
-    return () => ipcRenderer.removeAllListeners('menu:replace');
+  onMenuSplitVertical: (callback: () => void) => {
+    ipcRenderer.on('menu:split-vertical', callback);
+    return () => ipcRenderer.removeAllListeners('menu:split-vertical');
+  },
+  onMenuSplitHorizontal: (callback: () => void) => {
+    ipcRenderer.on('menu:split-horizontal', callback);
+    return () => ipcRenderer.removeAllListeners('menu:split-horizontal');
+  },
+  onMenuNoSplit: (callback: () => void) => {
+    ipcRenderer.on('menu:no-split', callback);
+    return () => ipcRenderer.removeAllListeners('menu:no-split');
+  },
+
+  // Menu events - Help menu
+  onMenuAbout: (callback: () => void) => {
+    ipcRenderer.on('menu:about', callback);
+    return () => ipcRenderer.removeAllListeners('menu:about');
+  },
+  onMenuShortcuts: (callback: () => void) => {
+    ipcRenderer.on('menu:shortcuts', callback);
+    return () => ipcRenderer.removeAllListeners('menu:shortcuts');
   },
 };
 
@@ -94,4 +162,3 @@ if (process.contextIsolated) {
   // @ts-ignore (define in dts)
   window.api = api;
 }
-

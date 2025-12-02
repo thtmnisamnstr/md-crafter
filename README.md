@@ -93,9 +93,24 @@ See [DOCKER.md](DOCKER.md) for detailed deployment options.
 ### Desktop App
 
 ```bash
-# Build and run desktop app
+# Development mode (with hot reload)
 npm run dev:desktop
+
+# Build desktop app
+npm run build:desktop
+
+# Package for distribution
+npm run package:desktop:mac   # macOS (.dmg)
+npm run package:desktop:win   # Windows (.exe)
+npm run package:desktop:linux # Linux (.AppImage, .deb)
 ```
+
+**Requirements:**
+- macOS: Xcode Command Line Tools
+- Windows: Visual Studio Build Tools
+- Linux: build-essential, rpm (for .rpm packages)
+
+See [DESKTOP.md](DESKTOP.md) for detailed desktop development instructions.
 
 ## Project Structure
 
@@ -117,9 +132,10 @@ md-edit/
 
 ### Backend (`packages/server`)
 - **Express.js** REST API with TypeScript
-- **LowDB** JSON file-based database (production-ready, no compilation needed)
+- **SQLite** (standalone) or **PostgreSQL/MySQL** (production) via database abstraction layer
 - **Socket.io** for real-time sync notifications
 - **Token-based auth** with API keys
+- **sql.js** for SQLite (pure JavaScript, no native dependencies)
 
 ### Frontend (`packages/web`)
 - **React 18** with TypeScript
@@ -175,6 +191,8 @@ md-edit/
 | `Ctrl+K Z` | Zen mode |
 | `Ctrl+F` | Find in editor |
 | `Ctrl+H` | Find and replace |
+| `Ctrl+\` | Split editor (vertical) |
+| `Ctrl+Shift+\` | Split editor (horizontal) |
 
 ## MDX Components
 
@@ -201,17 +219,21 @@ Create a `.env` file in `packages/server/`:
 PORT=3001
 NODE_ENV=development
 
-# Database (SQLite)
-DB_FILENAME=./data/md-edit.json
+# Database (SQLite - default)
+DB_PATH=./data/md-edit.db
 
 # Database (PostgreSQL/MySQL - for production)
 # DATABASE_URL=postgresql://user:password@host:5432/database
+# DATABASE_URL=mysql://user:password@host:3306/database
 
 # CORS
 CORS_ORIGIN=http://localhost:5173
 
 # Versioning
 MAX_DOCUMENT_VERSIONS=50
+
+# Logging
+LOG_LEVEL=info
 ```
 
 ### Environment Variables (Web)
@@ -276,6 +298,39 @@ npm run lint
 ```bash
 npm run format
 ```
+
+## Troubleshooting
+
+### Desktop App Shows Black Screen
+
+If the desktop app shows a black screen:
+
+1. **Check if the web package is built**: Run `npm run build:web` first
+2. **Clear the dist folder**: Run `rm -rf packages/desktop/dist` then rebuild
+3. **Check for port conflicts**: The renderer dev server uses port 5174
+
+### Desktop App UI Appears Unstyled/Broken
+
+If the desktop app UI appears with no CSS styles (elements stacked vertically, no colors):
+
+1. **Verify Tailwind config uses absolute paths**: `packages/web/tailwind.config.js` must use `resolve(__dirname, ...)` for content paths
+2. **Check postcss.config.js exists**: Ensure `packages/web/postcss.config.js` exists and references the tailwind config
+3. **Clear and rebuild**: Run `rm -rf packages/desktop/dist && npm run build:desktop`
+4. **Check for PostCSS errors**: Look for "content option is missing" warnings in build output
+
+### Cannot Connect to Cloud
+
+1. **Check if the server is running**: `npm run dev:server`
+2. **Verify API token**: Check your `.env` files
+3. **Check CORS settings**: Ensure `CORS_ORIGIN` matches your frontend URL
+
+### Build Failures
+
+1. **Clear node_modules**: `npm run clean && npm install`
+2. **Check Node version**: Requires Node.js 18+
+3. **Check for TypeScript errors**: `npm run lint`
+
+For more help, see the [issues page](https://github.com/yourusername/md-edit/issues).
 
 ## Version History
 

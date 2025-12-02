@@ -1,7 +1,6 @@
 import { useStore } from '../store';
 import { 
   Cloud, 
-  CloudOff, 
   Wifi, 
   WifiOff, 
   Eye, 
@@ -39,14 +38,18 @@ export function StatusBar() {
         color: 'var(--status-fg)',
         borderColor: 'var(--tab-border)',
       }}
+      role="status"
+      aria-label="Status bar"
     >
       {/* Left side */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3" role="group" aria-label="Controls">
         {/* Sidebar toggle */}
         <button
           onClick={toggleSidebar}
           className="hover:opacity-80 transition-opacity"
           title={showSidebar ? 'Hide Sidebar' : 'Show Sidebar'}
+          aria-label={showSidebar ? 'Hide Sidebar' : 'Show Sidebar'}
+          aria-pressed={showSidebar}
         >
           {showSidebar ? <PanelLeftClose size={14} /> : <PanelLeft size={14} />}
         </button>
@@ -104,6 +107,8 @@ export function StatusBar() {
             onClick={togglePreview}
             className="hover:opacity-80 transition-opacity flex items-center gap-1"
             title={showPreview ? 'Hide Preview' : 'Show Preview'}
+            aria-label={showPreview ? 'Hide Preview' : 'Show Preview'}
+            aria-pressed={showPreview}
           >
             {showPreview ? <EyeOff size={12} /> : <Eye size={12} />}
             <span>Preview</span>

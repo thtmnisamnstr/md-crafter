@@ -67,21 +67,50 @@ function createWindow(): void {
   }
 }
 
-// Create application menu
+// Create application menu that mirrors the web app's menu
 function createMenu(): void {
+  const recentFiles = store.get('recentFiles') as string[];
+  
   const template: Electron.MenuItemConstructorOptions[] = [
     {
       label: 'File',
       submenu: [
         {
-          label: 'New File',
+          label: 'New Document',
           accelerator: 'CmdOrCtrl+N',
           click: () => mainWindow?.webContents.send('menu:new-file'),
         },
         {
-          label: 'Open File...',
+          label: 'Open...',
           accelerator: 'CmdOrCtrl+O',
           click: () => handleOpenFile(),
+        },
+        {
+          label: 'Open Recent',
+          submenu: recentFiles.length > 0
+            ? [
+                ...recentFiles.map((filePath) => ({
+                  label: filePath.split('/').pop() || filePath,
+                  click: async () => {
+                    try {
+                      const content = await fs.readFile(filePath, 'utf-8');
+                      mainWindow?.webContents.send('file:opened', {
+                        path: filePath,
+                        content,
+                        name: filePath.split('/').pop() || 'Untitled',
+                      });
+                    } catch (error) {
+                      console.error('Failed to open recent file:', error);
+                    }
+                  },
+                })),
+                { type: 'separator' as const },
+                {
+                  label: 'Clear Recent',
+                  click: () => store.set('recentFiles', []),
+                },
+              ]
+            : [{ label: 'No Recent Files', enabled: false }],
         },
         { type: 'separator' },
         {
@@ -90,13 +119,39 @@ function createMenu(): void {
           click: () => mainWindow?.webContents.send('menu:save'),
         },
         {
+          label: 'Save to Cloud',
+          click: () => mainWindow?.webContents.send('menu:save-to-cloud'),
+        },
+        {
           label: 'Save As...',
           accelerator: 'CmdOrCtrl+Shift+S',
           click: () => handleSaveAs(),
         },
+        { type: 'separator' },
         {
-          label: 'Save to Cloud',
-          click: () => mainWindow?.webContents.send('menu:save-to-cloud'),
+          label: 'Import from Word (.docx)',
+          click: () => mainWindow?.webContents.send('menu:import-word'),
+        },
+        {
+          label: 'Import from Google Doc',
+          click: () => mainWindow?.webContents.send('menu:import-google-doc'),
+        },
+        { type: 'separator' },
+        {
+          label: 'Export as PDF',
+          click: () => mainWindow?.webContents.send('menu:export-pdf'),
+        },
+        {
+          label: 'Export as Word (.docx)',
+          click: () => mainWindow?.webContents.send('menu:export-word'),
+        },
+        {
+          label: 'Export as HTML',
+          click: () => mainWindow?.webContents.send('menu:export-html'),
+        },
+        {
+          label: 'Export to Google Drive',
+          click: () => mainWindow?.webContents.send('menu:export-google-drive'),
         },
         { type: 'separator' },
         {
@@ -116,13 +171,29 @@ function createMenu(): void {
         { type: 'separator' },
         { role: 'cut' },
         { role: 'copy' },
+        {
+          label: 'Copy for Word/Docs',
+          accelerator: 'CmdOrCtrl+Shift+C',
+          click: () => mainWindow?.webContents.send('menu:copy-for-word'),
+        },
         { role: 'paste' },
+        {
+          label: 'Paste from Word/Docs',
+          accelerator: 'CmdOrCtrl+Shift+V',
+          click: () => mainWindow?.webContents.send('menu:paste-from-word'),
+        },
+        { type: 'separator' },
         { role: 'selectAll' },
         { type: 'separator' },
         {
           label: 'Find',
           accelerator: 'CmdOrCtrl+F',
           click: () => mainWindow?.webContents.send('menu:find'),
+        },
+        {
+          label: 'Find in All Files',
+          accelerator: 'CmdOrCtrl+Shift+F',
+          click: () => mainWindow?.webContents.send('menu:search'),
         },
         {
           label: 'Replace',
@@ -150,6 +221,31 @@ function createMenu(): void {
           click: () => mainWindow?.webContents.send('menu:command-palette'),
         },
         { type: 'separator' },
+        {
+          label: 'Split Editor',
+          submenu: [
+            {
+              label: 'No Split',
+              click: () => mainWindow?.webContents.send('menu:no-split'),
+            },
+            {
+              label: 'Split Horizontal',
+              click: () => mainWindow?.webContents.send('menu:split-horizontal'),
+            },
+            {
+              label: 'Split Vertical',
+              accelerator: 'CmdOrCtrl+\\',
+              click: () => mainWindow?.webContents.send('menu:split-vertical'),
+            },
+          ],
+        },
+        { type: 'separator' },
+        {
+          label: 'Zen Mode',
+          accelerator: 'CmdOrCtrl+K Z',
+          click: () => mainWindow?.webContents.send('menu:zen-mode'),
+        },
+        { type: 'separator' },
         { role: 'toggleDevTools' },
         { type: 'separator' },
         { role: 'resetZoom' },
@@ -172,6 +268,11 @@ function createMenu(): void {
       label: 'Help',
       submenu: [
         {
+          label: 'Keyboard Shortcuts',
+          click: () => mainWindow?.webContents.send('menu:shortcuts'),
+        },
+        { type: 'separator' },
+        {
           label: 'Documentation',
           click: () => shell.openExternal('https://github.com/yourusername/md-edit'),
         },
@@ -179,11 +280,16 @@ function createMenu(): void {
           label: 'Report Issue',
           click: () => shell.openExternal('https://github.com/yourusername/md-edit/issues'),
         },
+        { type: 'separator' },
+        {
+          label: 'About md-edit',
+          click: () => mainWindow?.webContents.send('menu:about'),
+        },
       ],
     },
   ];
 
-  // macOS specific menu
+  // macOS specific menu - app menu with Settings
   if (process.platform === 'darwin') {
     template.unshift({
       label: app.getName(),
@@ -205,6 +311,23 @@ function createMenu(): void {
         { role: 'quit' },
       ],
     });
+  } else {
+    // Windows/Linux - add Settings to File menu
+    const fileMenu = template.find(item => item.label === 'File');
+    if (fileMenu && fileMenu.submenu && Array.isArray(fileMenu.submenu)) {
+      // Insert Settings before Quit
+      const quitIndex = fileMenu.submenu.findIndex(item => item.role === 'quit');
+      if (quitIndex !== -1) {
+        fileMenu.submenu.splice(quitIndex, 0, 
+          { type: 'separator' },
+          {
+            label: 'Settings',
+            accelerator: 'CmdOrCtrl+,',
+            click: () => mainWindow?.webContents.send('menu:settings'),
+          }
+        );
+      }
+    }
   }
 
   const menu = Menu.buildFromTemplate(template);
@@ -215,9 +338,10 @@ async function handleOpenFile(): Promise<void> {
   const result = await dialog.showOpenDialog(mainWindow!, {
     properties: ['openFile', 'multiSelections'],
     filters: [
-      { name: 'All Supported', extensions: ['md', 'markdown', 'txt', 'js', 'ts', 'jsx', 'tsx', 'json', 'html', 'css', 'py', 'go', 'rs', 'java', 'c', 'cpp', 'h'] },
-      { name: 'Markdown', extensions: ['md', 'markdown'] },
+      { name: 'All Supported', extensions: ['md', 'mdx', 'markdown', 'txt', 'js', 'ts', 'jsx', 'tsx', 'json', 'html', 'css', 'py', 'go', 'rs', 'java', 'c', 'cpp', 'h', 'docx'] },
+      { name: 'Markdown', extensions: ['md', 'mdx', 'markdown'] },
       { name: 'JavaScript/TypeScript', extensions: ['js', 'ts', 'jsx', 'tsx'] },
+      { name: 'Word Documents', extensions: ['docx'] },
       { name: 'All Files', extensions: ['*'] },
     ],
   });
@@ -239,6 +363,7 @@ async function handleSaveAs(): Promise<void> {
   const result = await dialog.showSaveDialog(mainWindow!, {
     filters: [
       { name: 'Markdown', extensions: ['md'] },
+      { name: 'MDX', extensions: ['mdx'] },
       { name: 'Text', extensions: ['txt'] },
       { name: 'All Files', extensions: ['*'] },
     ],
@@ -254,6 +379,8 @@ function addToRecentFiles(filePath: string): void {
   const filtered = recentFiles.filter((f) => f !== filePath);
   filtered.unshift(filePath);
   store.set('recentFiles', filtered.slice(0, 10));
+  // Rebuild menu to update recent files
+  createMenu();
 }
 
 function watchFile(filePath: string): void {
@@ -386,4 +513,3 @@ app.on('window-all-closed', () => {
     app.quit();
   }
 });
-

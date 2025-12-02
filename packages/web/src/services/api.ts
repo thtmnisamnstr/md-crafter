@@ -1,25 +1,37 @@
 import { Document, CreateDocumentRequest, UpdateDocumentRequest } from '@md-edit/shared';
 
-const API_BASE = '/api';
-
 class ApiService {
   private token: string | null = null;
+  private baseUrl: string = '/api';
 
   setToken(token: string | null) {
     this.token = token;
   }
 
+  setBaseUrl(url: string) {
+    // Normalize URL: remove trailing slash, ensure it ends with /api
+    let normalized = url.replace(/\/$/, '');
+    if (!normalized.endsWith('/api')) {
+      normalized = normalized + '/api';
+    }
+    this.baseUrl = normalized;
+  }
+
+  getBaseUrl(): string {
+    return this.baseUrl;
+  }
+
   private async fetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
+      ...((options.headers as Record<string, string>) || {}),
     };
 
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
 
-    const response = await fetch(`${API_BASE}${endpoint}`, {
+    const response = await fetch(`${this.baseUrl}${endpoint}`, {
       ...options,
       headers,
     });
