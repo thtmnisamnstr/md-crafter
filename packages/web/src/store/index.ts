@@ -290,7 +290,7 @@ export const useStore = create<AppState>()(
           const markdown = await pasteAsMarkdown();
           if (markdown) {
             // Insert at cursor position or append
-            const editor = (window as any).monacoEditor;
+            const editor = window.monacoEditor;
             if (editor) {
               const selection = editor.getSelection();
               const range = selection ? {
@@ -685,15 +685,16 @@ export const useStore = create<AppState>()(
                 : t
             ),
           }));
-        } catch (error: any) {
-          if (error.conflict) {
+        } catch (error: unknown) {
+          const syncError = error as { conflict?: { serverContent: string; serverTimestamp: number } };
+          if (syncError.conflict) {
             set({
               conflict: {
                 documentId: tab.documentId,
                 localContent: tab.content,
-                remoteContent: error.conflict.serverContent,
+                remoteContent: syncError.conflict.serverContent,
                 localTimestamp: Date.now(),
-                remoteTimestamp: error.conflict.serverTimestamp,
+                remoteTimestamp: syncError.conflict.serverTimestamp,
               },
             });
           } else {

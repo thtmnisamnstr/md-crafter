@@ -67,7 +67,7 @@ cd md-edit
 npm install
 
 # Build shared package
-npm run build -w @md-edit/shared
+npm run build:shared
 
 # Start development servers
 npm run dev
@@ -299,6 +299,23 @@ npm run lint
 npm run format
 ```
 
+### Pre-Push Verification
+
+Before pushing to `main`, run the verification script to ensure CI will pass:
+
+```bash
+./scripts/pre-push-check.sh
+```
+
+This script verifies:
+1. `package-lock.json` is in sync with `package.json`
+2. All packages build successfully
+3. Linting passes
+4. All tests pass
+5. Desktop app builds correctly
+
+**Important**: After modifying any `package.json`, always run `npm install` to update the lock file before committing.
+
 ## Troubleshooting
 
 ### Desktop App Shows Black Screen
@@ -334,24 +351,23 @@ For more help, see the [issues page](https://github.com/yourusername/md-edit/iss
 
 ## Version History
 
-### v2.0.0
+> **Note**: This project is currently in pre-release. The first stable release will be v0.1.0.
+
+### Pre-release (Current)
+- Monaco Editor with syntax highlighting for 50+ languages
 - Menu bar with File/Edit/View/Help menus
 - Word document import/export (.docx)
 - Copy/Paste for Word/Google Docs
-- PDF export
+- PDF and HTML export
 - Google Drive integration
 - Full MDX support with component library
-- Split editor views
+- Split editor views (horizontal/vertical)
+- Cloud sync with conflict detection
+- Markdown preview with scroll sync
+- Multiple themes (6 built-in)
 - Docker deployment support
 - Global search across documents
-
-### v1.0.0
-- Initial release
-- Monaco Editor with syntax highlighting
-- Cloud sync with conflict detection
-- Markdown preview
-- Multiple themes
-- Electron desktop app
+- Electron desktop app with native menus
 
 ## Contributing
 

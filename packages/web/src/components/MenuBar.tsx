@@ -449,7 +449,7 @@ export function MenuBar() {
       icon: <Search size={14} />,
       action: () => {
         // Trigger Monaco find widget
-        const editor = (window as any).monacoEditor;
+        const editor = window.monacoEditor;
         if (editor) {
           editor.getAction('actions.find')?.run();
         }
@@ -461,7 +461,7 @@ export function MenuBar() {
       shortcut: '⌘H',
       icon: <Replace size={14} />,
       action: () => {
-        const editor = (window as any).monacoEditor;
+        const editor = window.monacoEditor;
         if (editor) {
           editor.getAction('editor.action.startFindReplaceAction')?.run();
         }

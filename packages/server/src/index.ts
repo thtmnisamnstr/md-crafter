@@ -39,7 +39,7 @@ app.get('/health', (_req, res) => {
 });
 
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '2.0.0' });
+  res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '0.0.0-pre' });
 });
 
 // Public routes

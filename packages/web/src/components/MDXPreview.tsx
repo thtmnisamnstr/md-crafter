@@ -10,7 +10,7 @@ interface MDXPreviewProps {
 }
 
 export function MDXPreview({ content }: MDXPreviewProps) {
-  const [Component, setComponent] = useState<React.ComponentType<any> | null>(null);
+  const [Component, setComponent] = useState<React.ComponentType<Record<string, unknown>> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const compileMdx = useCallback(async (source: string) => {

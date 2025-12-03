@@ -95,7 +95,18 @@ md-edit/
    - `test:` - Adding or updating tests
    - `chore:` - Maintenance tasks
 
-5. **Push and create a Pull Request**
+5. **Run pre-push verification**
+   ```bash
+   ./scripts/pre-push-check.sh
+   ```
+   This runs all CI checks locally to ensure your push will succeed:
+   - Verifies `package-lock.json` is in sync
+   - Builds all packages
+   - Runs linting
+   - Runs all tests
+   - Builds desktop app
+
+6. **Push and create a Pull Request**
    ```bash
    git push origin feature/your-feature-name
    ```
@@ -239,4 +250,3 @@ Releases are managed by maintainers:
 - Help others learn and grow
 
 Thank you for contributing!
-

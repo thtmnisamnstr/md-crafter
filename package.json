@@ -1,6 +1,6 @@
 {
   "name": "md-edit",
-  "version": "1.0.0",
+  "version": "0.0.0-pre",
   "description": "Cloud-synced markdown and code editor with real-time collaboration",
   "private": true,
   "workspaces": [
@@ -26,6 +26,7 @@
     "clean": "rimraf packages/*/dist packages/*/node_modules node_modules",
     "clean:dist": "rimraf packages/*/dist",
     "verify-builds": "bash scripts/verify-builds.sh",
+    "pre-push": "bash scripts/pre-push-check.sh",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -41,8 +42,8 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@types/node": "^20.10.0",
-    "@typescript-eslint/eslint-plugin": "^6.13.0",
-    "@typescript-eslint/parser": "^6.13.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
     "@vitest/coverage-v8": "^4.0.15",
     "concurrently": "^8.2.2",
     "eslint": "^8.55.0",

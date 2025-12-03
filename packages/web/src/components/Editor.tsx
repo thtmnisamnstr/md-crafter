@@ -1,5 +1,6 @@
 import { useRef, useCallback, useMemo } from 'react';
 import MonacoEditor, { OnMount, OnChange } from '@monaco-editor/react';
+import type * as monaco from 'monaco-editor';
 import { useStore } from '../store';
 import { debounce } from '@md-edit/shared';
 
@@ -12,7 +13,7 @@ export function Editor() {
     theme,
   } = useStore();
 
-  const editorRef = useRef<any>(null);
+  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   
   const activeTab = tabs.find((t) => t.id === activeTabId);
 

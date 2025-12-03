@@ -169,7 +169,7 @@ function tokenToDocx(token: MarkedToken): Paragraph | Table | (Paragraph | Table
         spacing: { before: 200, after: 200 },
       });
     
-    case 'blockquote':
+    case 'blockquote': {
       const quoteTokens = (token as Tokens.Blockquote).tokens || [];
       return quoteTokens.map((t: MarkedToken) => {
         if (t.type === 'paragraph') {
@@ -184,6 +184,7 @@ function tokenToDocx(token: MarkedToken): Paragraph | Table | (Paragraph | Table
         }
         return tokenToDocx(t);
       }).filter(Boolean) as Paragraph[];
+    }
     
     case 'list':
       return ((token as Tokens.List).items || []).map((item: Tokens.ListItem, index: number) => {
@@ -277,7 +278,7 @@ function inlineTokensToRuns(tokens: MarkedToken[]): TextRun[] {
       
       default:
         if ('text' in token) {
-          runs.push(new TextRun({ text: (token as any).text }));
+          runs.push(new TextRun({ text: (token as { text: string }).text }));
         }
     }
   }
