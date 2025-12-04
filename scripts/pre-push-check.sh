@@ -17,7 +17,7 @@ if [ ! -f "package.json" ]; then
     exit 1
 fi
 
-echo "Step 1/5: Verifying package-lock.json is in sync..."
+echo "Step 1/6: Verifying package-lock.json is in sync..."
 echo "──────────────────────────────────────────────────────────────"
 npm ci --silent 2>/dev/null || {
     echo "❌ package-lock.json is out of sync with package.json"
@@ -27,13 +27,13 @@ npm ci --silent 2>/dev/null || {
 echo "✓ Lock file is in sync"
 echo ""
 
-echo "Step 2/5: Building all packages..."
+echo "Step 2/6: Building all packages..."
 echo "──────────────────────────────────────────────────────────────"
 npm run build
 echo "✓ Build successful"
 echo ""
 
-echo "Step 3/5: Running linter..."
+echo "Step 3/6: Running linter..."
 echo "──────────────────────────────────────────────────────────────"
 if npm run lint 2>&1; then
     echo "✓ Linting passed"
@@ -42,16 +42,25 @@ else
 fi
 echo ""
 
-echo "Step 4/5: Running tests..."
+echo "Step 4/6: Running tests..."
 echo "──────────────────────────────────────────────────────────────"
 npm run test
 echo "✓ Tests passed"
 echo ""
 
-echo "Step 5/5: Building desktop app..."
+echo "Step 5/6: Building desktop app..."
 echo "──────────────────────────────────────────────────────────────"
 npm run build:desktop
 echo "✓ Desktop build successful"
+echo ""
+
+echo "Step 6/6: Running E2E tests..."
+echo "──────────────────────────────────────────────────────────────"
+# Ensure Playwright browsers are installed
+npx playwright install chromium --with-deps 2>/dev/null || true
+# Run E2E tests with Chromium only for speed
+npx playwright test --project=chromium 2>&1
+echo "✓ E2E tests passed"
 echo ""
 
 echo "╔══════════════════════════════════════════════════════════════╗"

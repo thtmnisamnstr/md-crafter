@@ -75,8 +75,8 @@ test.describe('Markdown Preview', () => {
   test('should toggle preview', async ({ page }) => {
     // Click View menu
     await page.getByRole('button', { name: 'View', exact: true }).click();
-    // Click Toggle Preview
-    await page.getByText('Toggle Preview').click();
+    // Click Show Preview or Hide Preview (text changes based on state)
+    await page.getByText(/Show Preview|Hide Preview/).first().click();
     
     // Preview should be visible - check for common preview class names
     await expect(
@@ -106,7 +106,8 @@ test.describe('Keyboard Shortcuts', () => {
 
   test('should open search with Ctrl+Shift+F', async ({ page }) => {
     await page.keyboard.press('Control+Shift+f');
-    await expect(page.locator('.search-modal, [class*="search-modal"]').first()).toBeVisible();
+    // Search modal should appear - look for the search input by placeholder
+    await expect(page.getByPlaceholder('Search in all documents...')).toBeVisible({ timeout: 5000 });
   });
 });
 
@@ -119,11 +120,10 @@ test.describe('Themes', () => {
   test('should change theme via View menu', async ({ page }) => {
     // Click View menu
     await page.getByRole('button', { name: 'View', exact: true }).click();
-    // Hover over Theme
-    await page.getByText('Theme').hover();
-    
-    // Should see theme options
-    await expect(page.getByText('Dark+')).toBeVisible();
-    await expect(page.getByText('Light+')).toBeVisible();
+    // Hover over Change Theme to reveal submenu with theme options
+    await page.getByText('Change Theme', { exact: true }).hover();
+    // Wait for submenu to appear and check for theme options
+    await expect(page.getByText('Dark+ ✓').or(page.getByText('Dark+'))).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('Light+').first()).toBeVisible();
   });
 });
