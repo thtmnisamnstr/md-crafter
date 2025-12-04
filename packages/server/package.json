@@ -1,6 +1,6 @@
 {
   "name": "@md-edit/server",
-  "version": "0.0.0-pre",
+  "version": "0.1.0-pre",
   "description": "Backend API server for md-edit",
   "main": "./dist/index.js",
   "type": "module",

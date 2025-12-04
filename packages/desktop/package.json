@@ -1,6 +1,6 @@
 {
   "name": "@md-edit/desktop",
-  "version": "0.0.0-pre",
+  "version": "0.1.0-pre",
   "description": "Desktop application for md-edit",
   "main": "dist/main/index.js",
   "scripts": {

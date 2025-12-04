@@ -38,7 +38,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
           </h1>
           
           <p className="text-sm opacity-70 mb-4" style={{ color: 'var(--editor-fg)' }}>
-            Version 2.0.0
+            Version 0.1.0-pre
           </p>
 
           <p className="mb-4" style={{ color: 'var(--editor-fg)' }}>
@@ -62,11 +62,11 @@ export function AboutModal({ onClose }: AboutModalProps) {
 
           <div className="mt-6 pt-4 border-t border-tab-border">
             <p className="text-xs opacity-50" style={{ color: 'var(--editor-fg)' }}>
-              © 2024 md-edit. MIT License.
+              © 2025 Gavin Johnson. MIT License.
             </p>
             <p className="text-xs opacity-50 mt-1" style={{ color: 'var(--editor-fg)' }}>
               <a
-                href="https://github.com/yourusername/md-edit"
+                href="https://github.com/thtmnisamnstr/md-edit"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:underline"

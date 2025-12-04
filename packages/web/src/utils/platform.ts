@@ -17,24 +17,22 @@ declare global {
 
 /**
  * Check if the app is running inside Electron
- * Uses multiple detection methods for reliability
+ * We require BOTH the Electron user agent AND our preload API to be present.
+ * This prevents false positives from Electron-based browsers (like Cursor's browser).
  */
 export const isElectron = (): boolean => {
-  // Primary check: Electron adds itself to the user agent
-  if (typeof navigator !== 'undefined' && navigator.userAgent.includes('Electron')) {
-    return true;
-  }
+  // Check for Electron user agent
+  const hasElectronUA = typeof navigator !== 'undefined' && navigator.userAgent.includes('Electron');
   
-  // Secondary check: our preload script exposes specific API methods
-  if (typeof window !== 'undefined' && window.api) {
-    // Verify it's our Electron preload API by checking for specific methods
-    if (typeof window.api.onMenuNewFile === 'function' || 
-        typeof window.api.readFile === 'function') {
-      return true;
-    }
-  }
+  // Check for our preload script API
+  const hasPreloadApi = typeof window !== 'undefined' && 
+    window.api !== undefined && 
+    window.api !== null &&
+    (typeof window.api.onMenuNewFile === 'function' || 
+     typeof window.api.readFile === 'function');
   
-  return false;
+  // Require BOTH to be present to avoid false positives from Electron-based browsers
+  return hasElectronUA && (hasPreloadApi === true);
 };
 
 /**

@@ -23,7 +23,7 @@ Complete user and developer documentation for the md-edit cloud-synced markdown 
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/md-edit.git
+git clone https://github.com/thtmnisamnstr/md-edit.git
 cd md-edit
 
 # Install dependencies

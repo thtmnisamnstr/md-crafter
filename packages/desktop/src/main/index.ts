@@ -274,11 +274,11 @@ function createMenu(): void {
         { type: 'separator' },
         {
           label: 'Documentation',
-          click: () => shell.openExternal('https://github.com/yourusername/md-edit'),
+          click: () => shell.openExternal('https://github.com/thtmnisamnstr/md-edit'),
         },
         {
           label: 'Report Issue',
-          click: () => shell.openExternal('https://github.com/yourusername/md-edit/issues'),
+          click: () => shell.openExternal('https://github.com/thtmnisamnstr/md-edit/issues'),
         },
         { type: 'separator' },
         {

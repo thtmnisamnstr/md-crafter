@@ -1,6 +1,6 @@
 {
   "name": "@md-edit/shared",
-  "version": "0.0.0-pre",
+  "version": "0.1.0-pre",
   "description": "Shared types, utilities, and sync logic for md-edit",
   "main": "./dist/index.js",
   "module": "./dist/index.js",

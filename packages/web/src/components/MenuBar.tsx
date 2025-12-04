@@ -81,7 +81,7 @@ function Menu({ label, items, isOpen, onOpen, onClose }: MenuProps) {
           'px-3 py-1 text-sm rounded hover:bg-sidebar-hover transition-colors',
           isOpen && 'bg-sidebar-hover'
         )}
-        style={{ color: 'var(--editor-fg)' }}
+        style={{ color: 'var(--editor-fg, #d4d4d4)' }}
         onClick={() => (isOpen ? onClose() : onOpen())}
         onMouseEnter={() => isOpen && onOpen()}
       >
@@ -91,7 +91,7 @@ function Menu({ label, items, isOpen, onOpen, onClose }: MenuProps) {
       {isOpen && (
         <div
           className="absolute left-0 top-full mt-1 min-w-[220px] rounded-md shadow-lg border border-tab-border z-50"
-          style={{ background: 'var(--sidebar-bg)' }}
+          style={{ background: 'var(--sidebar-bg, #252526)' }}
         >
           {items.map((item, index) =>
             item.separator ? (
@@ -112,7 +112,7 @@ function Menu({ label, items, isOpen, onOpen, onClose }: MenuProps) {
                     'w-full px-3 py-1.5 text-sm flex items-center gap-2 hover:bg-sidebar-hover transition-colors',
                     item.disabled && 'opacity-50 cursor-not-allowed'
                   )}
-                  style={{ color: 'var(--editor-fg)' }}
+                  style={{ color: 'var(--editor-fg, #d4d4d4)' }}
                   onClick={() => handleItemClick(item)}
                   disabled={item.disabled}
                 >
@@ -130,7 +130,7 @@ function Menu({ label, items, isOpen, onOpen, onClose }: MenuProps) {
                 {item.submenu && submenuOpen === item.id && (
                   <div
                     className="absolute left-full top-0 min-w-[180px] rounded-md shadow-lg border border-tab-border ml-1"
-                    style={{ background: 'var(--sidebar-bg)' }}
+                    style={{ background: 'var(--sidebar-bg, #252526)' }}
                   >
                     {item.submenu.map((subitem) => (
                       <button
@@ -139,7 +139,7 @@ function Menu({ label, items, isOpen, onOpen, onClose }: MenuProps) {
                           'w-full px-3 py-1.5 text-sm flex items-center gap-2 hover:bg-sidebar-hover transition-colors',
                           subitem.disabled && 'opacity-50 cursor-not-allowed'
                         )}
-                        style={{ color: 'var(--editor-fg)' }}
+                        style={{ color: 'var(--editor-fg, #d4d4d4)' }}
                         onClick={() => {
                           if (subitem.action && !subitem.disabled) {
                             subitem.action();
@@ -558,7 +558,7 @@ export function MenuBar() {
       id: 'docs',
       label: 'Documentation',
       icon: <HelpCircle size={14} />,
-      action: () => window.open('https://github.com/yourusername/md-edit#readme', '_blank'),
+      action: () => window.open('https://github.com/thtmnisamnstr/md-edit#readme', '_blank'),
     },
     {
       id: 'shortcuts',
@@ -580,7 +580,7 @@ export function MenuBar() {
     <div
       ref={menuBarRef}
       className="flex items-center h-8 px-2 border-b border-tab-border"
-      style={{ background: 'var(--sidebar-bg)' }}
+      style={{ background: 'var(--sidebar-bg, #252526)' }}
     >
       <Menu
         label="File"

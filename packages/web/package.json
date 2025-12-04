@@ -1,6 +1,6 @@
 {
   "name": "@md-edit/web",
-  "version": "0.0.0-pre",
+  "version": "0.1.0-pre",
   "description": "Web application for md-edit",
   "type": "module",
   "scripts": {

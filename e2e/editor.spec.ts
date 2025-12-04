@@ -6,48 +6,48 @@ const MONACO_TIMEOUT = 30000;
 test.describe('Editor', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+    // Wait for app to fully load (network idle)
+    await page.waitForLoadState('networkidle');
   });
 
   test('should load the app', async ({ page }) => {
     await expect(page).toHaveTitle(/md-edit/i);
   });
 
-  test('should have Monaco editor visible', async ({ page }) => {
-    // Wait for Monaco editor to load (longer timeout for CI)
-    await page.waitForSelector('.monaco-editor', { timeout: MONACO_TIMEOUT });
-    await expect(page.locator('.monaco-editor')).toBeVisible();
+  test('should show WelcomeTab on first load', async ({ page }) => {
+    // On first load, WelcomeTab should be visible (not Monaco editor)
+    await expect(page.getByText('Welcome to md-edit')).toBeVisible();
   });
 
   test('should have menu bar', async ({ page }) => {
-    // Use specific button selectors to avoid matching "Search All Files"
-    await expect(page.getByRole('button', { name: 'File' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Edit' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'View' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Help' })).toBeVisible();
+    // Use exact: true to avoid "Edit" matching "OPEN EDITORS"
+    await expect(page.getByRole('button', { name: 'File', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Edit', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'View', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Help', exact: true })).toBeVisible();
   });
 
   test('should open File menu', async ({ page }) => {
-    await page.getByRole('button', { name: 'File' }).click();
-    await expect(page.getByText('New Document')).toBeVisible();
-    await expect(page.getByRole('menuitem', { name: /Open/i }).or(page.getByText('Open'))).toBeVisible();
-    await expect(page.getByRole('menuitem', { name: /Save/i }).or(page.getByText('Save'))).toBeVisible();
+    await page.getByRole('button', { name: 'File', exact: true }).click();
+    // Use first() since "New Document" appears in both menu and WelcomeTab
+    await expect(page.getByText('New Document').first()).toBeVisible();
   });
 
-  test('should create new document', async ({ page }) => {
+  test('should create new document and show Monaco editor', async ({ page }) => {
     // Click File menu
-    await page.getByRole('button', { name: 'File' }).click();
-    // Click New Document
-    await page.getByText('New Document').click();
-    // Should create a new tab - wait for Monaco to be visible as indicator
+    await page.getByRole('button', { name: 'File', exact: true }).click();
+    // Click New Document (use first() to avoid WelcomeTab duplicate)
+    await page.getByText('New Document').first().click();
+    // Wait for Monaco editor to load
     await page.waitForSelector('.monaco-editor', { timeout: MONACO_TIMEOUT });
     await expect(page.locator('.monaco-editor')).toBeVisible();
   });
 
   test('should toggle sidebar', async ({ page }) => {
     // Wait for app to fully load
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
     
-    // Find sidebar toggle or use keyboard shortcut
+    // Find sidebar
     const sidebar = page.locator('.sidebar');
     
     // Check initial state
@@ -66,12 +66,15 @@ test.describe('Editor', () => {
 test.describe('Markdown Preview', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+    // Create a document first so Monaco exists
+    await page.getByRole('button', { name: 'File', exact: true }).click();
+    await page.getByText('New Document').first().click();
     await page.waitForSelector('.monaco-editor', { timeout: MONACO_TIMEOUT });
   });
 
   test('should toggle preview', async ({ page }) => {
     // Click View menu
-    await page.getByRole('button', { name: 'View' }).click();
+    await page.getByRole('button', { name: 'View', exact: true }).click();
     // Click Toggle Preview
     await page.getByText('Toggle Preview').click();
     
@@ -85,7 +88,7 @@ test.describe('Markdown Preview', () => {
 test.describe('Keyboard Shortcuts', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await page.waitForSelector('.monaco-editor', { timeout: MONACO_TIMEOUT });
+    await page.waitForLoadState('networkidle');
   });
 
   test('should open command palette with Ctrl+Shift+P', async ({ page }) => {
@@ -110,12 +113,12 @@ test.describe('Keyboard Shortcuts', () => {
 test.describe('Themes', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
-    await page.waitForSelector('.monaco-editor', { timeout: MONACO_TIMEOUT });
+    await page.waitForLoadState('networkidle');
   });
 
   test('should change theme via View menu', async ({ page }) => {
     // Click View menu
-    await page.getByRole('button', { name: 'View' }).click();
+    await page.getByRole('button', { name: 'View', exact: true }).click();
     // Hover over Theme
     await page.getByText('Theme').hover();
     

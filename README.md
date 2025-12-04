@@ -60,7 +60,7 @@ A cloud-synced markdown and MDX editor with real-time collaboration support. Bui
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/md-edit.git
+git clone https://github.com/thtmnisamnstr/md-edit.git
 cd md-edit
 
 # Install dependencies
@@ -347,7 +347,7 @@ If the desktop app UI appears with no CSS styles (elements stacked vertically, n
 2. **Check Node version**: Requires Node.js 18+
 3. **Check for TypeScript errors**: `npm run lint`
 
-For more help, see the [issues page](https://github.com/yourusername/md-edit/issues).
+For more help, see the [issues page](https://github.com/thtmnisamnstr/md-edit/issues).
 
 ## Version History
 
