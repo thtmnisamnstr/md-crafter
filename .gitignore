@@ -34,6 +34,22 @@ coverage/
 # Electron
 packages/desktop/release/
 
+# Playwright
+playwright-report/
+test-results/
+
+# Server local data (development database)
+packages/server/data/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# ESLint cache
+.eslintcache
+
+# Turbo
+.turbo/
+
 # Misc
 .cache/
 .tmp/
