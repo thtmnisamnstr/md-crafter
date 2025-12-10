@@ -33,6 +33,12 @@ export interface DocumentVersion {
   created_at: string;
 }
 
+/**
+ * Row data type for database queries
+ * Represents a row returned from a database query
+ */
+export type RowData = Record<string, unknown>;
+
 export interface DatabaseAdapter {
   // Lifecycle
   initialize(): Promise<void>;

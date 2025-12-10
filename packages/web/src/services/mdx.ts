@@ -1,5 +1,6 @@
 import { compile, run } from '@mdx-js/mdx';
 import * as runtime from 'react/jsx-runtime';
+import { logger } from '@md-crafter/shared';
 
 /**
  * Compile MDX content to a React component
@@ -45,7 +46,7 @@ export async function runMdx(
       default: React.ComponentType<{ components?: Record<string, React.ComponentType<unknown>> }>;
     };
   } catch (error) {
-    console.error('Error running MDX:', error);
+      logger.error('Error running MDX', error);
     return null;
   }
 }

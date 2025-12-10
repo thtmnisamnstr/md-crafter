@@ -7,10 +7,11 @@ import { StatusBar } from './StatusBar';
 import { MarkdownPreview } from './MarkdownPreview';
 import { SplitEditor } from './SplitEditor';
 import { WelcomeTab } from './WelcomeTab';
+import { DEFAULT_PREVIEW_RATIO, SIDEBAR_MIN_WIDTH, SIDEBAR_MAX_WIDTH } from '../constants';
 
 export function Layout() {
   const { showSidebar, showPreview, sidebarWidth, activeTabId, tabs, setSidebarWidth, zenMode, splitMode } = useStore();
-  const [previewRatio, setPreviewRatio] = useState(0.4); // 40% for preview
+  const [previewRatio, setPreviewRatio] = useState(DEFAULT_PREVIEW_RATIO);
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const [isResizing, setIsResizing] = useState(false);
   
@@ -29,7 +30,7 @@ export function Layout() {
     
     const handleMouseMove = (e: MouseEvent) => {
       const delta = e.clientX - startX;
-      const newWidth = Math.max(180, Math.min(400, startWidth + delta));
+      const newWidth = Math.max(SIDEBAR_MIN_WIDTH, Math.min(SIDEBAR_MAX_WIDTH, startWidth + delta));
       setSidebarWidth(newWidth);
     };
     

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { dbHelpers, User } from '../db/setup.js';
-import { generateApiToken, DEFAULT_USER_SETTINGS } from '@md-edit/shared';
+import { generateApiToken, DEFAULT_USER_SETTINGS, logger } from '@md-crafter/shared';
 
 export const authRouter = Router();
 
@@ -42,7 +42,7 @@ authRouter.post('/token', async (req: Request, res: Response) => {
       message: 'Save this API token securely. It cannot be recovered.',
     });
   } catch (error) {
-    console.error('Token generation error:', error);
+    logger.error('Token generation error:', error);
     res.status(500).json({ error: 'Failed to generate token' });
   }
 });
@@ -70,7 +70,7 @@ authRouter.post('/validate', async (req: Request, res: Response) => {
       email: user.email,
     });
   } catch (error) {
-    console.error('Token validation error:', error);
+    logger.error('Token validation error:', error);
     res.status(500).json({ error: 'Failed to validate token' });
   }
 });
@@ -102,7 +102,7 @@ authRouter.get('/me', async (req: Request, res: Response) => {
       createdAt: user.created_at,
     });
   } catch (error) {
-    console.error('Get user error:', error);
+    logger.error('Get user error:', error);
     res.status(500).json({ error: 'Failed to get user info' });
   }
 });

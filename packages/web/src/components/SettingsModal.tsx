@@ -1,15 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../store';
 import { X, Check } from 'lucide-react';
-
-const THEMES = [
-  { id: 'dark', name: 'Dark+ (Default)' },
-  { id: 'light', name: 'Light+' },
-  { id: 'monokai', name: 'Monokai' },
-  { id: 'dracula', name: 'Dracula' },
-  { id: 'github-dark', name: 'GitHub Dark' },
-  { id: 'nord', name: 'Nord' },
-];
+import { THEMES } from '../utils/themes';
 
 const FONT_SIZES = [10, 12, 14, 16, 18, 20, 22, 24];
 

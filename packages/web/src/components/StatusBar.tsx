@@ -9,7 +9,7 @@ import {
   PanelLeftClose
 } from 'lucide-react';
 import clsx from 'clsx';
-import { getSyncStatusLabel } from '@md-edit/shared';
+import { getSyncStatusLabel } from '@md-crafter/shared';
 
 export function StatusBar() {
   const { 

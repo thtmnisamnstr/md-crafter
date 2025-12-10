@@ -154,7 +154,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('electron', electronAPI);
     contextBridge.exposeInMainWorld('api', api);
   } catch (error) {
-    console.error(error);
+    logger.error('Preload error', error);
   }
 } else {
   // @ts-expect-error (define in dts)

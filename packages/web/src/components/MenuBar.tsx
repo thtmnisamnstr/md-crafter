@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store';
+import { THEMES } from '../utils/themes';
 import {
   ChevronDown,
   FileText,
@@ -164,15 +165,6 @@ function Menu({ label, items, isOpen, onOpen, onClose }: MenuProps) {
     </div>
   );
 }
-
-const THEMES = [
-  { id: 'dark', name: 'Dark+' },
-  { id: 'light', name: 'Light+' },
-  { id: 'monokai', name: 'Monokai' },
-  { id: 'dracula', name: 'Dracula' },
-  { id: 'github-dark', name: 'GitHub Dark' },
-  { id: 'nord', name: 'Nord' },
-];
 
 export function MenuBar() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -558,7 +550,7 @@ export function MenuBar() {
       id: 'docs',
       label: 'Documentation',
       icon: <HelpCircle size={14} />,
-      action: () => window.open('https://github.com/thtmnisamnstr/md-edit#readme', '_blank'),
+      action: () => window.open('https://github.com/thtmnisamnstr/md-crafter#readme', '_blank'),
     },
     {
       id: 'shortcuts',
@@ -570,7 +562,7 @@ export function MenuBar() {
     { id: 'sep1', label: '', separator: true },
     {
       id: 'about',
-      label: 'About md-edit',
+      label: 'About md-crafter',
       icon: <Info size={14} />,
       action: () => setShowAbout(true),
     },

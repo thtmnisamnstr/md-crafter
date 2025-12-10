@@ -1,7 +1,7 @@
 {
-  "name": "@md-edit/desktop",
+  "name": "@md-crafter/desktop",
   "version": "0.1.0-pre",
-  "description": "Desktop application for md-edit",
+  "description": "Desktop application for md-crafter",
   "main": "dist/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
@@ -14,7 +14,7 @@
     "package:dir": "npm run build && electron-builder --dir"
   },
   "dependencies": {
-    "@md-edit/shared": "*",
+    "@md-crafter/shared": "*",
     "electron-store": "^8.1.0",
     "electron-updater": "^6.1.7"
   },
@@ -33,8 +33,8 @@
     "vite": "^5.0.8"
   },
   "build": {
-    "appId": "com.mdedit.app",
-    "productName": "md-edit",
+    "appId": "com.mdcrafter.app",
+    "productName": "md-crafter",
     "asar": true,
     "directories": {
       "output": "release",

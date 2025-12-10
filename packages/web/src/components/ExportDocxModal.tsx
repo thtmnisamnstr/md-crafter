@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../store';
 import { X, FileType, Download } from 'lucide-react';
+import { logger } from '@md-crafter/shared';
 import { exportDocx } from '../services/docx';
 
 interface ExportDocxModalProps {
@@ -25,7 +26,7 @@ export function ExportDocxModal({ onClose }: ExportDocxModalProps) {
       addToast({ type: 'success', message: 'Exported to Word document' });
       onClose();
     } catch (error) {
-      console.error('Export failed:', error);
+      logger.error('Export failed', error);
       addToast({ type: 'error', message: 'Failed to export document' });
     } finally {
       setIsExporting(false);

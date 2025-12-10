@@ -29,6 +29,8 @@ export function Sidebar() {
     setShowSettings,
     logout,
     setActiveTab,
+    setConfirmation,
+    clearConfirmation,
   } = useStore();
 
   const [showCloudDocs, setShowCloudDocs] = useState(true);
@@ -43,16 +45,24 @@ export function Sidebar() {
 
   const handleDelete = async (e: React.MouseEvent, docId: string) => {
     e.stopPropagation();
-    if (window.confirm('Delete this document permanently?')) {
-      await deleteCloudDocument(docId);
-    }
+    setConfirmation({
+      title: 'Delete Document',
+      message: 'Delete this document permanently? This action cannot be undone.',
+      variant: 'danger',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      onConfirm: async () => {
+        await deleteCloudDocument(docId);
+        clearConfirmation();
+      },
+    });
   };
 
   return (
     <nav className="sidebar h-full flex flex-col" role="navigation" aria-label="File explorer">
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-tab-border">
-        <span className="font-semibold text-sm">md-edit</span>
+        <span className="font-semibold text-sm">md-crafter</span>
         <div className="flex items-center gap-1" role="toolbar" aria-label="File actions">
           <button
             onClick={createNewDocument}

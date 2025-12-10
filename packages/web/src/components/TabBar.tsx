@@ -1,7 +1,7 @@
 import { useStore } from '../store';
 import { X, FileText, Cloud } from 'lucide-react';
 import clsx from 'clsx';
-import { getSyncStatusIcon } from '@md-edit/shared';
+import { getSyncStatusIcon } from '@md-crafter/shared';
 import { useCallback } from 'react';
 
 export function TabBar() {

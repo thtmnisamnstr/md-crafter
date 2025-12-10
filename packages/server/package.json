@@ -1,7 +1,7 @@
 {
-  "name": "@md-edit/server",
+  "name": "@md-crafter/server",
   "version": "0.1.0-pre",
-  "description": "Backend API server for md-edit",
+  "description": "Backend API server for md-crafter",
   "main": "./dist/index.js",
   "type": "module",
   "scripts": {
@@ -10,7 +10,7 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@md-edit/shared": "*",
+    "@md-crafter/shared": "*",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",

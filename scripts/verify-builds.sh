@@ -7,7 +7,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-echo "=== MD-Edit Build Verification ==="
+echo "=== MD-Crafter Build Verification ==="
 echo ""
 
 cd "$(dirname "$0")/.."
@@ -86,14 +86,14 @@ echo ""
 echo -e "${YELLOW}[7/8] Testing Docker builds...${NC}"
 if command -v docker &> /dev/null; then
     echo "Building standalone Docker image..."
-    if docker build -t md-edit:test . -q; then
+    if docker build -t md-crafter:test . -q; then
         echo -e "${GREEN}✓${NC} Standalone Docker image built"
     else
         echo -e "${RED}✗${NC} Standalone Docker image failed"
     fi
     
     echo "Building production Docker image..."
-    if docker build -f Dockerfile.prod -t md-edit:prod-test . -q; then
+    if docker build -f Dockerfile.prod -t md-crafter:prod-test . -q; then
         echo -e "${GREEN}✓${NC} Production Docker image built"
     else
         echo -e "${RED}✗${NC} Production Docker image failed"

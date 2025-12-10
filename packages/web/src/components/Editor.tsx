@@ -1,8 +1,11 @@
-import { useRef, useCallback, useMemo } from 'react';
+import { useRef, useCallback, useMemo, useEffect } from 'react';
 import MonacoEditor, { OnMount, OnChange } from '@monaco-editor/react';
 import type * as monaco from 'monaco-editor';
 import { useStore } from '../store';
-import { debounce } from '@md-edit/shared';
+import { debounce } from '@md-crafter/shared';
+import { defineMonacoThemes } from '../utils/monacoThemes';
+import { getLanguageFromExtension } from '../utils/language';
+import { ErrorBoundary } from './ErrorBoundary';
 
 export function Editor() {
   const { 
@@ -14,6 +17,7 @@ export function Editor() {
   } = useStore();
 
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const monacoRef = useRef<typeof monaco | null>(null);
   
   const activeTab = tabs.find((t) => t.id === activeTabId);
 
@@ -25,100 +29,57 @@ export function Editor() {
     [updateTabContent]
   );
 
+  // Get Monaco theme name based on app theme
+  const monacoTheme = useMemo(() => {
+    switch (theme) {
+      case 'light':
+        return 'md-crafter-light';
+      case 'monokai':
+        return 'monokai';
+      case 'dracula':
+        return 'vs-dark'; // Monaco's built-in dracula theme
+      default:
+        return 'md-crafter-dark';
+    }
+  }, [theme]);
+
   const handleEditorMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
+    monacoRef.current = monaco;
+    window.monacoEditor = editor;
     
-    // Configure Monaco themes
-    monaco.editor.defineTheme('md-edit-dark', {
-      base: 'vs-dark',
-      inherit: true,
-      rules: [],
-      colors: {
-        'editor.background': '#1e1e1e',
-        'editor.foreground': '#d4d4d4',
-        'editor.lineHighlightBackground': '#2d2d2d',
-        'editor.selectionBackground': '#264f78',
-        'editorCursor.foreground': '#d4d4d4',
-        'editorLineNumber.foreground': '#858585',
-        'editorLineNumber.activeForeground': '#c6c6c6',
-      },
-    });
-
-    monaco.editor.defineTheme('md-edit-light', {
-      base: 'vs',
-      inherit: true,
-      rules: [],
-      colors: {
-        'editor.background': '#ffffff',
-        'editor.foreground': '#333333',
-        'editor.lineHighlightBackground': '#f3f3f3',
-        'editor.selectionBackground': '#add6ff',
-      },
-    });
+    // Define Monaco themes (idempotent - safe to call multiple times)
+    defineMonacoThemes(monaco);
 
     // Apply theme
-    const monacoTheme = theme === 'light' ? 'md-edit-light' : 'md-edit-dark';
     monaco.editor.setTheme(monacoTheme);
 
     // Focus editor
     editor.focus();
   };
 
+  // Update theme when it changes (after initial mount)
+  useEffect(() => {
+    if (monacoRef.current) {
+      // Ensure themes are defined
+      defineMonacoThemes(monacoRef.current);
+      // Apply theme
+      monacoRef.current.editor.setTheme(monacoTheme);
+    }
+  }, [monacoTheme]);
+
+  // Cleanup window.monacoEditor on unmount
+  useEffect(() => {
+    return () => {
+      window.monacoEditor = undefined;
+    };
+  }, []);
+
   const handleChange: OnChange = useCallback((value) => {
     if (activeTabId && value !== undefined) {
       debouncedUpdate(activeTabId, value);
     }
   }, [activeTabId, debouncedUpdate]);
-
-  // Get Monaco theme based on app theme
-  const monacoTheme = useMemo(() => {
-    switch (theme) {
-      case 'light':
-        return 'vs';
-      case 'monokai':
-        return 'monokai';
-      case 'dracula':
-        return 'vs-dark'; // Will be customized
-      default:
-        return 'vs-dark';
-    }
-  }, [theme]);
-
-  // Map file extensions to Monaco languages
-  const getLanguage = (filename: string, defaultLang: string): string => {
-    const ext = filename.split('.').pop()?.toLowerCase();
-    const langMap: Record<string, string> = {
-      md: 'markdown',
-      markdown: 'markdown',
-      js: 'javascript',
-      jsx: 'javascript',
-      ts: 'typescript',
-      tsx: 'typescript',
-      json: 'json',
-      html: 'html',
-      css: 'css',
-      scss: 'scss',
-      less: 'less',
-      py: 'python',
-      rb: 'ruby',
-      go: 'go',
-      rs: 'rust',
-      java: 'java',
-      c: 'c',
-      cpp: 'cpp',
-      h: 'cpp',
-      cs: 'csharp',
-      php: 'php',
-      sql: 'sql',
-      yaml: 'yaml',
-      yml: 'yaml',
-      xml: 'xml',
-      sh: 'shell',
-      bash: 'shell',
-      zsh: 'shell',
-    };
-    return langMap[ext || ''] || defaultLang || 'plaintext';
-  };
 
   if (!activeTab) {
     return (
@@ -137,9 +98,18 @@ export function Editor() {
   }
 
   return (
-    <MonacoEditor
+    <ErrorBoundary fallback={
+      <div className="flex items-center justify-center h-full p-4">
+        <div className="text-center">
+          <p className="text-sm opacity-60" style={{ color: 'var(--editor-fg)' }}>
+            Editor failed to load. Please refresh the page.
+          </p>
+        </div>
+      </div>
+    }>
+      <MonacoEditor
       height="100%"
-      language={getLanguage(activeTab.title, activeTab.language)}
+      language={getLanguageFromExtension(activeTab.title.split('.').pop(), activeTab.language)}
       value={activeTab.content}
       theme={monacoTheme}
       onChange={handleChange}
@@ -168,7 +138,8 @@ export function Editor() {
           horizontalScrollbarSize: 10,
         },
       }}
-    />
+      />
+    </ErrorBoundary>
   );
 }
 

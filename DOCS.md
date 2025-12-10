@@ -1,6 +1,6 @@
-# md-edit Documentation
+# md-crafter Documentation
 
-Complete user and developer documentation for the md-edit cloud-synced markdown editor.
+Complete user and developer documentation for the md-crafter cloud-synced markdown editor.
 
 ## Table of Contents
 
@@ -23,14 +23,14 @@ Complete user and developer documentation for the md-edit cloud-synced markdown 
 
 ```bash
 # Clone the repository
-git clone https://github.com/thtmnisamnstr/md-edit.git
-cd md-edit
+git clone https://github.com/thtmnisamnstr/md-crafter.git
+cd md-crafter
 
 # Install dependencies
 npm install
 
 # Build the shared package
-npm run build -w @md-edit/shared
+npm run build -w @md-crafter/shared
 
 # Start development servers
 npm run dev
@@ -248,7 +248,7 @@ Create `.env` in `packages/server/`:
 PORT=3001
 
 # Database path
-DB_FILENAME=./data/md-edit.json
+DB_FILENAME=./data/md-crafter.json
 
 # CORS origin
 CORS_ORIGIN=http://localhost:5173
@@ -371,7 +371,7 @@ Response (conflict):
 npm run build
 
 # Start production server
-NODE_ENV=production npm run start -w @md-edit/server
+NODE_ENV=production npm run start -w @md-crafter/server
 ```
 
 ### Serving the Web App
@@ -398,7 +398,7 @@ RUN npm ci
 RUN npm run build
 
 EXPOSE 3001
-CMD ["npm", "run", "start", "-w", "@md-edit/server"]
+CMD ["npm", "run", "start", "-w", "@md-crafter/server"]
 ```
 
 ---

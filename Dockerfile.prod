@@ -1,4 +1,4 @@
-# Production Dockerfile for md-edit
+# Production Dockerfile for md-crafter
 # Server and web app, connects to external PostgreSQL or MySQL database
 # Designed for scalable deployments
 
@@ -22,9 +22,9 @@ COPY packages/server ./packages/server
 COPY packages/web ./packages/web
 
 # Build all packages in order
-RUN npm run build -w @md-edit/shared
-RUN npm run build -w @md-edit/server
-RUN npm run build -w @md-edit/web
+RUN npm run build -w @md-crafter/shared
+RUN npm run build -w @md-crafter/server
+RUN npm run build -w @md-crafter/web
 
 # Production image
 FROM node:20-alpine
@@ -38,8 +38,8 @@ COPY packages/server/package*.json ./packages/server/
 COPY packages/web/package*.json ./packages/web/
 
 # Install with PostgreSQL and MySQL support
-RUN npm ci --omit=dev --workspace=@md-edit/shared --workspace=@md-edit/server && \
-    npm install pg mysql2 --save --workspace=@md-edit/server
+RUN npm ci --omit=dev --workspace=@md-crafter/shared --workspace=@md-crafter/server && \
+    npm install pg mysql2 --save --workspace=@md-crafter/server
 
 # Copy built files
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
@@ -57,8 +57,8 @@ ENV STATIC_DIR=/app/public
 
 # Database connection string (required at runtime)
 # Examples:
-# PostgreSQL: postgresql://user:password@host:5432/mdeditor
-# MySQL: mysql://user:password@host:3306/mdeditor
+# PostgreSQL: postgresql://user:password@host:5432/mdcrafter
+# MySQL: mysql://user:password@host:3306/mdcrafter
 # ENV DATABASE_URL=
 
 # Google API (optional - set these to enable Google Drive integration)

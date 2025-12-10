@@ -3,6 +3,8 @@
  * Handles OAuth, file import/export with Google Drive
  */
 
+import { logger } from '@md-crafter/shared';
+
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY || '';
 
@@ -22,7 +24,7 @@ let gisLoaded = false;
  */
 export async function initGoogleApi(): Promise<void> {
   if (!GOOGLE_CLIENT_ID) {
-    console.warn('Google Client ID not configured');
+    logger.warn('Google Client ID not configured');
     return;
   }
 
@@ -235,7 +237,7 @@ export async function createGoogleDocFromMarkdown(
 
   if (!createResponse.ok) {
     const error = await createResponse.text();
-    console.error('Google Drive error:', error);
+      logger.error('Google Drive error', error);
     throw new Error('Failed to create Google Doc');
   }
 

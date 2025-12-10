@@ -1,10 +1,26 @@
 import { io, Socket } from 'socket.io-client';
+import { logger } from '@md-crafter/shared';
 import { useStore } from '../store';
 
+/**
+ * Service for managing real-time document synchronization via WebSocket
+ * 
+ * Handles WebSocket connections, document subscriptions, and real-time updates.
+ * Automatically detects conflicts when remote changes occur while local edits exist.
+ */
 class SyncService {
   private socket: Socket | null = null;
   private subscribedDocuments: Set<string> = new Set();
 
+  /**
+   * Connects to the WebSocket server and sets up event handlers
+   * 
+   * Establishes a Socket.IO connection with automatic reconnection. Sets up handlers
+   * for document updates, deletions, and connection events. Automatically resubscribes
+   * to previously subscribed documents on reconnect.
+   * 
+   * @param token - API token for authentication
+   */
   connect(token: string) {
     if (this.socket?.connected) {
       return;
@@ -18,7 +34,7 @@ class SyncService {
     });
 
     this.socket.on('connect', () => {
-      console.log('WebSocket connected');
+      logger.info('WebSocket connected');
       // Resubscribe to documents
       this.subscribedDocuments.forEach((docId) => {
         this.socket?.emit('document:subscribe', docId);
@@ -26,7 +42,7 @@ class SyncService {
     });
 
     this.socket.on('disconnect', () => {
-      console.log('WebSocket disconnected');
+      logger.info('WebSocket disconnected');
     });
 
     this.socket.on('document:updated', (data: {
@@ -68,10 +84,15 @@ class SyncService {
     });
 
     this.socket.on('error', (error: { message: string }) => {
-      console.error('WebSocket error:', error);
+      logger.error('WebSocket error', error);
     });
   }
 
+  /**
+   * Disconnects from the WebSocket server
+   * 
+   * Closes the socket connection and clears the socket reference.
+   */
   disconnect() {
     if (this.socket) {
       this.socket.disconnect();

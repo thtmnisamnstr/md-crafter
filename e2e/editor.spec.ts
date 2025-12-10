@@ -11,12 +11,12 @@ test.describe('Editor', () => {
   });
 
   test('should load the app', async ({ page }) => {
-    await expect(page).toHaveTitle(/md-edit/i);
+    await expect(page).toHaveTitle(/md-crafter/i);
   });
 
   test('should show WelcomeTab on first load', async ({ page }) => {
     // On first load, WelcomeTab should be visible (not Monaco editor)
-    await expect(page.getByText('Welcome to md-edit')).toBeVisible();
+    await expect(page.getByText('Welcome to md-crafter')).toBeVisible();
   });
 
   test('should have menu bar', async ({ page }) => {

@@ -10,7 +10,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2 className="text-lg font-semibold" style={{ color: 'var(--editor-fg)' }}>
-            About md-edit
+            About md-crafter
           </h2>
           <button
             onClick={onClose}
@@ -34,7 +34,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
           </div>
 
           <h1 className="text-2xl font-bold mb-2" style={{ color: 'var(--editor-fg)' }}>
-            md-edit
+            md-crafter
           </h1>
           
           <p className="text-sm opacity-70 mb-4" style={{ color: 'var(--editor-fg)' }}>
@@ -66,7 +66,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
             </p>
             <p className="text-xs opacity-50 mt-1" style={{ color: 'var(--editor-fg)' }}>
               <a
-                href="https://github.com/thtmnisamnstr/md-edit"
+                href="https://github.com/thtmnisamnstr/md-crafter"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:underline"

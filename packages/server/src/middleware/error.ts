@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { logger } from '@md-crafter/shared';
 
 export interface ApiError extends Error {
   statusCode?: number;
@@ -11,7 +12,7 @@ export function errorHandler(
   res: Response,
   _next: NextFunction
 ): void {
-  console.error('Error:', err);
+  logger.error('Request error', err);
   
   const statusCode = err.statusCode || 500;
   const message = err.message || 'Internal server error';

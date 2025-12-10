@@ -1,4 +1,4 @@
-# md-edit
+# md-crafter
 
 A cloud-synced markdown and MDX editor with real-time collaboration support. Built with Monaco Editor, React, and Electron.
 
@@ -60,8 +60,8 @@ A cloud-synced markdown and MDX editor with real-time collaboration support. Bui
 
 ```bash
 # Clone the repository
-git clone https://github.com/thtmnisamnstr/md-edit.git
-cd md-edit
+git clone https://github.com/thtmnisamnstr/md-crafter.git
+cd md-crafter
 
 # Install dependencies
 npm install
@@ -115,7 +115,7 @@ See [DESKTOP.md](DESKTOP.md) for detailed desktop development instructions.
 ## Project Structure
 
 ```
-md-edit/
+md-crafter/
 ├── packages/
 │   ├── shared/     # Shared types, utilities, and sync logic
 │   ├── server/     # Express API backend
@@ -196,7 +196,7 @@ md-edit/
 
 ## MDX Components
 
-md-edit includes a library of MDX components:
+md-crafter includes a library of MDX components:
 
 - `<Callout>` - Info, warning, error, success callouts
 - `<Tabs>` / `<Tab>` - Tabbed content panels
@@ -220,7 +220,7 @@ PORT=3001
 NODE_ENV=development
 
 # Database (SQLite - default)
-DB_PATH=./data/md-edit.db
+DB_PATH=./data/md-crafter.db
 
 # Database (PostgreSQL/MySQL - for production)
 # DATABASE_URL=postgresql://user:password@host:5432/database
@@ -260,13 +260,13 @@ The built files will be in `packages/web/dist/`.
 
 ```bash
 # macOS
-npm run package:mac -w @md-edit/desktop
+npm run package:mac -w @md-crafter/desktop
 
 # Windows
-npm run package:win -w @md-edit/desktop
+npm run package:win -w @md-crafter/desktop
 
 # Linux
-npm run package:linux -w @md-edit/desktop
+npm run package:linux -w @md-crafter/desktop
 ```
 
 ## Self-Hosting
@@ -274,7 +274,7 @@ npm run package:linux -w @md-edit/desktop
 1. Clone the repository
 2. Create `.env` file in `packages/server/`
 3. Run `npm install && npm run build`
-4. Start the server: `npm run start -w @md-edit/server`
+4. Start the server: `npm run start -w @md-crafter/server`
 5. Serve `packages/web/dist` with any static file server
 
 Or use Docker - see [DOCKER.md](DOCKER.md).
@@ -347,7 +347,7 @@ If the desktop app UI appears with no CSS styles (elements stacked vertically, n
 2. **Check Node version**: Requires Node.js 18+
 3. **Check for TypeScript errors**: `npm run lint`
 
-For more help, see the [issues page](https://github.com/thtmnisamnstr/md-edit/issues).
+For more help, see the [issues page](https://github.com/thtmnisamnstr/md-crafter/issues).
 
 ## Version History
 

@@ -1,5 +1,11 @@
-import { Document, CreateDocumentRequest, UpdateDocumentRequest } from '@md-edit/shared';
+import { Document, CreateDocumentRequest, UpdateDocumentRequest, logger } from '@md-crafter/shared';
 
+/**
+ * Service for making HTTP API requests to the backend
+ * 
+ * Handles authentication, document CRUD operations, and synchronization.
+ * Automatically includes authentication tokens in request headers.
+ */
 class ApiService {
   private token: string | null = null;
   private baseUrl: string = '/api';
@@ -59,7 +65,8 @@ class ApiService {
         body: JSON.stringify({ token }),
       });
       return result.valid;
-    } catch {
+    } catch (error) {
+      logger.error('Token validation failed', error);
       return false;
     }
   }
@@ -92,6 +99,16 @@ class ApiService {
     });
   }
 
+  /**
+   * Syncs document content with the server, detecting conflicts
+   * 
+   * Sends document content with local timestamp. Server compares with remote version
+   * and returns either success or conflict information if concurrent edits detected.
+   * 
+   * @param id - Document ID to sync
+   * @param content - Current document content
+   * @returns Promise resolving to sync result with potential conflict information
+   */
   async syncDocument(id: string, content: string): Promise<{
     success: boolean;
     document?: Document;

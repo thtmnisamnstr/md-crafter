@@ -20,7 +20,7 @@ export function AuthModal() {
   // Load saved server URL on desktop
   useEffect(() => {
     if (inDesktop) {
-      const savedUrl = localStorage.getItem('md-edit-server-url');
+      const savedUrl = localStorage.getItem('md-crafter-server-url');
       if (savedUrl) {
         setServerUrl(savedUrl);
       }
@@ -50,7 +50,7 @@ export function AuthModal() {
     setError('');
     
     // Save the server URL
-    localStorage.setItem('md-edit-server-url', serverUrl.trim());
+    localStorage.setItem('md-crafter-server-url', serverUrl.trim());
     
     // Update the API base URL
     api.setBaseUrl(serverUrl.trim());
@@ -112,7 +112,7 @@ export function AuthModal() {
             // DESKTOP MODE: Sign in with API token and server URL
             <div>
               <p className="text-sm opacity-70 mb-4" style={{ color: 'var(--editor-fg)' }}>
-                Connect to your md-edit cloud instance to sync documents across devices.
+                Connect to your md-crafter cloud instance to sync documents across devices.
               </p>
               
               <div className="mb-4">
@@ -126,11 +126,11 @@ export function AuthModal() {
                     value={serverUrl}
                     onChange={(e) => setServerUrl(e.target.value)}
                     className="input pl-10"
-                    placeholder="https://your-md-edit-server.com"
+                    placeholder="https://your-md-crafter-server.com"
                   />
                 </div>
                 <p className="text-xs opacity-50 mt-1" style={{ color: 'var(--editor-fg)' }}>
-                  The URL of your md-edit cloud server
+                  The URL of your md-crafter cloud server
                 </p>
               </div>
               

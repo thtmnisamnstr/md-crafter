@@ -13,6 +13,7 @@ import {
   AlignmentType,
 } from 'docx';
 import { marked, type Token, type Tokens } from 'marked';
+import { logger } from '@md-crafter/shared';
 
 // Type aliases for marked types
 type MarkedToken = Token;
@@ -36,7 +37,7 @@ export async function importDocx(file: File): Promise<string> {
   });
   
   if (result.messages.length > 0) {
-    console.warn('Docx import warnings:', result.messages);
+    logger.warn('Docx import warnings', { messages: result.messages });
   }
   
   // Convert HTML to Markdown

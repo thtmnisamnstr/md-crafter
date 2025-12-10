@@ -1,5 +1,6 @@
 import { marked } from 'marked';
 import TurndownService from 'turndown';
+import { logger } from '@md-crafter/shared';
 
 const turndownService = new TurndownService({
   headingStyle: 'atx',
@@ -33,7 +34,7 @@ export async function copyAsRichText(markdown: string): Promise<void> {
     ]);
   } catch (error) {
     // Fallback for browsers that don't support ClipboardItem
-    console.error('Failed to copy as rich text:', error);
+      logger.error('Failed to copy as rich text', error);
     await navigator.clipboard.writeText(markdown);
   }
 }
@@ -62,7 +63,7 @@ export async function pasteAsMarkdown(): Promise<string | null> {
     
     return null;
   } catch (error) {
-    console.error('Failed to read clipboard:', error);
+      logger.error('Failed to read clipboard', error);
     // Fallback to reading plain text
     try {
       return await navigator.clipboard.readText();

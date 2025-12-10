@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { logger } from '@md-crafter/shared';
 import { dbHelpers } from '../db/setup.js';
 
 export interface AuthenticatedRequest extends Request {
@@ -47,7 +48,7 @@ export async function authMiddleware(
     
     next();
   } catch (error) {
-    console.error('Auth middleware error:', error);
+    logger.error('Auth middleware error', error);
     res.status(500).json({ error: 'Authentication failed' });
   }
 }

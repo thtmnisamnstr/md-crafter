@@ -58,9 +58,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build standalone image
-        run: docker build -t md-edit:standalone .
+        run: docker build -t md-crafter:standalone .
       - name: Build production image
-        run: docker build -f Dockerfile.prod -t md-edit:prod .
+        run: docker build -f Dockerfile.prod -t md-crafter:prod .
 
   e2e:
     name: E2E Tests

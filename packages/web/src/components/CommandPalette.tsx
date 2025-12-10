@@ -20,6 +20,7 @@ import {
   Maximize,
 } from 'lucide-react';
 import clsx from 'clsx';
+import { THEMES } from '../utils/themes';
 
 interface Command {
   id: string;
@@ -29,15 +30,6 @@ interface Command {
   action: () => void;
   category: 'file' | 'view' | 'sync' | 'settings' | 'recent';
 }
-
-const THEMES = [
-  { id: 'dark', name: 'Dark+' },
-  { id: 'light', name: 'Light+' },
-  { id: 'monokai', name: 'Monokai' },
-  { id: 'dracula', name: 'Dracula' },
-  { id: 'github-dark', name: 'GitHub Dark' },
-  { id: 'nord', name: 'Nord' },
-];
 
 export function CommandPalette() {
   const [search, setSearch] = useState('');

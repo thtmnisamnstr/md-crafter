@@ -1,4 +1,4 @@
-# Standalone Dockerfile for md-edit
+# Standalone Dockerfile for md-crafter
 # Builds both server and web app with SQLite database
 # Single container, ready to run
 
@@ -22,9 +22,9 @@ COPY packages/server ./packages/server
 COPY packages/web ./packages/web
 
 # Build all packages in order
-RUN npm run build -w @md-edit/shared
-RUN npm run build -w @md-edit/server
-RUN npm run build -w @md-edit/web
+RUN npm run build -w @md-crafter/shared
+RUN npm run build -w @md-crafter/server
+RUN npm run build -w @md-crafter/web
 
 # Production image
 FROM node:20-alpine
@@ -37,7 +37,7 @@ COPY packages/shared/package*.json ./packages/shared/
 COPY packages/server/package*.json ./packages/server/
 COPY packages/web/package*.json ./packages/web/
 
-RUN npm ci --omit=dev --workspace=@md-edit/shared --workspace=@md-edit/server
+RUN npm ci --omit=dev --workspace=@md-crafter/shared --workspace=@md-crafter/server
 
 # Copy built files
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
@@ -52,7 +52,7 @@ RUN mkdir -p /app/data
 # Environment variables
 ENV NODE_ENV=production
 ENV PORT=3001
-ENV DB_PATH=/app/data/md-edit.db
+ENV DB_PATH=/app/data/md-crafter.db
 ENV CORS_ORIGIN=*
 ENV MAX_DOCUMENT_VERSIONS=50
 ENV STATIC_DIR=/app/public

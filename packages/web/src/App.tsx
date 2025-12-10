@@ -3,7 +3,10 @@ import { useStore } from './store';
 import { MenuBar } from './components/MenuBar';
 import { Layout } from './components/Layout';
 import { Toast } from './components/Toast';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { isElectron, isMacOS } from './utils/platform';
+import { useKeyboardShortcuts, useOnlineStatus } from './hooks';
+import { getLanguageFromExtension } from './utils/language';
 
 // Lazy load modal components for better initial load performance
 const CommandPalette = lazy(() => import('./components/CommandPalette').then(m => ({ default: m.CommandPalette })));
@@ -19,6 +22,7 @@ const ShortcutsModal = lazy(() => import('./components/ShortcutsModal').then(m =
 const GoogleImportModal = lazy(() => import('./components/GoogleImportModal').then(m => ({ default: m.GoogleImportModal })));
 const GoogleExportModal = lazy(() => import('./components/GoogleExportModal').then(m => ({ default: m.GoogleExportModal })));
 const SearchModal = lazy(() => import('./components/SearchModal').then(m => ({ default: m.SearchModal })));
+const ConfirmationModal = lazy(() => import('./components/ConfirmationModal').then(m => ({ default: m.ConfirmationModal })));
 
 export default function App() {
   const { 
@@ -45,6 +49,8 @@ export default function App() {
     showSearch,
     setShowSearch,
     conflict,
+    confirmation,
+    clearConfirmation,
     initializeApp,
     openTab,
     addToast,
@@ -62,62 +68,34 @@ export default function App() {
     const files = e.dataTransfer?.files;
     if (!files) return;
     
-    Array.from(files).forEach(async (file) => {
-      // Handle .docx files
-      if (file.name.endsWith('.docx')) {
+    Promise.all(
+      Array.from(files).map(async (file) => {
         try {
-          await importDocxFile(file);
-        } catch (error) {
-          addToast({ type: 'error', message: `Failed to import ${file.name}` });
-        }
-        return;
-      }
-      
-      // Check if it's a text file
-      if (file.type.startsWith('text/') || 
-          file.name.match(/\.(md|mdx|txt|js|ts|jsx|tsx|json|html|css|py|go|rs|java|c|cpp|h|rb|php|sql|yaml|yml|xml|sh)$/i)) {
-        try {
-          const content = await file.text();
-          const ext = file.name.split('.').pop()?.toLowerCase() || '';
-          const languageMap: Record<string, string> = {
-            md: 'markdown',
-            mdx: 'mdx',
-            markdown: 'markdown',
-            js: 'javascript',
-            jsx: 'javascript',
-            ts: 'typescript',
-            tsx: 'typescript',
-            json: 'json',
-            html: 'html',
-            css: 'css',
-            py: 'python',
-            go: 'go',
-            rs: 'rust',
-            java: 'java',
-            c: 'c',
-            cpp: 'cpp',
-            h: 'cpp',
-            rb: 'ruby',
-            php: 'php',
-            sql: 'sql',
-            yaml: 'yaml',
-            yml: 'yaml',
-            xml: 'xml',
-            sh: 'shell',
-          };
+          // Handle .docx files
+          if (file.name.endsWith('.docx')) {
+            await importDocxFile(file);
+            return;
+          }
           
-          openTab({
-            title: file.name,
-            content,
-            language: languageMap[ext] || 'plaintext',
-          });
+          // Check if it's a text file
+          if (file.type.startsWith('text/') || 
+              file.name.match(/\.(md|mdx|txt|js|ts|jsx|tsx|json|html|css|py|go|rs|java|c|cpp|h|rb|php|sql|yaml|yml|xml|sh)$/i)) {
+            const content = await file.text();
+            const ext = file.name.split('.').pop();
+            
+            openTab({
+              title: file.name,
+              content,
+              language: getLanguageFromExtension(ext),
+            });
+          } else {
+            addToast({ type: 'warning', message: `Unsupported file type: ${file.name}` });
+          }
         } catch (error) {
-          addToast({ type: 'error', message: `Failed to read ${file.name}` });
+          addToast({ type: 'error', message: `Failed to process ${file.name}` });
         }
-      } else {
-        addToast({ type: 'warning', message: `Unsupported file type: ${file.name}` });
-      }
-    });
+      })
+    );
   }, [openTab, addToast, importDocxFile]);
 
   const handleDragOver = useCallback((e: DragEvent) => {
@@ -275,147 +253,8 @@ export default function App() {
   }, []);
 
   // Global keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Command palette: Ctrl/Cmd + Shift + P
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'p') {
-        e.preventDefault();
-        useStore.getState().setShowCommandPalette(true);
-        return;
-      }
-      
-      // Print/PDF Export: Ctrl/Cmd + P
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'p') {
-        e.preventDefault();
-        useStore.getState().setShowExportPdf(true);
-        return;
-      }
-      
-      // Save: Ctrl/Cmd + S
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 's') {
-        e.preventDefault();
-        useStore.getState().saveCurrentDocument();
-        return;
-      }
-      
-      // Save As: Ctrl/Cmd + Shift + S
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 's') {
-        e.preventDefault();
-        // Save As downloads the file
-        const { tabs, activeTabId } = useStore.getState();
-        const tab = tabs.find((t) => t.id === activeTabId);
-        if (tab) {
-          const blob = new Blob([tab.content], { type: 'text/markdown' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = tab.title;
-          a.click();
-          URL.revokeObjectURL(url);
-        }
-        return;
-      }
-      
-      // New document: Ctrl/Cmd + N
-      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
-        e.preventDefault();
-        useStore.getState().createNewDocument();
-        return;
-      }
-      
-      // Close tab: Ctrl/Cmd + W
-      if ((e.ctrlKey || e.metaKey) && e.key === 'w') {
-        e.preventDefault();
-        const activeTab = useStore.getState().activeTabId;
-        if (activeTab) {
-          useStore.getState().closeTab(activeTab);
-        }
-        return;
-      }
-      
-      // Toggle sidebar: Ctrl/Cmd + B
-      if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
-        e.preventDefault();
-        useStore.getState().toggleSidebar();
-        return;
-      }
-      
-      // Settings: Ctrl/Cmd + ,
-      if ((e.ctrlKey || e.metaKey) && e.key === ',') {
-        e.preventDefault();
-        useStore.getState().setShowSettings(true);
-        return;
-      }
-      
-      // Export HTML: Ctrl/Cmd + E
-      if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
-        e.preventDefault();
-        useStore.getState().setShowExport(true);
-        return;
-      }
-      
-      // Copy for Word/Docs: Ctrl/Cmd + Shift + C
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'C') {
-        e.preventDefault();
-        useStore.getState().copyForWordDocs();
-        return;
-      }
-      
-      // Paste from Word/Docs: Ctrl/Cmd + Shift + V
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'V') {
-        e.preventDefault();
-        useStore.getState().pasteFromWordDocs();
-        return;
-      }
-      
-      // Global search: Ctrl/Cmd + Shift + F
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'f') {
-        e.preventDefault();
-        useStore.getState().setShowSearch(true);
-        return;
-      }
-      
-      // Split editor vertical: Ctrl/Cmd + \
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === '\\') {
-        e.preventDefault();
-        const { splitMode, setSplitMode } = useStore.getState();
-        setSplitMode(splitMode === 'vertical' ? 'none' : 'vertical');
-        return;
-      }
-      
-      // Split editor horizontal: Ctrl/Cmd + Shift + \
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === '|') {
-        e.preventDefault();
-        const { splitMode, setSplitMode } = useStore.getState();
-        setSplitMode(splitMode === 'horizontal' ? 'none' : 'horizontal');
-        return;
-      }
-      
-      // Zen mode: Ctrl/Cmd + K, Z (VS Code style)
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        // Wait for next key
-        const handleZenKey = (e2: KeyboardEvent) => {
-          if (e2.key === 'z') {
-            e2.preventDefault();
-            useStore.getState().toggleZenMode();
-          }
-          window.removeEventListener('keydown', handleZenKey);
-        };
-        window.addEventListener('keydown', handleZenKey);
-        setTimeout(() => window.removeEventListener('keydown', handleZenKey), 500);
-        return;
-      }
-      
-      // Escape to exit Zen mode
-      if (e.key === 'Escape' && useStore.getState().zenMode) {
-        useStore.getState().toggleZenMode();
-        return;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  useKeyboardShortcuts();
+  useOnlineStatus();
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
   
@@ -427,7 +266,8 @@ export default function App() {
   const needsTrafficLightPadding = inElectron && isMacOS();
 
   return (
-    <div className="h-full w-full flex flex-col" style={{ background: 'var(--editor-bg)' }}>
+    <ErrorBoundary>
+      <div className="h-full w-full flex flex-col" style={{ background: 'var(--editor-bg)' }}>
       {/* Show web menu bar only when not in Electron (Electron uses native menu) */}
       {showMenuBar && <MenuBar />}
       
@@ -460,10 +300,24 @@ export default function App() {
         {showGoogleExport && <GoogleExportModal onClose={() => setShowGoogleExport(false)} />}
         {showSearch && <SearchModal onClose={() => setShowSearch(false)} />}
         {conflict && <ConflictModal />}
+        {confirmation && (
+          <ConfirmationModal
+            title={confirmation.title}
+            message={confirmation.message}
+            confirmLabel={confirmation.confirmLabel}
+            cancelLabel={confirmation.cancelLabel}
+            variant={confirmation.variant}
+            onConfirm={() => {
+              confirmation.onConfirm();
+            }}
+            onCancel={clearConfirmation}
+          />
+        )}
       </Suspense>
       
       <Toast />
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }
 

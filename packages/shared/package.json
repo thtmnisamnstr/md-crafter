@@ -1,7 +1,7 @@
 {
-  "name": "@md-edit/shared",
+  "name": "@md-crafter/shared",
   "version": "0.1.0-pre",
-  "description": "Shared types, utilities, and sync logic for md-edit",
+  "description": "Shared types, utilities, and sync logic for md-crafter",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",

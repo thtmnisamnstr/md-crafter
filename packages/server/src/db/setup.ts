@@ -3,6 +3,7 @@
  * Uses the factory to create the appropriate adapter
  */
 
+import { logger } from '@md-crafter/shared';
 import { createDatabase } from './factory.js';
 import type { DatabaseAdapter, User, Document, DocumentVersion } from './adapters/interface.js';
 
@@ -21,7 +22,7 @@ export async function setupDatabase(): Promise<DatabaseAdapter> {
   db = await createDatabase();
   await db.initialize();
   
-  console.log('Database initialized');
+  logger.info('Database initialized');
   return db;
 }
 

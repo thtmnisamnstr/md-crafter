@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
+import { logger } from '@md-crafter/shared';
 import { setupDatabase } from './db/setup.js';
 import { authRouter } from './routes/auth.js';
 import { documentsRouter } from './routes/documents.js';
@@ -65,14 +66,14 @@ async function start() {
   try {
     // Initialize database
     await setupDatabase();
-    console.log('Database initialized');
+    logger.info('Database initialized');
 
     httpServer.listen(PORT, () => {
-      console.log(`Server running on http://localhost:${PORT}`);
-      console.log(`WebSocket server ready`);
+      logger.info(`Server running on http://localhost:${PORT}`);
+      logger.info('WebSocket server ready');
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    logger.error('Failed to start server', error);
     process.exit(1);
   }
 }

@@ -1,6 +1,6 @@
-# Contributing to md-edit
+# Contributing to md-crafter
 
-Thank you for your interest in contributing to md-edit! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to md-crafter! This document provides guidelines and instructions for contributing.
 
 ## Getting Started
 
@@ -14,8 +14,8 @@ Thank you for your interest in contributing to md-edit! This document provides g
 
 1. **Fork and clone the repository**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/md-edit.git
-   cd md-edit
+   git clone https://github.com/YOUR_USERNAME/md-crafter.git
+   cd md-crafter
    ```
 
 2. **Install dependencies**
@@ -40,7 +40,7 @@ Thank you for your interest in contributing to md-edit! This document provides g
 ## Project Structure
 
 ```
-md-edit/
+md-crafter/
 ├── packages/
 │   ├── shared/      # Shared types, utilities, sync logic
 │   ├── server/      # Express API backend

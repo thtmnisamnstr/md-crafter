@@ -1,7 +1,7 @@
 {
-  "name": "@md-edit/web",
+  "name": "@md-crafter/web",
   "version": "0.1.0-pre",
-  "description": "Web application for md-edit",
+  "description": "Web application for md-crafter",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,7 @@
     "lint": "eslint src --ext .ts,.tsx"
   },
   "dependencies": {
-    "@md-edit/shared": "*",
+    "@md-crafter/shared": "*",
     "@mdx-js/mdx": "^3.1.1",
     "@mdx-js/react": "^3.1.1",
     "@monaco-editor/react": "^4.6.0",

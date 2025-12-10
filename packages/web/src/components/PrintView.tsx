@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { logger } from '@md-crafter/shared';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
@@ -249,7 +250,7 @@ export function PrintView({ content, title, onClose }: PrintViewProps) {
 
       await html2pdf().set(opt).from(iframe.contentDocument.body).save();
     } catch (error) {
-      console.error('Failed to export PDF:', error);
+      logger.error('Failed to export PDF', error);
       // Fallback to print dialog
       handlePrint();
     }

@@ -1,21 +1,21 @@
-# Docker Compose for md-edit with MySQL
+# Docker Compose for md-crafter with MySQL
 # Production-ready setup with external database
 
 version: '3.8'
 
 services:
-  md-edit:
+  md-crafter:
     build:
       context: .
       dockerfile: Dockerfile.prod
-    container_name: md-edit-app
+    container_name: md-crafter-app
     restart: unless-stopped
     ports:
       - "3001:3001"
     environment:
       - NODE_ENV=production
       - PORT=3001
-      - DATABASE_URL=mysql://mdeditor:mdeditor_password@mysql:3306/mdeditor
+      - DATABASE_URL=mysql://mdcrafter:mdcrafter_password@mysql:3306/mdcrafter
       - CORS_ORIGIN=*
       - MAX_DOCUMENT_VERSIONS=50
       # Google API (optional)
@@ -33,13 +33,13 @@ services:
 
   mysql:
     image: mysql:8.0
-    container_name: md-edit-mysql
+    container_name: md-crafter-mysql
     restart: unless-stopped
     environment:
       - MYSQL_ROOT_PASSWORD=root_password
-      - MYSQL_USER=mdeditor
-      - MYSQL_PASSWORD=mdeditor_password
-      - MYSQL_DATABASE=mdeditor
+      - MYSQL_USER=mdcrafter
+      - MYSQL_PASSWORD=mdcrafter_password
+      - MYSQL_DATABASE=mdcrafter
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:

@@ -1,0 +1,87 @@
+# Dependencies (installed fresh in Docker)
+node_modules/
+**/node_modules/
+
+# Build outputs (rebuilt in Docker)
+dist/
+**/dist/
+build/
+**/build/
+out/
+**/out/
+*.tsbuildinfo
+
+# Test files and results (not needed for production build)
+**/__tests__/
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+coverage/
+**/coverage/
+playwright-report/
+test-results/
+e2e/
+playwright.config.ts
+vitest.config.ts
+**/vitest.config.ts
+
+# Development environment files
+.env
+.env.local
+.env.*.local
+*.log
+npm-debug.log*
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Git (not needed in container)
+.git/
+.gitignore
+.gitattributes
+
+# Documentation (not needed in container)
+*.md
+!README.md
+docs/
+DOCS.md
+CHANGELOG.md
+CONTRIBUTING.md
+DESKTOP.md
+DOCKER.md
+MDX.md
+
+# CI/CD files (not needed in container)
+.github/
+scripts/
+
+# Docker files themselves
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Database files (development - production uses volumes or external DB)
+*.sqlite
+*.sqlite3
+*.db
+packages/server/data/
+
+# Electron/Desktop (not needed for server/web containers)
+packages/desktop/
+electron.vite.config.ts
+
+# Cache directories
+.cache/
+.tmp/
+.turbo/
+.eslintcache
+
+# Source maps (optional - can be excluded to reduce image size)
+# Uncomment if you want smaller images (but lose debugging info)
+# **/*.map
+

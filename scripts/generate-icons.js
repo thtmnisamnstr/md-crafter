@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Icon generation script for md-edit desktop app
+ * Icon generation script for md-crafter desktop app
  * 
  * Prerequisites:
  * - Node.js 18+
@@ -23,7 +23,7 @@ const RESOURCES_DIR = path.join(__dirname, '../packages/desktop/resources');
 const SVG_PATH = path.join(RESOURCES_DIR, 'icon.svg');
 
 async function generateIcons() {
-  console.log('Generating icons for md-edit desktop app...\n');
+  console.log('Generating icons for md-crafter desktop app...\n');
 
   // Check if sharp is available
   let sharp;

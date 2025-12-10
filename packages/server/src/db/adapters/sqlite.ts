@@ -7,7 +7,8 @@ import initSqlJs from 'sql.js';
 import type { Database as SqlJsDatabase } from 'sql.js';
 import { promises as fs } from 'fs';
 import { dirname } from 'path';
-import type { DatabaseAdapter, User, Document, DocumentVersion } from './interface.js';
+import { logger } from '@md-crafter/shared';
+import type { DatabaseAdapter, User, Document, DocumentVersion, RowData } from './interface.js';
 
 export class SqliteAdapter implements DatabaseAdapter {
   private db: SqlJsDatabase | null = null;
@@ -30,17 +31,17 @@ export class SqliteAdapter implements DatabaseAdapter {
       try {
         const fileBuffer = await fs.readFile(this.dbPath);
         this.db = new SQL.Database(fileBuffer) as SqlJsDatabase;
-        console.log('Loaded existing SQLite database from:', this.dbPath);
+        logger.info('Loaded existing SQLite database', { path: this.dbPath });
       } catch {
         // File doesn't exist, create new database
         this.db = new SQL.Database() as SqlJsDatabase;
-        console.log('Created new SQLite database');
+        logger.info('Created new SQLite database');
       }
     } catch {
       // Create in-memory database as fallback
       const SQL2 = await initSqlJs();
       this.db = new SQL2.Database() as SqlJsDatabase;
-      console.log('Created in-memory SQLite database');
+      logger.info('Created in-memory SQLite database');
     }
 
     // Create tables
@@ -92,13 +93,13 @@ export class SqliteAdapter implements DatabaseAdapter {
     // Auto-save every 5 seconds if dirty
     this.saveInterval = setInterval(() => {
       if (this.isDirty) {
-        this.persistToFile().catch(console.error);
+        this.persistToFile().catch((error) => logger.error('Failed to persist database', error));
       }
     }, 5000);
 
     // Initial save
     await this.persistToFile();
-    console.log('SQLite database initialized at:', this.dbPath);
+    logger.info('SQLite database initialized', { path: this.dbPath });
   }
 
   private async persistToFile(): Promise<void> {
@@ -109,7 +110,7 @@ export class SqliteAdapter implements DatabaseAdapter {
       await fs.writeFile(this.dbPath, buffer);
       this.isDirty = false;
     } catch (error) {
-      console.error('Failed to persist database:', error);
+      logger.error('Failed to persist database', error);
     }
   }
 
@@ -292,7 +293,7 @@ export class SqliteAdapter implements DatabaseAdapter {
 
   // Helper methods
   private rowToUser(columns: string[], values: unknown[]): User {
-    const obj: Record<string, unknown> = {};
+    const obj: RowData = {};
     columns.forEach((col, i) => { obj[col] = values[i]; });
     return {
       id: obj.id as string,
@@ -306,7 +307,7 @@ export class SqliteAdapter implements DatabaseAdapter {
   }
 
   private rowToDocument(columns: string[], values: unknown[]): Document {
-    const obj: Record<string, unknown> = {};
+    const obj: RowData = {};
     columns.forEach((col, i) => { obj[col] = values[i]; });
     return {
       id: obj.id as string,
@@ -322,7 +323,7 @@ export class SqliteAdapter implements DatabaseAdapter {
   }
 
   private rowToVersion(columns: string[], values: unknown[]): DocumentVersion {
-    const obj: Record<string, unknown> = {};
+    const obj: RowData = {};
     columns.forEach((col, i) => { obj[col] = values[i]; });
     return {
       id: obj.id as string,

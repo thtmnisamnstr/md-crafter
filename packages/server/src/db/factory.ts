@@ -3,6 +3,7 @@
  * Creates the appropriate database adapter based on environment configuration
  */
 
+import { logger } from '@md-crafter/shared';
 import type { DatabaseAdapter } from './adapters/interface.js';
 import { SqliteAdapter } from './adapters/sqlite.js';
 
@@ -12,21 +13,21 @@ import { SqliteAdapter } from './adapters/sqlite.js';
  * Priority:
  * 1. DATABASE_URL - PostgreSQL (postgresql://) or MySQL (mysql://)
  * 2. DB_PATH - SQLite file path
- * 3. Default: SQLite at ./data/md-edit.db
+ * 3. Default: SQLite at ./data/md-crafter.db
  */
 export async function createDatabase(): Promise<DatabaseAdapter> {
   const databaseUrl = process.env.DATABASE_URL;
-  const dbPath = process.env.DB_PATH || './data/md-edit.db';
+  const dbPath = process.env.DB_PATH || './data/md-crafter.db';
 
   if (databaseUrl) {
     if (databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://')) {
-      console.log('Using PostgreSQL database');
+      logger.info('Using PostgreSQL database');
       const { PostgresAdapter } = await import('./adapters/postgres.js');
       return new PostgresAdapter(databaseUrl);
     }
 
     if (databaseUrl.startsWith('mysql://')) {
-      console.log('Using MySQL database');
+      logger.info('Using MySQL database');
       const { MysqlAdapter } = await import('./adapters/mysql.js');
       return new MysqlAdapter(databaseUrl);
     }
@@ -35,7 +36,7 @@ export async function createDatabase(): Promise<DatabaseAdapter> {
   }
 
   // Default to SQLite
-  console.log('Using SQLite database at:', dbPath);
+  logger.info('Using SQLite database', { path: dbPath });
   return new SqliteAdapter(dbPath);
 }
 

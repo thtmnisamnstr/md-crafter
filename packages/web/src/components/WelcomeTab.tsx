@@ -114,7 +114,7 @@ export const WelcomeTab = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-2">
-            Welcome to <span style={{ color: 'var(--editor-accent)' }}>md-edit</span>
+            Welcome to <span style={{ color: 'var(--editor-accent)' }}>md-crafter</span>
           </h1>
           <p className="opacity-60">
             A modern, cloud-synced markdown editor with MDX support
@@ -216,7 +216,7 @@ export const WelcomeTab = () => {
           <p className="text-sm mb-2">Need help?</p>
           <div className="flex justify-center gap-4 text-sm">
             <a 
-              href="https://github.com/thtmnisamnstr/md-edit"
+              href="https://github.com/thtmnisamnstr/md-crafter"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 hover:underline"
@@ -225,7 +225,7 @@ export const WelcomeTab = () => {
               Documentation <ExternalLink size={12} />
             </a>
             <a 
-              href="https://github.com/thtmnisamnstr/md-edit/issues"
+              href="https://github.com/thtmnisamnstr/md-crafter/issues"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 hover:underline"

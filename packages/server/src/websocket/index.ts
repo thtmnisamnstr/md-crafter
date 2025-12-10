@@ -1,4 +1,5 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
+import { logger } from '@md-crafter/shared';
 import { dbHelpers } from '../db/setup.js';
 
 interface AuthenticatedSocket extends Socket {
@@ -31,7 +32,7 @@ export function setupWebSocket(io: SocketIOServer): void {
   });
 
   io.on('connection', (socket: AuthenticatedSocket) => {
-    console.log(`User connected: ${socket.userId}`);
+    logger.info('User connected', { userId: socket.userId });
     
     // Join user's personal room for notifications
     socket.join(`user:${socket.userId}`);
@@ -44,12 +45,12 @@ export function setupWebSocket(io: SocketIOServer): void {
         if (document && document.user_id === socket.userId) {
           socket.join(`doc:${documentId}`);
           socket.emit('document:subscribed', { documentId });
-          console.log(`User ${socket.userId} subscribed to document ${documentId}`);
+          logger.info('User subscribed to document', { userId: socket.userId, documentId });
         } else {
           socket.emit('error', { message: 'Document not found or access denied' });
         }
       } catch (error) {
-        console.error('Subscribe error:', error);
+        logger.error('Subscribe error', error);
         socket.emit('error', { message: 'Failed to subscribe to document' });
       }
     });
@@ -58,7 +59,7 @@ export function setupWebSocket(io: SocketIOServer): void {
     socket.on('document:unsubscribe', (documentId: string) => {
       socket.leave(`doc:${documentId}`);
       socket.emit('document:unsubscribed', { documentId });
-      console.log(`User ${socket.userId} unsubscribed from document ${documentId}`);
+      logger.info('User unsubscribed from document', { userId: socket.userId, documentId });
     });
 
     // Handle cursor position updates (for future collaboration)
@@ -94,7 +95,7 @@ export function setupWebSocket(io: SocketIOServer): void {
     });
 
     socket.on('disconnect', () => {
-      console.log(`User disconnected: ${socket.userId}`);
+      logger.info('User disconnected', { userId: socket.userId });
       // Notify all rooms this user was in
       socket.rooms.forEach((room) => {
         if (room.startsWith('doc:')) {
@@ -104,7 +105,7 @@ export function setupWebSocket(io: SocketIOServer): void {
     });
 
     socket.on('error', (error) => {
-      console.error(`Socket error for user ${socket.userId}:`, error);
+      logger.error('Socket error', error, { userId: socket.userId });
     });
   });
 }

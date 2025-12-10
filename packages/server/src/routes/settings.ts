@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import { dbHelpers } from '../db/setup.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
-import { DEFAULT_USER_SETTINGS } from '@md-edit/shared';
+import { DEFAULT_USER_SETTINGS, logger } from '@md-crafter/shared';
 
 export const settingsRouter = Router();
 
@@ -21,13 +21,13 @@ settingsRouter.get('/', async (req: AuthenticatedRequest, res: Response) => {
       try {
         settings = { ...DEFAULT_USER_SETTINGS, ...JSON.parse(user.settings_json) };
       } catch (e) {
-        console.warn('Failed to parse user settings:', e);
+        logger.warn('Failed to parse user settings', { error: e });
       }
     }
     
     res.json({ settings });
   } catch (error) {
-    console.error('Get settings error:', error);
+    logger.error('Get settings error:', error);
     res.status(500).json({ error: 'Failed to get settings' });
   }
 });
@@ -68,7 +68,7 @@ settingsRouter.put('/', async (req: AuthenticatedRequest, res: Response) => {
     
     res.json({ settings: mergedSettings });
   } catch (error) {
-    console.error('Update settings error:', error);
+    logger.error('Update settings error:', error);
     res.status(500).json({ error: 'Failed to update settings' });
   }
 });
@@ -83,7 +83,7 @@ settingsRouter.post('/reset', async (req: AuthenticatedRequest, res: Response) =
     
     res.json({ settings: DEFAULT_USER_SETTINGS });
   } catch (error) {
-    console.error('Reset settings error:', error);
+    logger.error('Reset settings error:', error);
     res.status(500).json({ error: 'Failed to reset settings' });
   }
 });

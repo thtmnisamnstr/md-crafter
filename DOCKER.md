@@ -1,20 +1,20 @@
 # Docker Deployment Guide
 
-md-edit can be deployed using Docker in several configurations.
+md-crafter can be deployed using Docker in several configurations.
 
 ## Quick Start
 
 ### Standalone (SQLite)
 
-The simplest way to run md-edit:
+The simplest way to run md-crafter:
 
 ```bash
 # Build and run
 docker-compose up -d
 
 # Or build manually
-docker build -t md-edit .
-docker run -d -p 3001:3001 -v md-edit-data:/app/data md-edit
+docker build -t md-crafter .
+docker run -d -p 3001:3001 -v md-crafter-data:/app/data md-crafter
 ```
 
 Access the app at `http://localhost:3001`
@@ -43,7 +43,7 @@ docker-compose -f docker-compose.mysql.yml up -d
 |----------|---------|-------------|
 | `PORT` | `3001` | Server port |
 | `NODE_ENV` | `production` | Environment mode |
-| `DB_FILENAME` | `/app/data/md-edit.json` | SQLite file path (standalone) |
+| `DB_FILENAME` | `/app/data/md-crafter.json` | SQLite file path (standalone) |
 | `DATABASE_URL` | - | PostgreSQL/MySQL connection string |
 | `CORS_ORIGIN` | `*` | Allowed CORS origins |
 | `MAX_DOCUMENT_VERSIONS` | `50` | Max versions per document |
@@ -84,12 +84,12 @@ mysql://user:password@host:3306/database
 
 ```yaml
 volumes:
-  md-edit-data:
+  md-crafter-data:
     driver: local
 ```
 
 Data is stored in:
-- `/app/data/md-edit.json` - Database file
+- `/app/data/md-crafter.json` - Database file
 - `/app/data/` - Uploaded files
 
 ### PostgreSQL
@@ -127,7 +127,7 @@ Example nginx configuration:
 ```nginx
 server {
     listen 80;
-    server_name md-edit.example.com;
+    server_name md-crafter.example.com;
 
     location / {
         proxy_pass http://localhost:3001;
@@ -164,13 +164,13 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./acme.json:/acme.json
 
-  md-edit:
+  md-crafter:
     build: .
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.md-edit.rule=Host(`md-edit.example.com`)"
-      - "traefik.http.routers.md-edit.entrypoints=websecure"
-      - "traefik.http.routers.md-edit.tls.certresolver=le"
+      - "traefik.http.routers.md-crafter.rule=Host(`md-crafter.example.com`)"
+      - "traefik.http.routers.md-crafter.entrypoints=websecure"
+      - "traefik.http.routers.md-crafter.tls.certresolver=le"
 ```
 
 ## Backup and Restore
@@ -179,31 +179,31 @@ services:
 
 ```bash
 # Backup
-docker cp md-edit:/app/data/md-edit.json ./backup.json
+docker cp md-crafter:/app/data/md-crafter.json ./backup.json
 
 # Restore
-docker cp ./backup.json md-edit:/app/data/md-edit.json
-docker restart md-edit
+docker cp ./backup.json md-crafter:/app/data/md-crafter.json
+docker restart md-crafter
 ```
 
 ### PostgreSQL
 
 ```bash
 # Backup
-docker exec md-edit-postgres pg_dump -U mdeditor mdeditor > backup.sql
+docker exec md-crafter-postgres pg_dump -U mdcrafter mdcrafter > backup.sql
 
 # Restore
-docker exec -i md-edit-postgres psql -U mdeditor mdeditor < backup.sql
+docker exec -i md-crafter-postgres psql -U mdcrafter mdcrafter < backup.sql
 ```
 
 ### MySQL
 
 ```bash
 # Backup
-docker exec md-edit-mysql mysqldump -u mdeditor -pmdeditor_password mdeditor > backup.sql
+docker exec md-crafter-mysql mysqldump -u mdcrafter -pmdcrafter_password mdcrafter > backup.sql
 
 # Restore
-docker exec -i md-edit-mysql mysql -u mdeditor -pmdeditor_password mdeditor < backup.sql
+docker exec -i md-crafter-mysql mysql -u mdcrafter -pmdcrafter_password mdcrafter < backup.sql
 ```
 
 ## Upgrading
@@ -224,14 +224,14 @@ docker-compose up -d
 
 Check logs:
 ```bash
-docker-compose logs -f md-edit
+docker-compose logs -f md-crafter
 ```
 
 ### Database connection issues
 
 Verify connection string:
 ```bash
-docker exec md-edit-app env | grep DATABASE_URL
+docker exec md-crafter-app env | grep DATABASE_URL
 ```
 
 ### WebSocket not working
@@ -246,6 +246,6 @@ proxy_set_header Connection 'upgrade';
 
 Fix volume permissions:
 ```bash
-docker exec md-edit chown -R node:node /app/data
+docker exec md-crafter chown -R node:node /app/data
 ```
 

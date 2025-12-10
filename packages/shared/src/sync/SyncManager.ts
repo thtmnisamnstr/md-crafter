@@ -2,6 +2,7 @@ import { Document } from '../types/document';
 import { SyncState, SyncQueueItem, SyncEvent, SyncConfig, DEFAULT_SYNC_CONFIG } from '../types/sync';
 import { generateHash, generateUUID } from '../utils/hash';
 import { debounce } from '../utils/debounce';
+import { logger } from '../utils/logger';
 import { SyncStatus } from './SyncStatus';
 
 export type SyncEventHandler = (event: SyncEvent) => void;
@@ -155,7 +156,7 @@ export class SyncManager {
    */
   async syncDocument(documentId: string, content: string): Promise<boolean> {
     if (!this.apiClient) {
-      console.warn('No API client configured for sync');
+      logger.warn('No API client configured for sync');
       return false;
     }
 

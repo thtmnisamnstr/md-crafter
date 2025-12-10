@@ -3,29 +3,34 @@
  * Uses mysql2 library for MySQL connections
  */
 
-import type { DatabaseAdapter, User, Document, DocumentVersion } from './interface.js';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type MySQLPool = any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type RowData = Record<string, any>;
+import { logger } from '@md-crafter/shared';
+import type { Pool as MySQLPool } from 'mysql2/promise';
+import type { DatabaseAdapter, User, Document, DocumentVersion, RowData } from './interface.js';
 
 export class MysqlAdapter implements DatabaseAdapter {
-  private pool: MySQLPool = null;
+  private pool: MySQLPool | null = null;
   private connectionUrl: string;
 
   constructor(connectionUrl: string) {
     this.connectionUrl = connectionUrl;
   }
 
+  private ensurePool(): MySQLPool {
+    if (!this.pool) {
+      throw new Error('Database not initialized. Call initialize() first.');
+    }
+    return this.pool;
+  }
+
   async initialize(): Promise<void> {
     const mysql = await import('mysql2/promise');
     this.pool = mysql.createPool(this.connectionUrl);
 
-    const connection = await this.pool.getConnection();
+    const pool = this.ensurePool();
+    const connection = await pool.getConnection();
     try {
       await connection.query('SELECT 1');
-      console.log('Connected to MySQL');
+      logger.info('Connected to MySQL');
 
       await connection.query(`
         CREATE TABLE IF NOT EXISTS users (
@@ -71,7 +76,7 @@ export class MysqlAdapter implements DatabaseAdapter {
         )
       `);
 
-      console.log('MySQL database initialized');
+      logger.info('MySQL database initialized');
     } finally {
       connection.release();
     }
@@ -79,31 +84,36 @@ export class MysqlAdapter implements DatabaseAdapter {
 
   async close(): Promise<void> {
     if (this.pool) {
-      await this.pool.end();
+      const pool = this.ensurePool();
+      await pool.end();
       this.pool = null;
     }
   }
 
   async findUserByToken(token: string): Promise<User | null> {
-    const [rows] = await this.pool.query('SELECT * FROM users WHERE api_token = ?', [token]);
+    const pool = this.ensurePool();
+    const [rows] = await pool.query('SELECT * FROM users WHERE api_token = ?', [token]);
     const row = (rows as RowData[])[0];
     return row ? this.rowToUser(row) : null;
   }
 
   async findUserById(id: string): Promise<User | null> {
-    const [rows] = await this.pool.query('SELECT * FROM users WHERE id = ?', [id]);
+    const pool = this.ensurePool();
+    const [rows] = await pool.query('SELECT * FROM users WHERE id = ?', [id]);
     const row = (rows as RowData[])[0];
     return row ? this.rowToUser(row) : null;
   }
 
   async findUserByEmail(email: string): Promise<User | null> {
-    const [rows] = await this.pool.query('SELECT * FROM users WHERE email = ?', [email]);
+    const pool = this.ensurePool();
+    const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
     const row = (rows as RowData[])[0];
     return row ? this.rowToUser(row) : null;
   }
 
   async createUser(user: User): Promise<User> {
-    await this.pool.query(
+    const pool = this.ensurePool();
+    await pool.query(
       `INSERT INTO users (id, email, api_token, settings_json, token_expires_at, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [user.id, user.email, user.api_token, user.settings_json, user.token_expires_at, user.created_at, user.updated_at]
@@ -116,7 +126,8 @@ export class MysqlAdapter implements DatabaseAdapter {
     if (!existing) return null;
 
     const updated = { ...existing, ...updates, updated_at: new Date().toISOString() };
-    await this.pool.query(
+    const pool = this.ensurePool();
+    await pool.query(
       `UPDATE users SET email = ?, api_token = ?, settings_json = ?, token_expires_at = ?, updated_at = ? WHERE id = ?`,
       [updated.email, updated.api_token, updated.settings_json, updated.token_expires_at, updated.updated_at, id]
     );
@@ -124,7 +135,8 @@ export class MysqlAdapter implements DatabaseAdapter {
   }
 
   async findDocumentsByUserId(userId: string): Promise<Document[]> {
-    const [rows] = await this.pool.query(
+    const pool = this.ensurePool();
+    const [rows] = await pool.query(
       'SELECT * FROM documents WHERE user_id = ? ORDER BY updated_at DESC',
       [userId]
     );
@@ -132,13 +144,15 @@ export class MysqlAdapter implements DatabaseAdapter {
   }
 
   async findDocumentById(id: string): Promise<Document | null> {
-    const [rows] = await this.pool.query('SELECT * FROM documents WHERE id = ?', [id]);
+    const pool = this.ensurePool();
+    const [rows] = await pool.query('SELECT * FROM documents WHERE id = ?', [id]);
     const row = (rows as RowData[])[0];
     return row ? this.rowToDocument(row) : null;
   }
 
   async createDocument(doc: Document): Promise<Document> {
-    await this.pool.query(
+    const pool = this.ensurePool();
+    await pool.query(
       `INSERT INTO documents (id, user_id, title, content, language, etag, is_cloud_synced, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [doc.id, doc.user_id, doc.title, doc.content, doc.language, doc.etag, doc.is_cloud_synced, doc.created_at, doc.updated_at]
@@ -151,7 +165,8 @@ export class MysqlAdapter implements DatabaseAdapter {
     if (!existing) return null;
 
     const updated = { ...existing, ...updates, updated_at: new Date().toISOString() };
-    await this.pool.query(
+    const pool = this.ensurePool();
+    await pool.query(
       `UPDATE documents SET title = ?, content = ?, language = ?, etag = ?, is_cloud_synced = ?, updated_at = ? WHERE id = ?`,
       [updated.title, updated.content, updated.language, updated.etag, updated.is_cloud_synced, updated.updated_at, id]
     );
@@ -159,19 +174,22 @@ export class MysqlAdapter implements DatabaseAdapter {
   }
 
   async deleteDocument(id: string): Promise<boolean> {
-    const [result] = await this.pool.query('DELETE FROM documents WHERE id = ?', [id]);
+    const pool = this.ensurePool();
+    const [result] = await pool.query('DELETE FROM documents WHERE id = ?', [id]);
     return ((result as { affectedRows?: number }).affectedRows ?? 0) > 0;
   }
 
   async searchDocuments(userId: string, query: string): Promise<Document[]> {
     try {
-      const [rows] = await this.pool.query(
+      const pool = this.ensurePool();
+    const [rows] = await pool.query(
         `SELECT * FROM documents WHERE user_id = ? AND MATCH(title, content) AGAINST(? IN NATURAL LANGUAGE MODE) ORDER BY updated_at DESC`,
         [userId, query]
       );
       return (rows as RowData[]).map(row => this.rowToDocument(row));
     } catch {
-      const [rows] = await this.pool.query(
+      const pool = this.ensurePool();
+    const [rows] = await pool.query(
         `SELECT * FROM documents WHERE user_id = ? AND (title LIKE ? OR content LIKE ?) ORDER BY updated_at DESC`,
         [userId, `%${query}%`, `%${query}%`]
       );
@@ -180,7 +198,8 @@ export class MysqlAdapter implements DatabaseAdapter {
   }
 
   async findVersionsByDocumentId(documentId: string): Promise<DocumentVersion[]> {
-    const [rows] = await this.pool.query(
+    const pool = this.ensurePool();
+    const [rows] = await pool.query(
       'SELECT * FROM document_versions WHERE document_id = ? ORDER BY version_number DESC',
       [documentId]
     );
@@ -188,13 +207,15 @@ export class MysqlAdapter implements DatabaseAdapter {
   }
 
   async findVersionById(id: string): Promise<DocumentVersion | null> {
-    const [rows] = await this.pool.query('SELECT * FROM document_versions WHERE id = ?', [id]);
+    const pool = this.ensurePool();
+    const [rows] = await pool.query('SELECT * FROM document_versions WHERE id = ?', [id]);
     const row = (rows as RowData[])[0];
     return row ? this.rowToVersion(row) : null;
   }
 
   async createVersion(version: DocumentVersion): Promise<DocumentVersion> {
-    await this.pool.query(
+    const pool = this.ensurePool();
+    await pool.query(
       `INSERT INTO document_versions (id, document_id, content, version_number, created_at) VALUES (?, ?, ?, ?, ?)`,
       [version.id, version.document_id, version.content, version.version_number, version.created_at]
     );
@@ -202,7 +223,8 @@ export class MysqlAdapter implements DatabaseAdapter {
   }
 
   async getMaxVersionNumber(documentId: string): Promise<number> {
-    const [rows] = await this.pool.query(
+    const pool = this.ensurePool();
+    const [rows] = await pool.query(
       'SELECT MAX(version_number) as max_version FROM document_versions WHERE document_id = ?',
       [documentId]
     );
@@ -211,7 +233,8 @@ export class MysqlAdapter implements DatabaseAdapter {
   }
 
   async cleanupOldVersions(documentId: string, maxVersions: number): Promise<void> {
-    await this.pool.query(
+    const pool = this.ensurePool();
+    await pool.query(
       `DELETE FROM document_versions WHERE document_id = ? AND id NOT IN (
          SELECT id FROM (SELECT id FROM document_versions WHERE document_id = ? ORDER BY version_number DESC LIMIT ?) AS keep
        )`,
@@ -225,9 +248,9 @@ export class MysqlAdapter implements DatabaseAdapter {
       email: row.email ? String(row.email) : null,
       api_token: String(row.api_token),
       settings_json: String(row.settings_json || '{}'),
-      token_expires_at: row.token_expires_at ? new Date(row.token_expires_at).toISOString() : null,
-      created_at: new Date(row.created_at).toISOString(),
-      updated_at: new Date(row.updated_at).toISOString(),
+      token_expires_at: row.token_expires_at ? new Date(row.token_expires_at as string | number | Date).toISOString() : null,
+      created_at: new Date(row.created_at as string | number | Date).toISOString(),
+      updated_at: new Date(row.updated_at as string | number | Date).toISOString(),
     };
   }
 
@@ -240,8 +263,8 @@ export class MysqlAdapter implements DatabaseAdapter {
       language: String(row.language || 'markdown'),
       etag: String(row.etag || ''),
       is_cloud_synced: Boolean(row.is_cloud_synced),
-      created_at: new Date(row.created_at).toISOString(),
-      updated_at: new Date(row.updated_at).toISOString(),
+      created_at: new Date(row.created_at as string | number | Date).toISOString(),
+      updated_at: new Date(row.updated_at as string | number | Date).toISOString(),
     };
   }
 
@@ -251,7 +274,7 @@ export class MysqlAdapter implements DatabaseAdapter {
       document_id: String(row.document_id),
       content: String(row.content),
       version_number: Number(row.version_number),
-      created_at: new Date(row.created_at).toISOString(),
+      created_at: new Date(row.created_at as string | number | Date).toISOString(),
     };
   }
 }

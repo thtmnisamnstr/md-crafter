@@ -41,7 +41,7 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 // Search history from localStorage
-const SEARCH_HISTORY_KEY = 'md-edit-search-history';
+const SEARCH_HISTORY_KEY = 'md-crafter-search-history';
 const MAX_HISTORY = 10;
 
 function getSearchHistory(): string[] {

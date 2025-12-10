@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { compile } from '@mdx-js/mdx';
 import { run } from '@mdx-js/mdx';
 import * as runtime from 'react/jsx-runtime';
+import { logger } from '@md-crafter/shared';
 import { mdxComponents } from './mdx';
 import { AlertCircle } from 'lucide-react';
 
@@ -28,7 +29,7 @@ export function MDXPreview({ content }: MDXPreviewProps) {
       setComponent(() => result.default);
       setError(null);
     } catch (err) {
-      console.error('MDX compilation error:', err);
+      logger.error('MDX compilation error', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
       setComponent(null);
     }

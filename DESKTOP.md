@@ -1,6 +1,6 @@
 # Desktop App Development
 
-This document provides comprehensive instructions for developing, building, and distributing the md-edit desktop application.
+This document provides comprehensive instructions for developing, building, and distributing the md-crafter desktop application.
 
 ## Overview
 
@@ -143,7 +143,7 @@ The build is configured in `packages/desktop/package.json`:
 {
   "build": {
     "appId": "com.mdedit.app",
-    "productName": "md-edit",
+    "productName": "md-crafter",
     "mac": {
       "category": "public.app-category.developer-tools",
       "target": ["dmg", "zip"]
@@ -234,9 +234,9 @@ The renderer DevTools are enabled in development:
 ### Logging
 
 Logs are stored in:
-- macOS: `~/Library/Logs/md-edit/`
-- Windows: `%APPDATA%/md-edit/logs/`
-- Linux: `~/.config/md-edit/logs/`
+- macOS: `~/Library/Logs/md-crafter/`
+- Windows: `%APPDATA%/md-crafter/logs/`
+- Linux: `~/.config/md-crafter/logs/`
 
 ## File Associations
 
@@ -254,8 +254,8 @@ To register file associations after installation:
 ```desktop
 [Desktop Entry]
 Type=Application
-Name=md-edit
-Exec=/path/to/md-edit %F
+Name=md-crafter
+Exec=/path/to/md-crafter %F
 MimeType=text/markdown;text/mdx;
 ```
 

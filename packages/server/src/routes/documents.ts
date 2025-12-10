@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
+import { logger, generateHash } from '@md-crafter/shared';
 import { dbHelpers, Document } from '../db/setup.js';
-import { generateHash } from '@md-edit/shared';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 import { notFound, conflict } from '../middleware/error.js';
 import { Server as SocketIOServer } from 'socket.io';
@@ -31,7 +31,7 @@ documentsRouter.get('/', async (req: AuthenticatedRequest, res: Response) => {
     
     res.json({ documents: metadata });
   } catch (error) {
-    console.error('Get documents error:', error);
+    logger.error('Get documents error', error);
     res.status(500).json({ error: 'Failed to get documents' });
   }
 });
@@ -56,7 +56,7 @@ documentsRouter.get('/:id', async (req: AuthenticatedRequest, res: Response, nex
       updatedAt: document.updated_at,
     });
   } catch (error) {
-    console.error('Get document error:', error);
+    logger.error('Get document error', error);
     res.status(500).json({ error: 'Failed to get document' });
   }
 });
@@ -109,7 +109,7 @@ documentsRouter.post('/', async (req: AuthenticatedRequest, res: Response) => {
       updatedAt: now,
     });
   } catch (error) {
-    console.error('Create document error:', error);
+    logger.error('Create document error:', error);
     res.status(500).json({ error: 'Failed to create document' });
   }
 });
@@ -177,7 +177,7 @@ documentsRouter.put('/:id', async (req: AuthenticatedRequest, res: Response, nex
       updatedAt: updated!.updated_at,
     });
   } catch (error) {
-    console.error('Update document error:', error);
+    logger.error('Update document error:', error);
     res.status(500).json({ error: 'Failed to update document' });
   }
 });
@@ -251,7 +251,7 @@ documentsRouter.post('/:id/sync', async (req: AuthenticatedRequest, res: Respons
       },
     });
   } catch (error) {
-    console.error('Sync document error:', error);
+    logger.error('Sync document error:', error);
     res.status(500).json({ error: 'Failed to sync document' });
   }
 });
@@ -275,7 +275,7 @@ documentsRouter.get('/:id/versions', async (req: AuthenticatedRequest, res: Resp
       })),
     });
   } catch (error) {
-    console.error('Get versions error:', error);
+    logger.error('Get versions error:', error);
     res.status(500).json({ error: 'Failed to get versions' });
   }
 });
@@ -303,7 +303,7 @@ documentsRouter.get('/:id/versions/:versionId', async (req: AuthenticatedRequest
       createdAt: version.created_at,
     });
   } catch (error) {
-    console.error('Get version error:', error);
+    logger.error('Get version error:', error);
     res.status(500).json({ error: 'Failed to get version' });
   }
 });
@@ -327,7 +327,7 @@ documentsRouter.delete('/:id', async (req: AuthenticatedRequest, res: Response, 
     
     res.json({ success: true });
   } catch (error) {
-    console.error('Delete document error:', error);
+    logger.error('Delete document error:', error);
     res.status(500).json({ error: 'Failed to delete document' });
   }
 });

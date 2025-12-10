@@ -1,23 +1,23 @@
-# Docker Compose for standalone md-edit with SQLite
+# Docker Compose for standalone md-crafter with SQLite
 # Simple, single-container deployment
 
 version: '3.8'
 
 services:
-  md-edit:
+  md-crafter:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: md-edit
+    container_name: md-crafter
     restart: unless-stopped
     ports:
       - "3001:3001"
     volumes:
-      - md-edit-data:/app/data
+      - md-crafter-data:/app/data
     environment:
       - NODE_ENV=production
       - PORT=3001
-      - DB_FILENAME=/app/data/md-edit.json
+      - DB_FILENAME=/app/data/md-crafter.json
       - CORS_ORIGIN=*
       - MAX_DOCUMENT_VERSIONS=50
       # Google API (optional)
@@ -31,6 +31,6 @@ services:
       start_period: 10s
 
 volumes:
-  md-edit-data:
+  md-crafter-data:
     driver: local
 

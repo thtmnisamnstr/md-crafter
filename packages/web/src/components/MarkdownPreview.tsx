@@ -1,5 +1,6 @@
 import { useMemo, useRef, useEffect } from 'react';
 import { marked } from 'marked';
+import { logger } from '@md-crafter/shared';
 import { MDXPreview } from './MDXPreview';
 
 interface MarkdownPreviewProps {
@@ -44,7 +45,7 @@ export function MarkdownPreview({ content, isMdx = false }: MarkdownPreviewProps
       const rawHtml = marked.parse(content) as string;
       return sanitizeHtml(rawHtml);
     } catch (error) {
-      console.error('Markdown parse error:', error);
+      logger.error('Markdown parse error', error);
       return '<p class="text-red-400">Error rendering markdown</p>';
     }
   }, [content]);

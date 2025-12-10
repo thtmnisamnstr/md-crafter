@@ -1,6 +1,6 @@
-# MDX Support in md-edit
+# MDX Support in md-crafter
 
-md-edit fully supports MDX (Markdown + JSX), allowing you to create interactive documents with React components.
+md-crafter fully supports MDX (Markdown + JSX), allowing you to create interactive documents with React components.
 
 ## What is MDX?
 
@@ -22,7 +22,7 @@ This is a **bold** statement with a React component:
 
 ## Built-in Components
 
-md-edit comes with a library of pre-built components you can use immediately:
+md-crafter comes with a library of pre-built components you can use immediately:
 
 ### Callout
 
@@ -63,17 +63,17 @@ Create tabbed content panels:
 <Tabs items={['npm', 'yarn', 'pnpm']}>
   <Tab>
     ```bash
-    npm install md-edit
+    npm install md-crafter
     ```
   </Tab>
   <Tab>
     ```bash
-    yarn add md-edit
+    yarn add md-crafter
     ```
   </Tab>
   <Tab>
     ```bash
-    pnpm add md-edit
+    pnpm add md-crafter
     ```
   </Tab>
 </Tabs>
@@ -148,7 +148,7 @@ Styled card containers with optional links:
 
 ```mdx
 <Card title="Getting Started" href="/docs/getting-started">
-  Learn how to set up md-edit in your project.
+  Learn how to set up md-crafter in your project.
 </Card>
 
 <Card title="API Reference" icon={<BookIcon />}>
@@ -200,8 +200,8 @@ Components automatically adapt to your current theme. The styles are:
 ## Installation
 
 <Tabs items={['npm', 'yarn']}>
-  <Tab>npm install @md-edit/client</Tab>
-  <Tab>yarn add @md-edit/client</Tab>
+  <Tab>npm install @md-crafter/client</Tab>
+  <Tab>yarn add @md-crafter/client</Tab>
 </Tabs>
 
 ## Quick Start
@@ -236,7 +236,7 @@ Components automatically adapt to your current theme. The styles are:
 <Steps>
   <Step title="Create project">
     <CodeBlock language="bash">
-    npx create-md-edit-app my-app
+    npx create-md-crafter-app my-app
     cd my-app
     </CodeBlock>
   </Step>

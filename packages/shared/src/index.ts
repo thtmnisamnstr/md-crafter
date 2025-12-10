@@ -8,6 +8,7 @@ export * from './types/settings';
 export * from './utils/hash';
 export * from './utils/debounce';
 export * from './utils/diff';
+export * from './utils/logger';
 
 // Sync Engine
 export * from './sync/SyncManager';

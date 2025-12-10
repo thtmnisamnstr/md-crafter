@@ -4,10 +4,11 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import Store from 'electron-store';
 import { promises as fs } from 'fs';
 import { watch, FSWatcher } from 'fs';
+import { logger } from '@md-crafter/shared';
 
 // Initialize electron store for settings and sync mappings
 const store = new Store({
-  name: 'md-edit-config',
+  name: 'md-crafter-config',
   defaults: {
     windowState: { width: 1200, height: 800 },
     apiToken: null,
@@ -100,7 +101,7 @@ function createMenu(): void {
                         name: filePath.split('/').pop() || 'Untitled',
                       });
                     } catch (error) {
-                      console.error('Failed to open recent file:', error);
+                      logger.error('Failed to open recent file', error);
                     }
                   },
                 })),
@@ -274,15 +275,15 @@ function createMenu(): void {
         { type: 'separator' },
         {
           label: 'Documentation',
-          click: () => shell.openExternal('https://github.com/thtmnisamnstr/md-edit'),
+          click: () => shell.openExternal('https://github.com/thtmnisamnstr/md-crafter'),
         },
         {
           label: 'Report Issue',
-          click: () => shell.openExternal('https://github.com/thtmnisamnstr/md-edit/issues'),
+          click: () => shell.openExternal('https://github.com/thtmnisamnstr/md-crafter/issues'),
         },
         { type: 'separator' },
         {
-          label: 'About md-edit',
+          label: 'About md-crafter',
           click: () => mainWindow?.webContents.send('menu:about'),
         },
       ],
@@ -395,7 +396,7 @@ function watchFile(filePath: string): void {
           content,
         });
       } catch (error) {
-        console.error('Error reading changed file:', error);
+        logger.error('Error reading changed file', error);
       }
     }
   });
@@ -488,7 +489,7 @@ ipcMain.handle('dialog:select-folder', async () => {
 
 // App lifecycle
 app.whenReady().then(() => {
-  electronApp.setAppUserModelId('com.mdedit.app');
+  electronApp.setAppUserModelId('com.mdcrafter.app');
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window);
