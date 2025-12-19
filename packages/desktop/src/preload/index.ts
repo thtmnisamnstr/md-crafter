@@ -59,10 +59,6 @@ const api = {
     ipcRenderer.on('menu:import-word', callback);
     return () => ipcRenderer.removeAllListeners('menu:import-word');
   },
-  onMenuImportGoogleDoc: (callback: () => void) => {
-    ipcRenderer.on('menu:import-google-doc', callback);
-    return () => ipcRenderer.removeAllListeners('menu:import-google-doc');
-  },
   onMenuExportPdf: (callback: () => void) => {
     ipcRenderer.on('menu:export-pdf', callback);
     return () => ipcRenderer.removeAllListeners('menu:export-pdf');
@@ -74,10 +70,6 @@ const api = {
   onMenuExportHtml: (callback: () => void) => {
     ipcRenderer.on('menu:export-html', callback);
     return () => ipcRenderer.removeAllListeners('menu:export-html');
-  },
-  onMenuExportGoogleDrive: (callback: () => void) => {
-    ipcRenderer.on('menu:export-google-drive', callback);
-    return () => ipcRenderer.removeAllListeners('menu:export-google-drive');
   },
 
   // Menu events - Edit menu
@@ -134,6 +126,18 @@ const api = {
   onMenuNoSplit: (callback: () => void) => {
     ipcRenderer.on('menu:no-split', callback);
     return () => ipcRenderer.removeAllListeners('menu:no-split');
+  },
+  onMenuDiffWithSaved: (callback: () => void) => {
+    ipcRenderer.on('menu:diff-with-saved', callback);
+    return () => ipcRenderer.removeAllListeners('menu:diff-with-saved');
+  },
+  onMenuDiffWithFile: (callback: () => void) => {
+    ipcRenderer.on('menu:diff-with-file', callback);
+    return () => ipcRenderer.removeAllListeners('menu:diff-with-file');
+  },
+  onMenuDiffExit: (callback: () => void) => {
+    ipcRenderer.on('menu:diff-exit', callback);
+    return () => ipcRenderer.removeAllListeners('menu:diff-exit');
   },
 
   // Menu events - Help menu

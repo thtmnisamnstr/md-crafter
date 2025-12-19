@@ -49,7 +49,7 @@ export function TabBar() {
         role="tablist"
         aria-label="Open documents"
       >
-        <span className="text-sm opacity-50">No open documents</span>
+        <span className="text-sm" style={{ color: 'var(--editor-fg)', opacity: 0.6 }}>No open documents</span>
       </div>
     );
   }

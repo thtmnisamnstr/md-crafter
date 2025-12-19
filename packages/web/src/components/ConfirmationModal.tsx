@@ -74,6 +74,7 @@ export function ConfirmationModal({
             onClick={onCancel}
             className="p-1 rounded hover:bg-sidebar-hover"
             aria-label="Close"
+            style={{ color: 'var(--editor-fg)' }}
           >
             <X size={18} />
           </button>
@@ -89,7 +90,7 @@ export function ConfirmationModal({
           <button onClick={onCancel} className="btn btn-ghost">
             {cancelLabel}
           </button>
-          <button onClick={onConfirm} className={`btn ${confirmButtonClass}`}>
+          <button onClick={onConfirm} className={`btn ${confirmButtonClass} text-white`}>
             {confirmLabel}
           </button>
         </div>
@@ -97,4 +98,3 @@ export function ConfirmationModal({
     </div>
   );
 }
-

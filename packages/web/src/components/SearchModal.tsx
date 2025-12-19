@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useStore } from '../store';
 import { Search, FileText, Cloud, X, History, Filter } from 'lucide-react';
+import { debounce } from '@md-crafter/shared';
 import clsx from 'clsx';
 
 interface SearchResult {
@@ -21,23 +22,6 @@ type SearchFilter = 'all' | 'open' | 'cloud';
 
 interface SearchModalProps {
   onClose: () => void;
-}
-
-// Debounce hook
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
 }
 
 // Search history from localStorage
@@ -72,65 +56,71 @@ export function SearchModal({ onClose }: SearchModalProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Debounce search query
-  const debouncedQuery = useDebounce(query, 300);
+  // Debounced search function
+  const performSearch = useMemo(
+    () =>
+      debounce((searchQuery: string) => {
+        if (!searchQuery.trim()) {
+          setResults([]);
+          setShowHistory(true);
+          return;
+        }
+
+        setShowHistory(false);
+        const searchResults: SearchResult[] = [];
+        const lowerQuery = searchQuery.toLowerCase();
+
+        // Search in open tabs (if filter allows)
+        if (filter === 'all' || filter === 'open') {
+          tabs.forEach((tab) => {
+            const matches = findMatches(tab.content, lowerQuery);
+            if (matches.length > 0 || tab.title.toLowerCase().includes(lowerQuery)) {
+              searchResults.push({
+                type: 'tab',
+                id: tab.id,
+                title: tab.title,
+                matches: matches.slice(0, 3), // Limit matches per file
+              });
+            }
+          });
+        }
+
+        // Search in cloud documents (if filter allows)
+        if ((filter === 'all' || filter === 'cloud') && isAuthenticated) {
+          cloudDocuments.forEach((doc) => {
+            // Check if already in tabs
+            const inTabs = tabs.some((t) => t.documentId === doc.id);
+            
+            // Search in title and content
+            const titleMatch = doc.title.toLowerCase().includes(lowerQuery);
+            const contentMatches = findMatches(doc.content, lowerQuery);
+            
+            if ((titleMatch || contentMatches.length > 0) && !inTabs) {
+              searchResults.push({
+                type: 'cloud',
+                id: doc.id,
+                title: doc.title,
+                matches: contentMatches.slice(0, 3),
+              });
+            }
+          });
+        }
+
+        setResults(searchResults);
+        setSelectedIndex(0);
+      }, 300),
+    [tabs, cloudDocuments, filter, isAuthenticated]
+  );
 
   // Focus input on mount
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  // Search across documents with debounced query
+  // Trigger search when query changes
   useEffect(() => {
-    if (!debouncedQuery.trim()) {
-      setResults([]);
-      setShowHistory(!debouncedQuery);
-      return;
-    }
-
-    setShowHistory(false);
-    const searchResults: SearchResult[] = [];
-    const searchQuery = debouncedQuery.toLowerCase();
-
-    // Search in open tabs (if filter allows)
-    if (filter === 'all' || filter === 'open') {
-      tabs.forEach((tab) => {
-        const matches = findMatches(tab.content, searchQuery);
-        if (matches.length > 0 || tab.title.toLowerCase().includes(searchQuery)) {
-          searchResults.push({
-            type: 'tab',
-            id: tab.id,
-            title: tab.title,
-            matches: matches.slice(0, 3), // Limit matches per file
-          });
-        }
-      });
-    }
-
-    // Search in cloud documents (if filter allows)
-    if ((filter === 'all' || filter === 'cloud') && isAuthenticated) {
-      cloudDocuments.forEach((doc) => {
-        // Check if already in tabs
-        const inTabs = tabs.some((t) => t.documentId === doc.id);
-        
-        // Search in title and content
-        const titleMatch = doc.title.toLowerCase().includes(searchQuery);
-        const contentMatches = findMatches(doc.content, searchQuery);
-        
-        if ((titleMatch || contentMatches.length > 0) && !inTabs) {
-          searchResults.push({
-            type: 'cloud',
-            id: doc.id,
-            title: doc.title,
-            matches: contentMatches.slice(0, 3),
-          });
-        }
-      });
-    }
-
-    setResults(searchResults);
-    setSelectedIndex(0);
-  }, [debouncedQuery, tabs, cloudDocuments, filter, isAuthenticated]);
+    performSearch(query);
+  }, [query, performSearch]);
 
   // Find matches in content with context
   function findMatches(content: string, query: string) {
@@ -327,16 +317,16 @@ export function SearchModal({ onClose }: SearchModalProps) {
             </>
           )}
 
-          {results.length === 0 && debouncedQuery && (
+          {results.length === 0 && query && (
             <div
               className="p-8 text-center opacity-50"
               style={{ color: 'var(--editor-fg)' }}
             >
-              No results found for "{debouncedQuery}"
+              No results found for "{query}"
             </div>
           )}
 
-          {results.length === 0 && !debouncedQuery && !showHistory && (
+          {results.length === 0 && !query && !showHistory && (
             <div
               className="p-8 text-center opacity-50"
               style={{ color: 'var(--editor-fg)' }}

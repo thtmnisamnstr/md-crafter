@@ -1,9 +1,9 @@
-import { Document } from '../types/document';
-import { SyncState, SyncQueueItem, SyncEvent, SyncConfig, DEFAULT_SYNC_CONFIG } from '../types/sync';
-import { generateHash, generateUUID } from '../utils/hash';
-import { debounce } from '../utils/debounce';
-import { logger } from '../utils/logger';
-import { SyncStatus } from './SyncStatus';
+import { Document } from '../types/document.js';
+import { SyncState, SyncQueueItem, SyncEvent, SyncConfig, DEFAULT_SYNC_CONFIG } from '../types/sync.js';
+import { generateHash, generateUUID } from '../utils/hash.js';
+import { debounce } from '../utils/debounce.js';
+import { logger } from '../utils/logger.js';
+import { SyncStatus } from './SyncStatus.js';
 
 export type SyncEventHandler = (event: SyncEvent) => void;
 

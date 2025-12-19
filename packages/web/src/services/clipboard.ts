@@ -1,6 +1,7 @@
 import { marked } from 'marked';
 import TurndownService from 'turndown';
 import { logger } from '@md-crafter/shared';
+import { getDOMParser } from '../utils/dom';
 
 const turndownService = new TurndownService({
   headingStyle: 'atx',
@@ -89,7 +90,7 @@ export function convertHtmlToMarkdown(html: string): string {
  */
 function cleanHtml(html: string): string {
   // Parse HTML
-  const parser = new DOMParser();
+  const parser = new (getDOMParser())();
   const doc = parser.parseFromString(html, 'text/html');
   
   // Remove unnecessary elements
@@ -141,7 +142,7 @@ function cleanHtml(html: string): string {
  */
 function wrapWithInlineStyles(html: string): string {
   // Parse and enhance with inline styles
-  const parser = new DOMParser();
+  const parser = new (getDOMParser())();
   const doc = parser.parseFromString(`<div>${html}</div>`, 'text/html');
   const container = doc.body.firstElementChild as HTMLElement;
   
@@ -255,6 +256,53 @@ export async function hasRichTextInClipboard(): Promise<boolean> {
     return false;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Get plain text from clipboard, converting HTML if necessary
+ */
+export async function getPlainTextFromClipboard(): Promise<string | null> {
+  try {
+    // Try modern clipboard API first
+    const clipboardItems = await navigator.clipboard.read();
+    for (const item of clipboardItems) {
+      // Prefer plain text
+      if (item.types.includes('text/plain')) {
+        const blob = await item.getType('text/plain');
+        return await blob.text();
+      }
+      // Convert HTML to plaintext if no plain text available
+      if (item.types.includes('text/html')) {
+        const blob = await item.getType('text/html');
+        const html = await blob.text();
+        try {
+          const parser = new (getDOMParser())();
+          const doc = parser.parseFromString(html, 'text/html');
+          return doc.body.textContent || doc.body.innerText || '';
+        } catch {
+          // If DOMParser is not available, fall back to simple text extraction
+          return html.replace(/<[^>]*>/g, '').trim();
+        }
+      }
+    }
+    return null;
+  } catch (error) {
+    // Log the initial clipboard.read() failure
+    logger.warn('Failed to read clipboard with modern API, falling back to readText', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    
+    // Fallback to reading plain text
+    try {
+      return await navigator.clipboard.readText();
+    } catch (fallbackError) {
+      // Log the fallback failure as well
+      logger.warn('Failed to read clipboard with fallback readText method', {
+        error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
+      });
+      return null;
+    }
   }
 }
 

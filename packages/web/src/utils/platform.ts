@@ -1,19 +1,9 @@
 /**
  * Platform detection utilities
+ * 
+ * Note: ElectronAPI type is defined in src/types/global.d.ts
+ * This file should not redefine it to avoid type conflicts
  */
-
-// Type definition for the Electron API exposed by preload script
-interface ElectronAPI {
-  onMenuNewFile?: (cb: () => void) => () => void;
-  onMenuSave?: (cb: () => void) => () => void;
-  readFile?: (path: string) => Promise<{ success: boolean; content?: string }>;
-}
-
-declare global {
-  interface Window {
-    api?: ElectronAPI;
-  }
-}
 
 /**
  * Check if the app is running inside Electron
@@ -26,8 +16,7 @@ export const isElectron = (): boolean => {
   
   // Check for our preload script API
   const hasPreloadApi = typeof window !== 'undefined' && 
-    window.api !== undefined && 
-    window.api !== null &&
+    window.api &&
     (typeof window.api.onMenuNewFile === 'function' || 
      typeof window.api.readFile === 'function');
   

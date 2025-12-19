@@ -1,17 +1,18 @@
 // Types
-export * from './types/document';
-export * from './types/user';
-export * from './types/sync';
-export * from './types/settings';
+export * from './types/document.js';
+export * from './types/user.js';
+export * from './types/sync.js';
+export * from './types/settings.js';
 
 // Utilities
-export * from './utils/hash';
-export * from './utils/debounce';
-export * from './utils/diff';
-export * from './utils/logger';
+export * from './utils/hash.js';
+export * from './utils/debounce.js';
+export * from './utils/diff.js';
+export * from './utils/logger.js';
+export * from './utils/wordCount.js';
 
 // Sync Engine
-export * from './sync/SyncManager';
-export * from './sync/SyncStatus';
-export * from './sync/ConflictResolver';
+export * from './sync/SyncManager.js';
+export * from './sync/SyncStatus.js';
+export * from './sync/ConflictResolver.js';
 

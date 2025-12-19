@@ -1,4 +1,4 @@
-import { SyncStatusType } from './document';
+import { SyncStatusType } from './document.js';
 
 export interface SyncState {
   documentId: string;

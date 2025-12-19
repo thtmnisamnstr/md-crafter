@@ -1,8 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { DiffEditor } from '@monaco-editor/react';
+import * as monaco from 'monaco-editor';
 import { useStore } from '../store';
 import { X, Columns, AlignLeft, FileText } from 'lucide-react';
 import clsx from 'clsx';
+import { debounce } from '@md-crafter/shared';
+import { EDITOR_DEBOUNCE_DELAY_MS } from '../constants';
+import { useEditorContext } from '../contexts/EditorContext';
+import { applyDiffEditorWrap, attachDiffModelListeners } from '../utils/diffEditorHelpers';
 
 interface DiffViewerProps {
   onClose: () => void;
@@ -21,11 +26,33 @@ export function DiffViewer({
   modifiedContent: propModified,
   modifiedTitle: propModifiedTitle,
 }: DiffViewerProps) {
-  const { tabs, activeTabId, settings, theme } = useStore();
-  const [viewMode, setViewMode] = useState<'side-by-side' | 'inline'>('side-by-side');
+  const { tabs, activeTabId, settings, theme, updateTabContent, setTabDiffPaneRatio, diffMode, setDiffMode } = useStore();
+  const [viewMode, setViewMode] = useState<'side-by-side' | 'over-under'>('side-by-side');
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
+  const editorRef = useRef<monaco.editor.IDiffEditor | null>(null);
+  const modelListenersCleanupRef = useRef<(() => void) | null>(null);
+  const { registerDiffEditor, unregisterDiffEditor } = useEditorContext();
+  
+  // Debounced content update function - resets cursor since edits in diff view
+  // may invalidate stored cursor position when the document is viewed normally
+  const debouncedUpdate = useMemo(
+    () => debounce((tabId: string, content: string) => {
+      updateTabContent(tabId, content, { resetCursor: true });
+    }, EDITOR_DEBOUNCE_DELAY_MS),
+    [updateTabContent]
+  );
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
+  const canCompareSaved = !!(activeTab && activeTab.hasSavedVersion && activeTab.isDirty);
+  
+  // Sync viewMode with stored diff state per tab
+  useEffect(() => {
+    if (activeTab?.diffMode?.viewMode) {
+      setViewMode(activeTab.diffMode.viewMode);
+    } else {
+      setViewMode('side-by-side');
+    }
+  }, [activeTab?.diffMode?.viewMode, activeTabId]);
 
   // Determine content based on mode
   const { originalContent, modifiedContent, originalTitle, modifiedTitle } = useMemo(() => {
@@ -39,6 +66,14 @@ export function DiffViewer({
     }
 
     if (mode === 'saved' && activeTab) {
+      if (!canCompareSaved) {
+        return {
+          originalContent: '',
+          modifiedContent: activeTab.content,
+          originalTitle: 'No saved version available',
+          modifiedTitle: `${activeTab.title} (current)`,
+        };
+      }
       return {
         originalContent: activeTab.savedContent,
         modifiedContent: activeTab.content,
@@ -67,6 +102,20 @@ export function DiffViewer({
     };
   }, [mode, activeTab, selectedFileId, tabs, propOriginal, propModified, propOriginalTitle, propModifiedTitle]);
 
+  // Determine editability:
+  // - Saved diffs: modified (unsaved) is editable, original (saved) is read-only
+  // - File-to-file: both editable
+  const editable = mode === 'saved' || mode === 'files';
+  const originalEditable = mode === 'files'; // Only editable for file-to-file comparisons
+  const handleViewModeChange = (nextMode: 'side-by-side' | 'over-under') => {
+    setViewMode(nextMode);
+    if (activeTabId) {
+      const nextCompareWithSaved = diffMode.compareWithSaved && canCompareSaved;
+      setDiffMode(true, diffMode.leftTabId, diffMode.rightTabId, nextCompareWithSaved, nextMode);
+    }
+  };
+
+
   // Get Monaco theme based on app theme
   const monacoTheme = useMemo(() => {
     switch (theme) {
@@ -76,6 +125,28 @@ export function DiffViewer({
         return 'vs-dark';
     }
   }, [theme]);
+
+  // Memoize editor options - PRIMARY mechanism for setting options
+  const editorOptions = useMemo(() => {
+    const wordWrap: 'on' | 'off' = settings.wordWrap ? 'on' : 'off';
+    return {
+      fontSize: settings.fontSize,
+      fontFamily: settings.fontFamily,
+      readOnly: !editable, // Modified editor: editable if editable=true
+      originalEditable: originalEditable, // Original editor: editable if originalEditable=true
+      renderSideBySide: viewMode === 'side-by-side', // false = inline/over-under mode
+      automaticLayout: true,
+      scrollBeyondLastLine: false,
+      minimap: { enabled: false },
+      lineNumbers: (settings.lineNumbers ? 'on' : 'off') as 'on' | 'off',
+      renderWhitespace: 'selection' as const,
+      diffWordWrap: wordWrap, // Let Monaco handle via options
+      diffAlgorithm: 'legacy' as const, // Use faster legacy algorithm
+      maxComputationTime: 5000, // Limit diff computation to 5 seconds
+      ignoreTrimWhitespace: true, // Ignore whitespace-only changes for faster computation
+      renderOverviewRuler: true,
+    };
+  }, [settings.fontSize, settings.fontFamily, settings.lineNumbers, settings.wordWrap, editable, originalEditable, viewMode]);
 
   // Calculate diff stats
   const diffStats = useMemo(() => {
@@ -103,6 +174,228 @@ export function DiffViewer({
     return { additions, deletions };
   }, [originalContent, modifiedContent]);
 
+  // Helper function to set up content change listeners when models are ready
+  const setupContentListeners = (diffEditor: monaco.editor.IDiffEditor, retryCount = 0) => {
+    const MAX_RETRIES = 10;
+    const originalEditor = diffEditor.getOriginalEditor();
+    const modifiedEditor = diffEditor.getModifiedEditor();
+    const originalModel = originalEditor?.getModel();
+    const modifiedModel = modifiedEditor?.getModel();
+    
+    if (originalModel && modifiedModel) {
+      // Models are ready - set up listeners
+      
+      // Set up modified editor listener if editable
+      if (editable && activeTabId) {
+        // Clean up existing listener if any
+        const ref = editorRef.current as unknown as {
+          _modifiedDisposable?: monaco.IDisposable;
+          _originalDisposable?: monaco.IDisposable;
+        };
+        if (ref._modifiedDisposable) {
+          ref._modifiedDisposable.dispose();
+        }
+        
+        // For saved mode, update active tab; for files mode, update selected file
+        const tabIdToUpdate = mode === 'saved' ? activeTabId : selectedFileId;
+        
+        if (tabIdToUpdate) {
+          const modifiedDisposable = modifiedModel.onDidChangeContent(() => {
+            const content = modifiedModel.getValue();
+            debouncedUpdate(tabIdToUpdate, content);
+          });
+          
+          // Store disposable for cleanup
+          ref._modifiedDisposable = modifiedDisposable;
+        }
+      }
+      
+      // Set up original editor listener if editable
+      if (originalEditable && activeTabId && mode === 'files') {
+        // Clean up existing listener if any
+        const ref = editorRef.current as unknown as {
+          _modifiedDisposable?: monaco.IDisposable;
+          _originalDisposable?: monaco.IDisposable;
+        };
+        if (ref._originalDisposable) {
+          ref._originalDisposable.dispose();
+        }
+        
+        const originalDisposable = originalModel.onDidChangeContent(() => {
+          const content = originalModel.getValue();
+          debouncedUpdate(activeTabId, content);
+        });
+        
+        // Store disposable for cleanup
+        ref._originalDisposable = originalDisposable;
+      }
+    } else if (retryCount < MAX_RETRIES) {
+      // Models not ready - retry on next frame
+      requestAnimationFrame(() => {
+        setupContentListeners(diffEditor, retryCount + 1);
+      });
+    }
+  };
+
+  const handleDiffEditorMount = (editor: monaco.editor.IStandaloneDiffEditor) => {
+    const diffEditor = editor as unknown as monaco.editor.IDiffEditor;
+    registerDiffEditor(diffEditor, monaco);
+    editorRef.current = diffEditor;
+    
+    // Ensure listeners use the latest wrap/viewMode settings
+    modelListenersCleanupRef.current?.();
+    const baseCleanup = attachDiffModelListeners(diffEditor, {
+      wordWrap: settings.wordWrap,
+      viewMode,
+    });
+
+    if (editable || originalEditable) {
+      setupContentListeners(diffEditor);
+    }
+    
+    // Apply stored pane ratio if available, otherwise reset to default
+    const ratioToApply =
+      activeTab?.diffPaneRatio && activeTab.diffPaneRatio > 0 && activeTab.diffPaneRatio < 1
+        ? activeTab.diffPaneRatio
+        : 0.5;
+    const applyRatioWithRetry = (value: number) => {
+      const apply = () => {
+        diffEditor.updateOptions({ splitViewDefaultRatio: value });
+        diffEditor.layout();
+      };
+      apply();
+      // Single RAF is sufficient for Monaco to process layout after initial render
+      requestAnimationFrame(apply);
+    };
+    applyRatioWithRetry(ratioToApply);
+    if (activeTabId && !activeTab?.diffPaneRatio) {
+      setTabDiffPaneRatio(activeTabId, ratioToApply);
+    }
+
+    // Listen for layout changes to capture current pane ratio
+    const orig = diffEditor.getOriginalEditor();
+    const mod = diffEditor.getModifiedEditor();
+    const captureRatio = () => {
+      const oLayout = orig?.getLayoutInfo();
+      const mLayout = mod?.getLayoutInfo();
+      if (!oLayout || !mLayout) return;
+      const oSize = viewMode === 'side-by-side' ? oLayout.width : oLayout.height;
+      const mSize = viewMode === 'side-by-side' ? mLayout.width : mLayout.height;
+      const total = oSize + mSize;
+      if (total > 0) {
+        const ratio = oSize / total;
+        if (activeTabId) {
+          setTabDiffPaneRatio(activeTabId, ratio);
+        }
+      }
+    };
+    const disposables: monaco.IDisposable[] = [];
+    if (orig?.onDidLayoutChange) {
+      const d = orig.onDidLayoutChange(captureRatio);
+      if (d) disposables.push(d);
+    }
+    if (mod?.onDidLayoutChange) {
+      const d = mod.onDidLayoutChange(captureRatio);
+      if (d) disposables.push(d);
+    }
+
+    modelListenersCleanupRef.current = () => {
+      baseCleanup();
+      disposables.forEach((d) => d?.dispose());
+    };
+
+    applyDiffEditorWrap(diffEditor, { wordWrap: settings.wordWrap, viewMode });
+  };
+  
+  // Re-setup content listeners when mode, selectedFileId, or activeTabId changes
+  useEffect(() => {
+    if (!editorRef.current || (!editable && !originalEditable)) return;
+    
+    const diffEditor = editorRef.current;
+    setupContentListeners(diffEditor);
+  }, [mode, selectedFileId, activeTabId, editable, originalEditable]);
+
+  // Reapply word wrap when setting or view mode changes
+  useEffect(() => {
+    if (!editorRef.current) return;
+    applyDiffEditorWrap(editorRef.current, { wordWrap: settings.wordWrap, viewMode });
+  }, [settings.wordWrap, viewMode]);
+
+  // Reapply stored pane ratio when it changes
+  useEffect(() => {
+    if (!editorRef.current) return;
+    const ratio =
+      activeTab?.diffPaneRatio && activeTab.diffPaneRatio > 0 && activeTab.diffPaneRatio < 1
+        ? activeTab.diffPaneRatio
+        : 0.5;
+    const applyRatio = () => {
+      editorRef.current?.updateOptions({ splitViewDefaultRatio: ratio });
+      editorRef.current?.layout();
+    };
+    applyRatio();
+    // Single RAF is sufficient for Monaco to process layout
+    requestAnimationFrame(applyRatio);
+    if (activeTabId && !activeTab?.diffPaneRatio) {
+      setTabDiffPaneRatio(activeTabId, ratio);
+    }
+  }, [activeTab?.diffPaneRatio, activeTabId]);
+
+  // Capture pane ratio on mouseup (after user drags split)
+  useEffect(() => {
+    const capture = () => {
+      if (!editorRef.current) return;
+      const run = () => {
+        const orig = editorRef.current?.getOriginalEditor();
+        const mod = editorRef.current?.getModifiedEditor();
+        const oLayout = orig?.getLayoutInfo();
+        const mLayout = mod?.getLayoutInfo();
+        if (!oLayout || !mLayout) return;
+        const oSize = viewMode === 'side-by-side' ? oLayout.width : oLayout.height;
+        const mSize = viewMode === 'side-by-side' ? mLayout.width : mLayout.height;
+        const total = oSize + mSize;
+        if (total > 0 && activeTabId) {
+          setTabDiffPaneRatio(activeTabId, oSize / total);
+        }
+      };
+      // Single RAF is sufficient to capture layout after mouse event
+      requestAnimationFrame(run);
+    };
+    window.addEventListener('mouseup', capture);
+    return () => {
+      window.removeEventListener('mouseup', capture);
+      capture(); // store the latest ratio on unmount
+    };
+  }, [activeTabId, viewMode, setTabDiffPaneRatio]);
+
+  // Cleanup on unmount - persist position before unregistering
+  useEffect(() => {
+    return () => {
+      // Persist cursor/selection from modified (right) editor before closing
+      // The modified editor shows the current document being edited
+      if (editorRef.current && activeTabId) {
+        const modifiedEditor = editorRef.current.getModifiedEditor();
+        if (modifiedEditor) {
+          const pos = modifiedEditor.getPosition();
+          const selection = modifiedEditor.getSelection();
+          if (pos) {
+            const { setTabCursor, setTabSelection } = useStore.getState();
+            setTabCursor(activeTabId, { line: pos.lineNumber, column: pos.column });
+            if (selection && !(selection.startLineNumber === selection.endLineNumber && selection.startColumn === selection.endColumn)) {
+              setTabSelection(activeTabId, {
+                startLine: selection.startLineNumber,
+                startColumn: selection.startColumn,
+                endLine: selection.endLineNumber,
+                endColumn: selection.endColumn,
+              });
+            }
+          }
+        }
+      }
+      modelListenersCleanupRef.current?.();
+      unregisterDiffEditor();
+    };
+  }, [unregisterDiffEditor, activeTabId]);
+
   return (
     <div className="modal-overlay">
       <div 
@@ -111,7 +404,7 @@ export function DiffViewer({
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-tab-border flex-shrink-0">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <h2 className="text-lg font-semibold" style={{ color: 'var(--editor-fg)' }}>
               Compare Changes
             </h2>
@@ -127,7 +420,7 @@ export function DiffViewer({
             {/* View mode toggle */}
             <div className="flex border border-tab-border rounded overflow-hidden">
               <button
-                onClick={() => setViewMode('side-by-side')}
+                onClick={() => handleViewModeChange('side-by-side')}
                 className={clsx(
                   'px-3 py-1.5 text-sm flex items-center gap-1',
                   viewMode === 'side-by-side' 
@@ -139,22 +432,22 @@ export function DiffViewer({
                 <Columns size={14} />
               </button>
               <button
-                onClick={() => setViewMode('inline')}
+                onClick={() => handleViewModeChange('over-under')}
                 className={clsx(
                   'px-3 py-1.5 text-sm flex items-center gap-1',
-                  viewMode === 'inline' 
+                  viewMode === 'over-under' 
                     ? 'bg-sidebar-active' 
                     : 'hover:bg-sidebar-hover'
                 )}
-                title="Inline"
+                title="Over under"
               >
                 <AlignLeft size={14} />
               </button>
             </div>
-            
             <button
               onClick={onClose}
               className="p-1.5 rounded hover:bg-sidebar-hover"
+              title="Close diff view"
             >
               <X size={18} />
             </button>
@@ -205,19 +498,10 @@ export function DiffViewer({
             modified={modifiedContent}
             language={activeTab?.language || 'markdown'}
             theme={monacoTheme}
-            options={{
-              fontSize: settings.fontSize,
-              fontFamily: settings.fontFamily,
-              readOnly: true,
-              renderSideBySide: viewMode === 'side-by-side',
-              originalEditable: false,
-              automaticLayout: true,
-              scrollBeyondLastLine: false,
-              minimap: { enabled: false },
-              lineNumbers: 'on',
-              renderWhitespace: 'selection',
-              diffWordWrap: settings.wordWrap ? 'on' : 'off',
-            }}
+            onMount={handleDiffEditorMount}
+            options={editorOptions} // PRIMARY mechanism - options set here
+            keepCurrentOriginalModel={true}
+            keepCurrentModifiedModel={true}
           />
         </div>
       </div>
@@ -251,4 +535,3 @@ export function useDiffViewer() {
     DiffViewerComponent,
   };
 }
-

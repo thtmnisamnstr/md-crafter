@@ -1,11 +1,11 @@
 export interface Document {
   id: string;
-  userId: string;
+  userId?: string;
   title: string;
   content: string;
   language: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string | Date;
+  updatedAt: string | Date;
   etag: string;
   isCloudSynced: boolean;
   localPath?: string;
@@ -23,7 +23,7 @@ export interface DocumentMetadata {
   id: string;
   title: string;
   language: string;
-  updatedAt: Date;
+  updatedAt: string | Date;
   isCloudSynced: boolean;
   syncStatus: SyncStatusType;
 }
@@ -40,7 +40,7 @@ export interface UpdateDocumentRequest {
   title?: string;
   content?: string;
   language?: string;
-  etag: string; // Required for conflict detection
+  etag?: string; // Required for conflict detection
 }
 
 export interface DocumentSyncRequest {
@@ -58,4 +58,3 @@ export interface DocumentSyncResponse {
     serverTimestamp: number;
   };
 }
-

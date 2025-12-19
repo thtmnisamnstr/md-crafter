@@ -1,4 +1,4 @@
-import { SyncStatusType } from '../types/document';
+import { SyncStatusType } from '../types/document.js';
 
 export class SyncStatus {
   private status: SyncStatusType = 'local';

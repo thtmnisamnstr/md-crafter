@@ -1,6 +1,6 @@
 {
   "name": "@md-crafter/server",
-  "version": "0.1.0-pre",
+  "version": "0.1.0-beta-1",
   "description": "Backend API server for md-crafter",
   "main": "./dist/index.js",
   "type": "module",
@@ -27,7 +27,9 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/pg": "^8.15.6",
+    "@types/supertest": "^6.0.2",
     "@types/uuid": "^9.0.7",
+    "supertest": "^7.0.0",
     "tsx": "^4.6.2",
     "typescript": "^5.3.2"
   }

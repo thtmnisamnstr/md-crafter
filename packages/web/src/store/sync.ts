@@ -16,6 +16,7 @@ export interface SyncSlice {
   setConflict: (conflict: ConflictInfo | null) => void;
   resolveConflict: (resolution: 'keep_local' | 'keep_remote' | 'merge', mergedContent?: string) => Promise<void>;
   syncDocument: (tabId: string) => Promise<void>;
+  cleanupSyncDebouncer: (documentId: string) => void;
 }
 
 /**
@@ -85,9 +86,16 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
         break;
     }
     
+    // Reset cursor/selection since conflict resolution may change content structure
     set((state) => ({
       tabs: state.tabs.map((t) =>
-        t.id === tab.id ? { ...t, content, isDirty: true } : t
+        t.id === tab.id ? { 
+          ...t, 
+          content, 
+          isDirty: true,
+          cursor: { line: 1, column: 1 },
+          selection: null,
+        } : t
       ),
       conflict: null,
     }));
@@ -124,7 +132,7 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
             set((state) => ({
               tabs: state.tabs.map((t) =>
                 t.id === currentTabId
-                  ? { ...t, syncStatus: 'synced', savedContent: t.content }
+                  ? { ...t, syncStatus: 'synced', savedContent: t.content, hasSavedVersion: true }
                   : t
               ),
             }));
@@ -157,6 +165,18 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
     
     const debouncedSync = syncDebouncers.get(tab.documentId)!;
     debouncedSync(tab.documentId, tab.content, tabId);
+  },
+  
+  /**
+   * Cleans up the debouncer for a document when it's deleted
+   * 
+   * Removes the debounced sync function from memory to prevent memory leaks.
+   * Should be called when a document is deleted or no longer needs syncing.
+   * 
+   * @param documentId - The ID of the document whose debouncer should be cleaned up
+   */
+  cleanupSyncDebouncer: (documentId) => {
+    syncDebouncers.delete(documentId);
   },
   };
 };

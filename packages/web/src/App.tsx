@@ -4,9 +4,11 @@ import { MenuBar } from './components/MenuBar';
 import { Layout } from './components/Layout';
 import { Toast } from './components/Toast';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { EditorContextProvider } from './contexts/EditorContext';
 import { isElectron, isMacOS } from './utils/platform';
-import { useKeyboardShortcuts, useOnlineStatus } from './hooks';
+import { useKeyboardShortcuts, useOnlineStatus, useElectronMenu } from './hooks';
 import { getLanguageFromExtension } from './utils/language';
+import { ConfirmationModal } from './components/ConfirmationModal';
 
 // Lazy load modal components for better initial load performance
 const CommandPalette = lazy(() => import('./components/CommandPalette').then(m => ({ default: m.CommandPalette })));
@@ -19,12 +21,22 @@ const ExportDocxModal = lazy(() => import('./components/ExportDocxModal').then(m
 const PrintView = lazy(() => import('./components/PrintView').then(m => ({ default: m.PrintView })));
 const AboutModal = lazy(() => import('./components/AboutModal').then(m => ({ default: m.AboutModal })));
 const ShortcutsModal = lazy(() => import('./components/ShortcutsModal').then(m => ({ default: m.ShortcutsModal })));
-const GoogleImportModal = lazy(() => import('./components/GoogleImportModal').then(m => ({ default: m.GoogleImportModal })));
-const GoogleExportModal = lazy(() => import('./components/GoogleExportModal').then(m => ({ default: m.GoogleExportModal })));
 const SearchModal = lazy(() => import('./components/SearchModal').then(m => ({ default: m.SearchModal })));
-const ConfirmationModal = lazy(() => import('./components/ConfirmationModal').then(m => ({ default: m.ConfirmationModal })));
+const GrammarReviewModal = lazy(() => import('./components/GrammarReviewModal').then(m => ({ default: m.GrammarReviewModal })));
+const DictionaryModal = lazy(() => import('./components/DictionaryModal').then(m => ({ default: m.DictionaryModal })));
 
 export default function App() {
+  return (
+    <ErrorBoundary>
+      <EditorContextProvider>
+        <AppContent />
+      </EditorContextProvider>
+    </ErrorBoundary>
+  );
+}
+
+// Inner component that can use EditorContext
+function AppContent() {
   const { 
     theme, 
     showCommandPalette, 
@@ -42,12 +54,10 @@ export default function App() {
     setShowAbout,
     showShortcuts,
     setShowShortcuts,
-    showGoogleImport,
-    setShowGoogleImport,
-    showGoogleExport,
-    setShowGoogleExport,
     showSearch,
     setShowSearch,
+    showGrammarReview,
+    showDictionaryModal,
     conflict,
     confirmation,
     clearConfirmation,
@@ -59,7 +69,7 @@ export default function App() {
     activeTabId,
     importDocxFile,
   } = useStore();
-
+  
   // Handle drag and drop files
   const handleDrop = useCallback((e: DragEvent) => {
     e.preventDefault();
@@ -120,137 +130,15 @@ export default function App() {
 
   useEffect(() => {
     // Apply theme class to root element
-    document.documentElement.className = theme;
+    // Remove all existing theme classes and add the new one
+    const root = document.documentElement;
+    const themeClasses = ['dark', 'light', 'monokai', 'dracula', 'github-dark', 'nord'];
+    themeClasses.forEach(cls => root.classList.remove(cls));
+    root.classList.add(theme);
   }, [theme]);
 
   // Setup Electron native menu event listeners
-  useEffect(() => {
-    if (!isElectron()) return;
-    
-    // Get the api from the window object (exposed by preload)
-    const api = (window as Window & { api?: {
-      onMenuNewFile: (cb: () => void) => () => void;
-      onMenuSave: (cb: () => void) => () => void;
-      onMenuSaveToCloud: (cb: () => void) => () => void;
-      onMenuCloseTab: (cb: () => void) => () => void;
-      onMenuToggleSidebar: (cb: () => void) => () => void;
-      onMenuTogglePreview: (cb: () => void) => () => void;
-      onMenuCommandPalette: (cb: () => void) => () => void;
-      onMenuSettings: (cb: () => void) => () => void;
-      onMenuFind: (cb: () => void) => () => void;
-      onMenuReplace: (cb: () => void) => () => void;
-      onMenuCopyForWord: (cb: () => void) => () => void;
-      onMenuPasteFromWord: (cb: () => void) => () => void;
-      onMenuExportPdf: (cb: () => void) => () => void;
-      onMenuExportWord: (cb: () => void) => () => void;
-      onMenuExportHtml: (cb: () => void) => () => void;
-      onMenuImportWord: (cb: () => void) => () => void;
-      onMenuImportGoogleDoc: (cb: () => void) => () => void;
-      onMenuExportGoogleDrive: (cb: () => void) => () => void;
-      onMenuZenMode: (cb: () => void) => () => void;
-      onMenuSplitVertical: (cb: () => void) => () => void;
-      onMenuSplitHorizontal: (cb: () => void) => () => void;
-      onMenuNoSplit: (cb: () => void) => () => void;
-      onMenuAbout: (cb: () => void) => () => void;
-      onMenuShortcuts: (cb: () => void) => () => void;
-      onMenuSearch: (cb: () => void) => () => void;
-    } }).api;
-    
-    if (!api) return;
-    
-    const cleanups: (() => void)[] = [];
-    
-    // File menu actions
-    if (api.onMenuNewFile) {
-      cleanups.push(api.onMenuNewFile(() => useStore.getState().createNewDocument()));
-    }
-    if (api.onMenuSave) {
-      cleanups.push(api.onMenuSave(() => useStore.getState().saveCurrentDocument()));
-    }
-    if (api.onMenuSaveToCloud) {
-      cleanups.push(api.onMenuSaveToCloud(() => {
-        const { activeTabId } = useStore.getState();
-        if (activeTabId) useStore.getState().saveDocumentToCloud(activeTabId);
-      }));
-    }
-    if (api.onMenuCloseTab) {
-      cleanups.push(api.onMenuCloseTab(() => {
-        const { activeTabId, closeTab } = useStore.getState();
-        if (activeTabId) closeTab(activeTabId);
-      }));
-    }
-    
-    // View menu actions
-    if (api.onMenuToggleSidebar) {
-      cleanups.push(api.onMenuToggleSidebar(() => useStore.getState().toggleSidebar()));
-    }
-    if (api.onMenuTogglePreview) {
-      cleanups.push(api.onMenuTogglePreview(() => useStore.getState().togglePreview()));
-    }
-    if (api.onMenuCommandPalette) {
-      cleanups.push(api.onMenuCommandPalette(() => useStore.getState().setShowCommandPalette(true)));
-    }
-    if (api.onMenuSettings) {
-      cleanups.push(api.onMenuSettings(() => useStore.getState().setShowSettings(true)));
-    }
-    if (api.onMenuZenMode) {
-      cleanups.push(api.onMenuZenMode(() => useStore.getState().toggleZenMode()));
-    }
-    if (api.onMenuSplitVertical) {
-      cleanups.push(api.onMenuSplitVertical(() => useStore.getState().setSplitMode('vertical')));
-    }
-    if (api.onMenuSplitHorizontal) {
-      cleanups.push(api.onMenuSplitHorizontal(() => useStore.getState().setSplitMode('horizontal')));
-    }
-    if (api.onMenuNoSplit) {
-      cleanups.push(api.onMenuNoSplit(() => useStore.getState().setSplitMode('none')));
-    }
-    
-    // Edit menu - Copy/Paste for Word
-    if (api.onMenuCopyForWord) {
-      cleanups.push(api.onMenuCopyForWord(() => useStore.getState().copyForWordDocs()));
-    }
-    if (api.onMenuPasteFromWord) {
-      cleanups.push(api.onMenuPasteFromWord(() => useStore.getState().pasteFromWordDocs()));
-    }
-    
-    // Export actions
-    if (api.onMenuExportPdf) {
-      cleanups.push(api.onMenuExportPdf(() => useStore.getState().setShowExportPdf(true)));
-    }
-    if (api.onMenuExportWord) {
-      cleanups.push(api.onMenuExportWord(() => useStore.getState().setShowExportDocx(true)));
-    }
-    if (api.onMenuExportHtml) {
-      cleanups.push(api.onMenuExportHtml(() => useStore.getState().setShowExport(true)));
-    }
-    if (api.onMenuImportWord) {
-      cleanups.push(api.onMenuImportWord(() => useStore.getState().setShowImportDocx(true)));
-    }
-    if (api.onMenuImportGoogleDoc) {
-      cleanups.push(api.onMenuImportGoogleDoc(() => useStore.getState().setShowGoogleImport(true)));
-    }
-    if (api.onMenuExportGoogleDrive) {
-      cleanups.push(api.onMenuExportGoogleDrive(() => useStore.getState().setShowGoogleExport(true)));
-    }
-    
-    // Search
-    if (api.onMenuSearch) {
-      cleanups.push(api.onMenuSearch(() => useStore.getState().setShowSearch(true)));
-    }
-    
-    // Help menu actions
-    if (api.onMenuAbout) {
-      cleanups.push(api.onMenuAbout(() => useStore.getState().setShowAbout(true)));
-    }
-    if (api.onMenuShortcuts) {
-      cleanups.push(api.onMenuShortcuts(() => useStore.getState().setShowShortcuts(true)));
-    }
-    
-    return () => {
-      cleanups.forEach(cleanup => cleanup());
-    };
-  }, []);
+  useElectronMenu();
 
   // Global keyboard shortcuts
   useKeyboardShortcuts();
@@ -266,8 +154,7 @@ export default function App() {
   const needsTrafficLightPadding = inElectron && isMacOS();
 
   return (
-    <ErrorBoundary>
-      <div className="h-full w-full flex flex-col" style={{ background: 'var(--editor-bg)' }}>
+    <div className="h-full w-full flex flex-col" style={{ background: 'var(--editor-bg)' }}>
       {/* Show web menu bar only when not in Electron (Electron uses native menu) */}
       {showMenuBar && <MenuBar />}
       
@@ -278,6 +165,21 @@ export default function App() {
       >
         <Layout />
       </div>
+      
+      {/* Confirmation modal - preloaded for critical UX */}
+      {confirmation && (
+        <ConfirmationModal
+          title={confirmation.title}
+          message={confirmation.message}
+          confirmLabel={confirmation.confirmLabel}
+          cancelLabel={confirmation.cancelLabel}
+          variant={confirmation.variant}
+          onConfirm={() => {
+            confirmation.onConfirm();
+          }}
+          onCancel={clearConfirmation}
+        />
+      )}
       
       {/* Lazy-loaded modals wrapped in Suspense */}
       <Suspense fallback={null}>
@@ -296,28 +198,13 @@ export default function App() {
         )}
         {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
         {showShortcuts && <ShortcutsModal onClose={() => setShowShortcuts(false)} />}
-        {showGoogleImport && <GoogleImportModal onClose={() => setShowGoogleImport(false)} />}
-        {showGoogleExport && <GoogleExportModal onClose={() => setShowGoogleExport(false)} />}
         {showSearch && <SearchModal onClose={() => setShowSearch(false)} />}
+        {showGrammarReview && <GrammarReviewModal />}
+        {showDictionaryModal && <DictionaryModal />}
         {conflict && <ConflictModal />}
-        {confirmation && (
-          <ConfirmationModal
-            title={confirmation.title}
-            message={confirmation.message}
-            confirmLabel={confirmation.confirmLabel}
-            cancelLabel={confirmation.cancelLabel}
-            variant={confirmation.variant}
-            onConfirm={() => {
-              confirmation.onConfirm();
-            }}
-            onCancel={clearConfirmation}
-          />
-        )}
       </Suspense>
       
       <Toast />
-      </div>
-    </ErrorBoundary>
+    </div>
   );
 }
-

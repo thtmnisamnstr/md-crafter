@@ -16,11 +16,16 @@ export function SettingsModal() {
     setTheme,
   } = useStore();
 
-  const [localSettings, setLocalSettings] = useState({ ...settings, theme });
+  const [localSettings, setLocalSettings] = useState({ 
+    ...settings, 
+    theme,
+  });
 
   const handleSave = () => {
-    updateSettings(localSettings);
-    setTheme(localSettings.theme);
+    // Separate theme from settings since theme is stored separately from Settings interface
+    const { theme: selectedTheme, ...settingsOnly } = localSettings;
+    updateSettings(settingsOnly);
+    setTheme(selectedTheme);
     setShowSettings(false);
   };
 
@@ -140,6 +145,13 @@ export function SettingsModal() {
               description="Automatically sync changes to cloud"
               checked={localSettings.autoSync}
               onChange={(checked) => setLocalSettings({ ...localSettings, autoSync: checked })}
+            />
+            
+            <ToggleSetting
+              label="Real-time Spell Check"
+              description="Highlight misspelled words as you type"
+              checked={localSettings.spellCheck ?? true}
+              onChange={(checked) => setLocalSettings({ ...localSettings, spellCheck: checked })}
             />
           </div>
         </div>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { diffLines, hasChanges, getChangeSummary } from '../utils/diff';
+import { diffLines, hasChanges, getChangeSummary } from '../utils/diff.js';
 
 describe('diffLines', () => {
   it('should return no changes for identical content', () => {

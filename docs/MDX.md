@@ -147,7 +147,7 @@ Numbered step-by-step instructions:
 Styled card containers with optional links:
 
 ```mdx
-<Card title="Getting Started" href="/docs/getting-started">
+<Card title="Getting Started" href="DOCS.md">
   Learn how to set up md-crafter in your project.
 </Card>
 

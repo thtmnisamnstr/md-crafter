@@ -40,7 +40,7 @@ app.get('/health', (_req, res) => {
 });
 
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '0.0.0-pre' });
+  res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '0.1.0-beta-1' });
 });
 
 // Public routes

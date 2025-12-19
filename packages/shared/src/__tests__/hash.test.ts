@@ -5,7 +5,7 @@ import {
   generateUUID,
   generateShortId,
   generateApiToken,
-} from '../utils/hash';
+} from '../utils/hash.js';
 
 describe('generateHash', () => {
   it('should generate a hash for content', () => {

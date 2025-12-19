@@ -1,6 +1,6 @@
 {
   "name": "@md-crafter/web",
-  "version": "0.1.0-pre",
+  "version": "0.1.0-beta-1",
   "description": "Web application for md-crafter",
   "type": "module",
   "scripts": {
@@ -10,6 +10,16 @@
     "lint": "eslint src --ext .ts,.tsx"
   },
   "dependencies": {
+    "@cspell/dict-aws": "^4.0.17",
+    "@cspell/dict-companies": "^3.2.8",
+    "@cspell/dict-filetypes": "^3.0.15",
+    "@cspell/dict-fullstack": "^3.2.7",
+    "@cspell/dict-gaming-terms": "^1.1.2",
+    "@cspell/dict-git": "^3.0.7",
+    "@cspell/dict-google": "^1.0.9",
+    "@cspell/dict-k8s": "^1.0.12",
+    "@cspell/dict-markdown": "^2.0.14",
+    "@cspell/dict-software-terms": "^5.1.17",
     "@md-crafter/shared": "*",
     "@mdx-js/mdx": "^3.1.1",
     "@mdx-js/react": "^3.1.1",
@@ -25,21 +35,31 @@
     "mammoth": "^1.11.0",
     "marked": "^11.0.0",
     "monaco-editor": "^0.45.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "nspell": "^2.1.5",
+    "pako": "^2.1.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
     "socket.io-client": "^4.7.2",
+    "textlint": "^13.0.0",
+    "textlint-rule-common-misspellings": "^1.0.1",
+    "textlint-rule-spelling": "^0.3.0",
+    "textlint-rule-write-good": "^2.0.0",
     "turndown": "^7.2.2",
     "zustand": "^4.4.7"
   },
   "devDependencies": {
+    "@textlint/script-compiler": "^0.18.5",
     "@types/dompurify": "^3.0.5",
+    "@types/pako": "^2.0.4",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.16",
     "postcss": "^8.4.32",
+    "prettier": "3.2.5",
     "tailwindcss": "^3.3.6",
     "typescript": "^5.3.2",
-    "vite": "^5.0.8"
+    "vite": "^6.0.0",
+    "vite-plugin-node-polyfills": "^0.24.0"
   }
 }

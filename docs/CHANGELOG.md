@@ -5,9 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - Pre-release
+## [0.1.0-beta-1] - 2025-12-17
 
-> **Note**: This is pre-release software. The first stable release will be v0.1.0.
+> **Note**: This is pre-release software (beta). The first stable release will be v0.1.0.
 
 ### Features
 
@@ -89,7 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Platform-specific cloud sync setup (accepts API key + server URL)
 
 #### Testing & CI/CD
-- Vitest for unit testing (52 tests)
+- Vitest for unit testing (70 test files)
 - Playwright for E2E testing
 - GitHub Actions workflow
 - Lint, test, build, Docker build jobs
@@ -106,14 +106,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Lazy loading for modal components
 - Separate React vendor chunk
 
+### Fixed
+
+#### Split Editor
+- Fixed vertical split mode layout issue (left pane no longer expands indefinitely)
+- Fixed horizontal split mode layout issue (both panes now display correctly)
+- Fixed split editor to allow different files in each pane (previously showed same file in both)
+- Added tab selectors to both primary and secondary panes for easy file switching
+- Improved initialization of secondary pane when split mode is enabled
+
+#### Menu Bar
+- Fixed Open Recent menu to handle local files better (tries to find by ID, then by title)
+- Improved error message when local file cannot be reopened from recent menu
+- Fixed submenu hover gap issue - submenus no longer disappear when moving mouse from menu item to submenu
+- Removed gap between menu items and submenus for better hover behavior
+
+#### Spell Check
+- Fixed dictionary add/remove not refreshing spell check markers immediately
+- Dictionary Manager modal now refreshes spell check on close
+- Custom dictionary words now use shouldIgnore() check for symmetric add/remove
+
+#### Formatting
+- Fixed MDX formatting to preserve indentation inside HTML/JSX tags
+- Post-process re-indentation ensures MDX content structure is maintained
+
+#### Keyboard Shortcuts
+- Added multi-file open support (Ctrl+O)
+- Added markdown formatting shortcuts: Bold (Ctrl+B), Italic (Ctrl+I), Link (Ctrl+K)
+- Markdown shortcuts work when editor is focused, global shortcuts otherwise
+- Fixed all documented shortcuts to match actual implementation
+
+#### Revert to Saved
+- Fixed "Revert to Last Saved" not updating editor content
+- Monaco model now syncs with store when content changes externally
+
 ---
 
 ## Planned for v0.1.0
 
-- [ ] Stable release with full feature set
-- [ ] Complete documentation
-- [ ] All tests passing
+- [x] Beta release with full feature set (0.1.0-beta-1)
+- [x] Complete documentation
+- [x] Core tests passing (70 test files)
 - [ ] Docker images published
+- [ ] Stable release
 
 ---
 

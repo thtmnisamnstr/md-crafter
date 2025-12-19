@@ -10,6 +10,7 @@ const DEFAULT_SETTINGS: Settings = {
   minimap: true,
   autoSync: true,
   syncInterval: 2000,
+  spellCheck: true,
 };
 
 export interface SettingsSlice {

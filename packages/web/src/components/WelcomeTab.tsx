@@ -107,7 +107,7 @@ export const WelcomeTab = () => {
 
   return (
     <div 
-      className="h-full overflow-auto p-8"
+      className="h-full w-full flex-1 overflow-auto p-8"
       style={{ background: 'var(--editor-bg)', color: 'var(--editor-fg)' }}
     >
       <div className="max-w-3xl mx-auto">
@@ -201,11 +201,12 @@ export const WelcomeTab = () => {
             }}
           >
             <Shortcut keys={[modKey, 'Shift', 'P']} description="Command Palette" />
-            <Shortcut keys={[modKey, 'P']} description="Quick Open / Print" />
+            <Shortcut keys={[modKey, 'O']} description="Open File(s)" />
+            <Shortcut keys={[modKey, 'P']} description="Print / Export PDF" />
             <Shortcut keys={[modKey, 'S']} description="Save" />
-            <Shortcut keys={[modKey, 'B']} description="Toggle Sidebar" />
-            <Shortcut keys={[modKey, '\\']} description="Split Vertical" />
-            <Shortcut keys={[modKey, 'Shift', 'F']} description="Search All Files" />
+            <Shortcut keys={[modKey, 'B']} description="Toggle Sidebar / Bold" />
+            <Shortcut keys={[modKey, '\\']} description="Split View" />
+            <Shortcut keys={[modKey, 'Shift', 'F']} description="Format Document" />
             <Shortcut keys={[modKey, ',']} description="Settings" />
             <Shortcut keys={[modKey, 'K', 'Z']} description="Zen Mode" />
           </div>

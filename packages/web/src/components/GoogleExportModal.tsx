@@ -144,7 +144,7 @@ VITE_GOOGLE_API_KEY=your-api-key`;
             <p className="text-xs opacity-60 text-center" style={{ color: 'var(--editor-fg)' }}>
               For Docker deployments, see the{' '}
               <a
-                href="https://github.com/thtmnisamnstr/md-crafter/blob/main/DOCKER.md#google-drive-integration"
+                href="https://github.com/thtmnisamnstr/md-crafter/blob/main/docs/DOCKER.md#google-drive-integration"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:underline"

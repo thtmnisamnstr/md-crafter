@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useStore } from '../store';
 import { 
   Cloud, 
@@ -9,7 +10,8 @@ import {
   PanelLeftClose
 } from 'lucide-react';
 import clsx from 'clsx';
-import { getSyncStatusLabel } from '@md-crafter/shared';
+import { getSyncStatusLabel, countWords, countCharacters } from '@md-crafter/shared';
+import { useEditorSelection } from '../hooks/useEditorSelection';
 
 export function StatusBar() {
   const { 
@@ -25,10 +27,20 @@ export function StatusBar() {
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
   const isMarkdown = activeTab?.language === 'markdown' || activeTab?.title.endsWith('.md');
+  const tabShowPreview = activeTab?.showPreview ?? showPreview;
 
-  // Calculate cursor position (simplified - would need editor ref for real position)
-  const lineCount = activeTab?.content.split('\n').length || 0;
-  const charCount = activeTab?.content.length || 0;
+  // Track editor selection
+  const selectionStats = useEditorSelection();
+
+  // Calculate document statistics (memoized for performance)
+  const documentStats = useMemo(() => {
+    const content = activeTab?.content || '';
+    return {
+      lineCount: content.split('\n').length,
+      wordCount: countWords(content),
+      charCount: countCharacters(content),
+    };
+  }, [activeTab?.content]);
 
   return (
     <div 
@@ -74,12 +86,30 @@ export function StatusBar() {
         <div className="flex items-center gap-3">
           {/* Language */}
           <span className="opacity-80">{activeTab.language}</span>
+          {selectionStats?.position && (
+            <>
+              <span className="opacity-60">|</span>
+              <span className="opacity-80">
+                Ln {selectionStats.position.line}, Col {selectionStats.position.column}
+              </span>
+            </>
+          )}
           
-          {/* Line count */}
-          <span>{lineCount} lines</span>
-          
-          {/* Character count */}
-          <span>{charCount} chars</span>
+          {/* Document and selection word and character count */}
+          <span>{documentStats.lineCount} lines</span>
+          <span>{documentStats.wordCount} words</span>
+          <span>{documentStats.charCount} chars</span>
+          {selectionStats && (
+            <>
+              <span className="opacity-60">|</span>
+              <span className="opacity-80">
+                {selectionStats.wordCount} words selected
+              </span>
+              <span className="opacity-80">
+                {selectionStats.charCount} chars selected
+              </span>
+            </>
+          )}
         </div>
       )}
 
@@ -106,11 +136,11 @@ export function StatusBar() {
           <button
             onClick={togglePreview}
             className="hover:opacity-80 transition-opacity flex items-center gap-1"
-            title={showPreview ? 'Hide Preview' : 'Show Preview'}
-            aria-label={showPreview ? 'Hide Preview' : 'Show Preview'}
-            aria-pressed={showPreview}
+            title={tabShowPreview ? 'Hide Preview' : 'Show Preview'}
+            aria-label={tabShowPreview ? 'Hide Preview' : 'Show Preview'}
+            aria-pressed={tabShowPreview}
           >
-            {showPreview ? <EyeOff size={12} /> : <Eye size={12} />}
+            {tabShowPreview ? <EyeOff size={12} /> : <Eye size={12} />}
             <span>Preview</span>
           </button>
         )}
@@ -123,4 +153,3 @@ export function StatusBar() {
     </div>
   );
 }
-

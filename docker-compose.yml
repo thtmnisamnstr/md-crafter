@@ -17,7 +17,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3001
-      - DB_FILENAME=/app/data/md-crafter.json
+      - DB_PATH=/app/data/md-crafter.db
       - CORS_ORIGIN=*
       - MAX_DOCUMENT_VERSIONS=50
       # Google API (optional)
@@ -33,4 +33,3 @@ services:
 volumes:
   md-crafter-data:
     driver: local
-

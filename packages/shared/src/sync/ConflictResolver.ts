@@ -1,5 +1,5 @@
-import { ConflictInfo, ConflictResolution } from '../types/sync';
-import { diffLines, DiffResult } from '../utils/diff';
+import { ConflictInfo, ConflictResolution } from '../types/sync.js';
+import { diffLines, DiffResult } from '../utils/diff.js';
 
 export class ConflictResolver {
   /**

@@ -133,10 +133,6 @@ function createMenu(): void {
           label: 'Import from Word (.docx)',
           click: () => mainWindow?.webContents.send('menu:import-word'),
         },
-        {
-          label: 'Import from Google Doc',
-          click: () => mainWindow?.webContents.send('menu:import-google-doc'),
-        },
         { type: 'separator' },
         {
           label: 'Export as PDF',
@@ -149,10 +145,6 @@ function createMenu(): void {
         {
           label: 'Export as HTML',
           click: () => mainWindow?.webContents.send('menu:export-html'),
-        },
-        {
-          label: 'Export to Google Drive',
-          click: () => mainWindow?.webContents.send('menu:export-google-drive'),
         },
         { type: 'separator' },
         {
@@ -237,6 +229,23 @@ function createMenu(): void {
               label: 'Split Vertical',
               accelerator: 'CmdOrCtrl+\\',
               click: () => mainWindow?.webContents.send('menu:split-vertical'),
+            },
+          ],
+        },
+        {
+          label: 'Compare Files',
+          submenu: [
+            {
+              label: 'Compare with Saved Version',
+              click: () => mainWindow?.webContents.send('menu:diff-with-saved'),
+            },
+            {
+              label: 'Compare Active File with...',
+              click: () => mainWindow?.webContents.send('menu:diff-with-file'),
+            },
+            {
+              label: 'Exit Diff View',
+              click: () => mainWindow?.webContents.send('menu:diff-exit'),
             },
           ],
         },

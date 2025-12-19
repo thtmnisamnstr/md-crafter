@@ -19,11 +19,12 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: 'File',
     shortcuts: [
       { keys: '⌘ N', description: 'New document' },
-      { keys: '⌘ O', description: 'Open file' },
+      { keys: '⌘ O', description: 'Open file(s)' },
       { keys: '⌘ S', description: 'Save' },
       { keys: '⌘ ⇧ S', description: 'Save as' },
       { keys: '⌘ W', description: 'Close tab' },
       { keys: '⌘ E', description: 'Export' },
+      { keys: '⌘ P', description: 'Print / Export PDF' },
     ],
   },
   {
@@ -45,9 +46,8 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     title: 'View',
     shortcuts: [
       { keys: '⌘ ⇧ P', description: 'Command palette' },
-      { keys: '⌘ P', description: 'Quick open' },
       { keys: '⌘ B', description: 'Toggle sidebar' },
-      { keys: '⌘ \\', description: 'Toggle preview' },
+      { keys: '⌘ \\', description: 'Toggle split view' },
       { keys: '⌘ K Z', description: 'Zen mode' },
       { keys: '⌘ ,', description: 'Settings' },
     ],
@@ -67,11 +67,11 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
     ],
   },
   {
-    title: 'Markdown',
+    title: 'Markdown (in editor)',
     shortcuts: [
       { keys: '⌘ B', description: 'Bold' },
       { keys: '⌘ I', description: 'Italic' },
-      { keys: '⌘ K', description: 'Link' },
+      { keys: '⌘ K', description: 'Insert link' },
     ],
   },
 ];

@@ -88,7 +88,7 @@ export function MDXPreview({ content }: MDXPreviewProps) {
       className="h-full overflow-auto"
       style={{ background: 'var(--editor-bg)' }}
     >
-      <div className="mdx-content p-6 max-w-none">
+      <div className="mdx-content p-6 max-w-none" style={{ color: 'var(--editor-fg)' }}>
         <Component components={mdxComponents} />
       </div>
       <style>{`
@@ -133,6 +133,7 @@ export function MDXPreview({ content }: MDXPreviewProps) {
         .mdx-content code {
           font-family: 'Fira Code', Consolas, monospace;
           background: var(--sidebar-hover);
+          color: var(--editor-fg);
           padding: 0.2em 0.4em;
           border-radius: 3px;
           font-size: 0.9em;
@@ -150,6 +151,7 @@ export function MDXPreview({ content }: MDXPreviewProps) {
         }
         .mdx-content blockquote {
           border-left: 4px solid var(--editor-accent);
+          color: var(--editor-comment);
           padding-left: 1em;
           margin: 1em 0;
           opacity: 0.8;

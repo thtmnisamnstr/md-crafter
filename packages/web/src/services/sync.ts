@@ -98,9 +98,17 @@ class SyncService {
       this.socket.disconnect();
       this.socket = null;
     }
-    this.subscribedDocuments.clear();
+    // Note: subscribedDocuments is preserved so we can resubscribe on reconnect
   }
 
+  /**
+   * Subscribes to real-time updates for a document
+   * 
+   * Adds document to subscription list and emits subscribe event if socket is connected.
+   * Document will be automatically resubscribed on reconnect.
+   * 
+   * @param documentId - Document ID to subscribe to
+   */
   subscribeToDocument(documentId: string) {
     this.subscribedDocuments.add(documentId);
     if (this.socket?.connected) {
@@ -108,6 +116,13 @@ class SyncService {
     }
   }
 
+  /**
+   * Unsubscribes from real-time updates for a document
+   * 
+   * Removes document from subscription list and emits unsubscribe event if socket is connected.
+   * 
+   * @param documentId - Document ID to unsubscribe from
+   */
   unsubscribeFromDocument(documentId: string) {
     this.subscribedDocuments.delete(documentId);
     if (this.socket?.connected) {
@@ -115,12 +130,28 @@ class SyncService {
     }
   }
 
+  /**
+   * Updates cursor position for collaborative editing
+   * 
+   * Broadcasts cursor position to other users viewing the same document.
+   * 
+   * @param documentId - Document ID
+   * @param position - Cursor position (line and column)
+   */
   updateCursor(documentId: string, position: { line: number; column: number }) {
     if (this.socket?.connected) {
       this.socket.emit('cursor:update', { documentId, position });
     }
   }
 
+  /**
+   * Updates selection range for collaborative editing
+   * 
+   * Broadcasts selection range to other users viewing the same document.
+   * 
+   * @param documentId - Document ID
+   * @param selection - Selection range (start and end line/column)
+   */
   updateSelection(
     documentId: string,
     selection: { startLine: number; startColumn: number; endLine: number; endColumn: number }
@@ -130,6 +161,14 @@ class SyncService {
     }
   }
 
+  /**
+   * Updates user presence status for a document
+   * 
+   * Broadcasts whether user is actively editing or idle.
+   * 
+   * @param documentId - Document ID
+   * @param status - Presence status ('active' or 'idle')
+   */
   updatePresence(documentId: string, status: 'active' | 'idle') {
     if (this.socket?.connected) {
       this.socket.emit('presence:update', { documentId, status });

@@ -1,37 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { useStore } from '../store';
-import { THEMES } from '../utils/themes';
+import { useEditorContext } from '../contexts/EditorContext';
+import { getFileMenuItems } from './menus/FileMenu';
+import { getEditMenuItems } from './menus/EditMenu';
+import { getViewMenuItems } from './menus/ViewMenu';
+import { getHelpMenuItems } from './menus/HelpMenu';
 import {
   ChevronDown,
-  FileText,
-  FolderOpen,
-  Save,
-  Cloud,
-  Download,
-  Upload,
-  FilePlus,
-  X,
-  Undo,
-  Redo,
-  Scissors,
-  Copy,
-  Clipboard,
-  ClipboardPaste,
-  Search,
-  Replace,
-  CheckSquare,
-  PanelLeft,
-  Eye,
-  Maximize,
-  Command,
-  SplitSquareHorizontal,
-  Palette,
-  HelpCircle,
-  Keyboard,
-  Info,
-  Clock,
-  FileType,
-  Printer,
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -44,6 +18,7 @@ interface MenuItem {
   disabled?: boolean;
   separator?: boolean;
   submenu?: MenuItem[];
+  customElement?: React.ReactNode; // For custom elements like remove buttons
 }
 
 interface MenuProps {
@@ -106,7 +81,13 @@ function Menu({ label, items, isOpen, onOpen, onClose }: MenuProps) {
                 key={item.id}
                 className="relative"
                 onMouseEnter={() => item.submenu && setSubmenuOpen(item.id)}
-                onMouseLeave={() => item.submenu && setSubmenuOpen(null)}
+                onMouseLeave={(e) => {
+                  // Only close if mouse is not moving to submenu
+                  const relatedTarget = e.relatedTarget as HTMLElement;
+                  if (!relatedTarget?.closest('[data-submenu]')) {
+                    setSubmenuOpen(null);
+                  }
+                }}
               >
                 <button
                   className={clsx(
@@ -130,30 +111,45 @@ function Menu({ label, items, isOpen, onOpen, onClose }: MenuProps) {
                 {/* Submenu */}
                 {item.submenu && submenuOpen === item.id && (
                   <div
-                    className="absolute left-full top-0 min-w-[180px] rounded-md shadow-lg border border-tab-border ml-1"
+                    data-submenu
+                    className={clsx(
+                      "absolute left-full top-0 rounded-md shadow-lg border border-tab-border -ml-1",
+                      item.id === 'recent' ? 'min-w-[320px]' : 'min-w-[180px]'
+                    )}
                     style={{ background: 'var(--sidebar-bg, #252526)' }}
+                    onMouseEnter={() => setSubmenuOpen(item.id)}
+                    onMouseLeave={() => setSubmenuOpen(null)}
                   >
                     {item.submenu.map((subitem) => (
-                      <button
+                      <div
                         key={subitem.id}
-                        className={clsx(
-                          'w-full px-3 py-1.5 text-sm flex items-center gap-2 hover:bg-sidebar-hover transition-colors',
-                          subitem.disabled && 'opacity-50 cursor-not-allowed'
-                        )}
-                        style={{ color: 'var(--editor-fg, #d4d4d4)' }}
-                        onClick={() => {
-                          if (subitem.action && !subitem.disabled) {
-                            subitem.action();
-                            onClose();
-                          }
-                        }}
-                        disabled={subitem.disabled}
+                        className="group flex items-center hover:bg-sidebar-hover transition-colors"
                       >
-                        <span className="w-4 h-4 flex items-center justify-center">
-                          {subitem.icon}
-                        </span>
-                        <span className="flex-1 text-left">{subitem.label}</span>
-                      </button>
+                        <button
+                          className={clsx(
+                            'flex-1 px-3 py-1.5 text-sm flex items-center gap-2 transition-colors',
+                            subitem.disabled && 'opacity-50 cursor-not-allowed'
+                          )}
+                          style={{ color: 'var(--editor-fg, #d4d4d4)' }}
+                          onClick={() => {
+                            if (subitem.action && !subitem.disabled) {
+                              subitem.action();
+                              onClose();
+                            }
+                          }}
+                          disabled={subitem.disabled}
+                        >
+                          <span className="w-4 h-4 flex items-center justify-center">
+                            {subitem.icon}
+                          </span>
+                          <span className="flex-1 text-left">{subitem.label}</span>
+                        </button>
+                        {subitem.customElement && (
+                          <div className="pr-2">
+                            {subitem.customElement}
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
                 )}
@@ -169,41 +165,6 @@ function Menu({ label, items, isOpen, onOpen, onClose }: MenuProps) {
 export function MenuBar() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const menuBarRef = useRef<HTMLDivElement>(null);
-
-  const {
-    createNewDocument,
-    saveCurrentDocument,
-    activeTabId,
-    saveDocumentToCloud,
-    tabs,
-    closeTab,
-    toggleSidebar,
-    togglePreview,
-    toggleZenMode,
-    showSidebar,
-    showPreview,
-    zenMode,
-    setShowCommandPalette,
-    setShowSettings,
-    setTheme,
-    theme,
-    recentFiles,
-    openCloudDocument,
-    isAuthenticated,
-    setShowAuth,
-    setShowImportDocx,
-    setShowExportDocx,
-    setShowExportPdf,
-    setShowGoogleImport,
-    setShowGoogleExport,
-    setShowExport,
-    copyForWordDocs,
-    pasteFromWordDocs,
-    setShowAbout,
-    setShowShortcuts,
-    setSplitMode,
-    splitMode,
-  } = useStore();
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -229,344 +190,13 @@ export function MenuBar() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const activeTab = tabs.find((t) => t.id === activeTabId);
+  const { getActiveEditor, primaryMonaco, grammarService } = useEditorContext();
 
-  const fileMenuItems: MenuItem[] = [
-    {
-      id: 'new',
-      label: 'New Document',
-      shortcut: '⌘N',
-      icon: <FilePlus size={14} />,
-      action: createNewDocument,
-    },
-    {
-      id: 'open',
-      label: 'Open...',
-      shortcut: '⌘O',
-      icon: <FolderOpen size={14} />,
-      action: () => {
-        // Trigger file input for local file
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.md,.mdx,.txt,.markdown,.docx';
-        input.onchange = async (e) => {
-          const file = (e.target as HTMLInputElement).files?.[0];
-          if (file) {
-            if (file.name.endsWith('.docx')) {
-              useStore.getState().importDocxFile(file);
-            } else {
-              const content = await file.text();
-              useStore.getState().openTab({
-                title: file.name,
-                content,
-                language: file.name.endsWith('.mdx') ? 'mdx' : 'markdown',
-              });
-            }
-          }
-        };
-        input.click();
-      },
-    },
-    {
-      id: 'recent',
-      label: 'Open Recent',
-      icon: <Clock size={14} />,
-      submenu: recentFiles.slice(0, 5).map((file, index) => ({
-        id: `recent-${index}`,
-        label: file.title,
-        icon: file.isCloud ? <Cloud size={14} /> : <FileText size={14} />,
-        action: () => {
-          if (file.documentId) {
-            openCloudDocument(file.documentId);
-          }
-        },
-      })),
-    },
-    { id: 'sep1', label: '', separator: true },
-    {
-      id: 'save',
-      label: 'Save',
-      shortcut: '⌘S',
-      icon: <Save size={14} />,
-      action: saveCurrentDocument,
-      disabled: !activeTab,
-    },
-    {
-      id: 'save-cloud',
-      label: 'Save to Cloud',
-      icon: <Cloud size={14} />,
-      action: () => activeTabId && saveDocumentToCloud(activeTabId),
-      disabled: !activeTab || !isAuthenticated,
-    },
-    {
-      id: 'save-as',
-      label: 'Save As...',
-      shortcut: '⌘⇧S',
-      icon: <Download size={14} />,
-      action: () => {
-        if (activeTab) {
-          const blob = new Blob([activeTab.content], { type: 'text/markdown' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = activeTab.title;
-          a.click();
-          URL.revokeObjectURL(url);
-        }
-      },
-      disabled: !activeTab,
-    },
-    { id: 'sep2', label: '', separator: true },
-    {
-      id: 'import-docx',
-      label: 'Import from Word (.docx)',
-      icon: <Upload size={14} />,
-      action: () => setShowImportDocx(true),
-    },
-    {
-      id: 'import-google',
-      label: 'Import from Google Doc',
-      icon: <Upload size={14} />,
-      action: () => {
-        if (!isAuthenticated) {
-          setShowAuth(true);
-        } else {
-          setShowGoogleImport(true);
-        }
-      },
-    },
-    { id: 'sep3', label: '', separator: true },
-    {
-      id: 'export-pdf',
-      label: 'Export as PDF',
-      icon: <Printer size={14} />,
-      action: () => setShowExportPdf(true),
-      disabled: !activeTab,
-    },
-    {
-      id: 'export-docx',
-      label: 'Export as Word (.docx)',
-      icon: <FileType size={14} />,
-      action: () => setShowExportDocx(true),
-      disabled: !activeTab,
-    },
-    {
-      id: 'export-html',
-      label: 'Export as HTML',
-      icon: <FileText size={14} />,
-      action: () => setShowExport(true),
-      disabled: !activeTab,
-    },
-    {
-      id: 'export-google',
-      label: 'Export to Google Drive',
-      icon: <Cloud size={14} />,
-      action: () => {
-        if (!isAuthenticated) {
-          setShowAuth(true);
-        } else {
-          setShowGoogleExport(true);
-        }
-      },
-      disabled: !activeTab,
-    },
-    { id: 'sep4', label: '', separator: true },
-    {
-      id: 'close',
-      label: 'Close Tab',
-      shortcut: '⌘W',
-      icon: <X size={14} />,
-      action: () => activeTabId && closeTab(activeTabId),
-      disabled: !activeTab,
-    },
-  ];
-
-  const editMenuItems: MenuItem[] = [
-    {
-      id: 'undo',
-      label: 'Undo',
-      shortcut: '⌘Z',
-      icon: <Undo size={14} />,
-      action: () => document.execCommand('undo'),
-    },
-    {
-      id: 'redo',
-      label: 'Redo',
-      shortcut: '⌘⇧Z',
-      icon: <Redo size={14} />,
-      action: () => document.execCommand('redo'),
-    },
-    { id: 'sep1', label: '', separator: true },
-    {
-      id: 'cut',
-      label: 'Cut',
-      shortcut: '⌘X',
-      icon: <Scissors size={14} />,
-      action: () => document.execCommand('cut'),
-    },
-    {
-      id: 'copy',
-      label: 'Copy',
-      shortcut: '⌘C',
-      icon: <Copy size={14} />,
-      action: () => document.execCommand('copy'),
-    },
-    {
-      id: 'copy-word',
-      label: 'Copy for Word/Docs',
-      shortcut: '⌘⇧C',
-      icon: <Clipboard size={14} />,
-      action: copyForWordDocs,
-      disabled: !activeTab,
-    },
-    {
-      id: 'paste',
-      label: 'Paste',
-      shortcut: '⌘V',
-      icon: <ClipboardPaste size={14} />,
-      action: () => document.execCommand('paste'),
-    },
-    {
-      id: 'paste-word',
-      label: 'Paste from Word/Docs',
-      shortcut: '⌘⇧V',
-      icon: <ClipboardPaste size={14} />,
-      action: pasteFromWordDocs,
-    },
-    { id: 'sep2', label: '', separator: true },
-    {
-      id: 'find',
-      label: 'Find',
-      shortcut: '⌘F',
-      icon: <Search size={14} />,
-      action: () => {
-        // Trigger Monaco find widget
-        const editor = window.monacoEditor;
-        if (editor) {
-          editor.getAction('actions.find')?.run();
-        }
-      },
-    },
-    {
-      id: 'replace',
-      label: 'Replace',
-      shortcut: '⌘H',
-      icon: <Replace size={14} />,
-      action: () => {
-        const editor = window.monacoEditor;
-        if (editor) {
-          editor.getAction('editor.action.startFindReplaceAction')?.run();
-        }
-      },
-    },
-    { id: 'sep3', label: '', separator: true },
-    {
-      id: 'select-all',
-      label: 'Select All',
-      shortcut: '⌘A',
-      icon: <CheckSquare size={14} />,
-      action: () => document.execCommand('selectAll'),
-    },
-  ];
-
-  const viewMenuItems: MenuItem[] = [
-    {
-      id: 'command-palette',
-      label: 'Command Palette',
-      shortcut: '⌘⇧P',
-      icon: <Command size={14} />,
-      action: () => setShowCommandPalette(true),
-    },
-    { id: 'sep1', label: '', separator: true },
-    {
-      id: 'toggle-sidebar',
-      label: showSidebar ? 'Hide Sidebar' : 'Show Sidebar',
-      shortcut: '⌘B',
-      icon: <PanelLeft size={14} />,
-      action: toggleSidebar,
-    },
-    {
-      id: 'toggle-preview',
-      label: showPreview ? 'Hide Preview' : 'Show Preview',
-      shortcut: '⌘\\',
-      icon: <Eye size={14} />,
-      action: togglePreview,
-    },
-    {
-      id: 'toggle-zen',
-      label: zenMode ? 'Exit Zen Mode' : 'Enter Zen Mode',
-      shortcut: '⌘K Z',
-      icon: <Maximize size={14} />,
-      action: toggleZenMode,
-    },
-    { id: 'sep2', label: '', separator: true },
-    {
-      id: 'split-editor',
-      label: 'Split Editor',
-      icon: <SplitSquareHorizontal size={14} />,
-      submenu: [
-        {
-          id: 'split-none',
-          label: 'No Split' + (splitMode === 'none' ? ' ✓' : ''),
-          action: () => setSplitMode('none'),
-        },
-        {
-          id: 'split-vertical',
-          label: 'Split Right' + (splitMode === 'vertical' ? ' ✓' : ''),
-          shortcut: '⌘\\',
-          action: () => setSplitMode(splitMode === 'vertical' ? 'none' : 'vertical'),
-        },
-        {
-          id: 'split-horizontal',
-          label: 'Split Down' + (splitMode === 'horizontal' ? ' ✓' : ''),
-          shortcut: '⌘⇧\\',
-          action: () => setSplitMode(splitMode === 'horizontal' ? 'none' : 'horizontal'),
-        },
-      ],
-    },
-    { id: 'sep3', label: '', separator: true },
-    {
-      id: 'theme',
-      label: 'Change Theme',
-      icon: <Palette size={14} />,
-      submenu: THEMES.map((t) => ({
-        id: t.id,
-        label: t.name + (theme === t.id ? ' ✓' : ''),
-        action: () => setTheme(t.id),
-      })),
-    },
-    { id: 'sep4', label: '', separator: true },
-    {
-      id: 'settings',
-      label: 'Settings',
-      shortcut: '⌘,',
-      icon: <PanelLeft size={14} />,
-      action: () => setShowSettings(true),
-    },
-  ];
-
-  const helpMenuItems: MenuItem[] = [
-    {
-      id: 'docs',
-      label: 'Documentation',
-      icon: <HelpCircle size={14} />,
-      action: () => window.open('https://github.com/thtmnisamnstr/md-crafter#readme', '_blank'),
-    },
-    {
-      id: 'shortcuts',
-      label: 'Keyboard Shortcuts',
-      shortcut: '⌘K ⌘S',
-      icon: <Keyboard size={14} />,
-      action: () => setShowShortcuts(true),
-    },
-    { id: 'sep1', label: '', separator: true },
-    {
-      id: 'about',
-      label: 'About md-crafter',
-      icon: <Info size={14} />,
-      action: () => setShowAbout(true),
-    },
-  ];
+  // Get menu items from sub-components
+  const fileMenuItems = getFileMenuItems();
+  const editMenuItems = getEditMenuItems({ getActiveEditor, primaryMonaco, grammarService });
+  const viewMenuItems = getViewMenuItems();
+  const helpMenuItems = getHelpMenuItems();
 
   return (
     <div

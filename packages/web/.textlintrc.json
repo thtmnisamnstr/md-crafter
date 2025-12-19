@@ -1,0 +1,18 @@
+{
+  "rules": {
+    "common-misspellings": true,
+    "write-good": {
+      "passive": true,
+      "weasel": true,
+      "adverb": false,
+      "tooWordy": true,
+      "cliches": true,
+      "thereIs": true,
+      "eprime": false
+    }
+  },
+  "filters": {
+    "comments": true
+  }
+}
+

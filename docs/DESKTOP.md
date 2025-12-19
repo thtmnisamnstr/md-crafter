@@ -11,6 +11,37 @@ The desktop app is built with:
 - **electron-store** - Persistent local storage
 - **electron-updater** - Auto-update support
 
+## Downloading Pre-built Executables
+
+Pre-built executables are available on [GitHub Releases](https://github.com/thtmnisamnstr/md-crafter/releases).
+
+### Available Formats
+
+**macOS:**
+- `.dmg` - Disk image installer (recommended)
+- `.zip` - Unpackaged application bundle
+
+**Windows:**
+- `.exe` (NSIS) - Installer with setup wizard (recommended)
+- `.exe` (portable) - Portable executable, no installation required
+
+**Linux:**
+- `.AppImage` - Universal Linux application (recommended)
+- `.deb` - Debian/Ubuntu package
+
+### Installation
+
+1. Visit [GitHub Releases](https://github.com/thtmnisamnstr/md-crafter/releases)
+2. Download the appropriate file for your platform
+3. Follow platform-specific installation:
+   - **macOS**: Open `.dmg` and drag to Applications folder
+   - **Windows**: Run `.exe` installer or extract portable `.exe`
+   - **Linux**: Make AppImage executable (`chmod +x md-crafter.AppImage`) or install `.deb` package
+
+### Development Build
+
+For building from source, see [Development](#development) section below.
+
 ## Prerequisites
 
 ### All Platforms

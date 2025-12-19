@@ -5,6 +5,8 @@ import { Tab, RecentFile, AppState } from './types';
 import { generateId } from './utils';
 import { api } from '../services/api';
 import { syncService } from '../services/sync';
+import { MAX_RECENT_FILES } from '../constants';
+import { isElectron } from '../utils/platform';
 
 export interface DocumentsSlice {
   cloudDocuments: Document[];
@@ -17,6 +19,8 @@ export interface DocumentsSlice {
   loadCloudDocuments: () => Promise<void>;
   openCloudDocument: (documentId: string) => Promise<void>;
   deleteCloudDocument: (documentId: string) => Promise<void>;
+  addRecentFile: (file: Omit<RecentFile, 'lastOpened'>) => void;
+  removeRecentFile: (fileId: string) => void;
 }
 
 /**
@@ -47,11 +51,27 @@ export const createDocumentsSlice: StateCreator<AppState, [], [], DocumentsSlice
       syncStatus: 'local',
       isCloudSynced: false,
       savedContent: '',
+      hasSavedVersion: false,
+      showPreview: false,
+      splitMode: 'none',
+      diffMode: { enabled: false, compareWithSaved: false, viewMode: 'side-by-side' },
+      splitSecondaryTabId: null,
+      splitPaneRatio: undefined,
+      previewPaneRatio: undefined,
+      diffPaneRatio: undefined,
+      undoStack: [],
+      redoStack: [],
+      cursor: null,
+      selection: null,
     };
     
     set((state) => ({
       tabs: [...state.tabs, newTab],
       activeTabId: tabId,
+      // Reset UI to clean state for new tab
+      splitMode: 'none',
+      diffMode: { enabled: false, compareWithSaved: false, viewMode: 'side-by-side' },
+      showPreview: false,
     }));
   },
   
@@ -62,6 +82,26 @@ export const createDocumentsSlice: StateCreator<AppState, [], [], DocumentsSlice
     const tab = tabs.find((t) => t.id === activeTabId);
     if (!tab) return;
     
+    // In Electron, if tab has a path, save to that path
+    if (isElectron() && typeof window !== 'undefined' && window.api?.writeFile && tab.path) {
+      const result = await window.api.writeFile(tab.path, tab.content);
+      if (result.success) {
+        set((state) => ({
+          tabs: state.tabs.map((t) =>
+            t.id === activeTabId
+              ? { ...t, isDirty: false, savedContent: t.content }
+              : t
+          ),
+        }));
+        get().addToast({ type: 'success', message: 'File saved successfully' });
+        return;
+      } else {
+        get().addToast({ type: 'error', message: `Failed to save: ${result.error}` });
+        return;
+      }
+    }
+    
+    // Cloud save or local mark-as-saved (existing logic)
     if (tab.isCloudSynced && isAuthenticated) {
       await get().saveDocumentToCloud(activeTabId);
     } else {
@@ -69,7 +109,7 @@ export const createDocumentsSlice: StateCreator<AppState, [], [], DocumentsSlice
       set((state) => ({
         tabs: state.tabs.map((t) =>
           t.id === activeTabId
-            ? { ...t, isDirty: false, savedContent: t.content }
+            ? { ...t, isDirty: false, savedContent: t.content, hasSavedVersion: true }
             : t
         ),
       }));
@@ -127,6 +167,7 @@ export const createDocumentsSlice: StateCreator<AppState, [], [], DocumentsSlice
                 syncStatus: 'synced',
                 isCloudSynced: true,
                 savedContent: tab.content,
+                hasSavedVersion: true,
               }
             : t
         ),
@@ -169,6 +210,13 @@ export const createDocumentsSlice: StateCreator<AppState, [], [], DocumentsSlice
     const existingTab = get().tabs.find((t) => t.documentId === documentId);
     if (existingTab) {
       set({ activeTabId: existingTab.id });
+      // Add to recent files
+      get().addRecentFile({
+        id: documentId,
+        title: existingTab.title,
+        documentId: documentId,
+        isCloud: true,
+      });
       return;
     }
     
@@ -184,6 +232,7 @@ export const createDocumentsSlice: StateCreator<AppState, [], [], DocumentsSlice
       // Subscribe to updates
       syncService.subscribeToDocument(documentId);
     } catch (error) {
+      logger.error('Failed to open cloud document', error);
       get().addToast({ type: 'error', message: 'Failed to open document' });
     }
   },
@@ -199,11 +248,60 @@ export const createDocumentsSlice: StateCreator<AppState, [], [], DocumentsSlice
       }
       
       await get().loadCloudDocuments();
+      
+      // Clean up sync debouncer for deleted document
+      get().cleanupSyncDebouncer(documentId);
+      
       get().addToast({ type: 'success', message: 'Document deleted' });
     } catch (error) {
+      logger.error('Failed to delete cloud document', error);
       get().addToast({ type: 'error', message: 'Failed to delete document' });
     }
   },
+  
+  /**
+   * Adds a file to the recent files list
+   * 
+   * Removes any existing entry for the same file (by id, documentId, or path),
+   * adds the new entry with current timestamp, sorts by lastOpened (newest first),
+   * and limits to MAX_RECENT_FILES.
+   * 
+   * @param file - The file to add (without lastOpened timestamp)
+   */
+  addRecentFile: (file) => {
+    const { recentFiles } = get();
+    const now = Date.now();
+    
+    // Remove existing entry if present (by id, documentId, or path)
+    const filtered = recentFiles.filter(
+      f => f.id !== file.id && 
+           (file.documentId ? f.documentId !== file.documentId : true) &&
+           (file.path ? f.path !== file.path : true)
+    );
+    
+    // Add new entry with current timestamp
+    const newRecentFile: RecentFile = {
+      ...file,
+      lastOpened: now,
+    };
+    
+    // Sort by lastOpened (newest first) and limit to MAX_RECENT_FILES
+    const updated = [newRecentFile, ...filtered]
+      .sort((a, b) => b.lastOpened - a.lastOpened)
+      .slice(0, MAX_RECENT_FILES);
+    
+    set({ recentFiles: updated });
+  },
+  
+  /**
+   * Removes a file from the recent files list
+   * 
+   * @param fileId - The ID of the file to remove
+   */
+  removeRecentFile: (fileId) => {
+    const { recentFiles } = get();
+    const filtered = recentFiles.filter(f => f.id !== fileId);
+    set({ recentFiles: filtered });
+  },
   };
 };
-

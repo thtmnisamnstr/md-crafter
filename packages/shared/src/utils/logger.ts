@@ -20,7 +20,7 @@ class Logger {
     // Get log level from environment or default to 'info' in dev, 'warn' in prod
     const envLogLevel = 
       (typeof process !== 'undefined' && process.env?.LOG_LEVEL) ||
-      (typeof window !== 'undefined' && (window as any).LOG_LEVEL);
+      (typeof window !== 'undefined' && 'LOG_LEVEL' in window && (window as typeof window & { LOG_LEVEL: string }).LOG_LEVEL);
     
     this.logLevel = (envLogLevel as LogLevel) || (this.isDevelopment ? 'info' : 'warn');
   }

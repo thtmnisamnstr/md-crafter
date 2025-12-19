@@ -38,11 +38,11 @@ export function AboutModal({ onClose }: AboutModalProps) {
           </h1>
           
           <p className="text-sm opacity-70 mb-4" style={{ color: 'var(--editor-fg)' }}>
-            Version 0.1.0-pre
+            Version 0.1.0-beta-1
           </p>
 
           <p className="mb-4" style={{ color: 'var(--editor-fg)' }}>
-            A cloud-synced markdown editor with real-time collaboration support.
+            A cloud-synced markdown and MDX editor.
           </p>
 
           <div className="text-sm opacity-70 space-y-2" style={{ color: 'var(--editor-fg)' }}>

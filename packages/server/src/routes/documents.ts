@@ -22,6 +22,7 @@ documentsRouter.get('/', async (req: AuthenticatedRequest, res: Response) => {
     const metadata = documents.map((doc) => ({
       id: doc.id,
       title: doc.title,
+      content: doc.content,
       language: doc.language,
       etag: doc.etag,
       isCloudSynced: doc.is_cloud_synced,

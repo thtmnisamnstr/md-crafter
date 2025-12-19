@@ -35,6 +35,41 @@ For production deployments with MySQL:
 docker-compose -f docker-compose.mysql.yml up -d
 ```
 
+> **Note**: For production deployments, use published Docker images (see below) instead of building locally.
+
+## Using Published Docker Images
+
+md-crafter Docker images are published to GitHub Container Registry (`ghcr.io`).
+
+### Standalone Image (SQLite)
+
+```bash
+docker pull ghcr.io/thtmnisamnstr/md-crafter:latest
+docker run -d -p 3001:3001 \
+  -v md-crafter-data:/app/data \
+  ghcr.io/thtmnisamnstr/md-crafter:latest
+```
+
+### Production Image (PostgreSQL/MySQL)
+
+```bash
+docker pull ghcr.io/thtmnisamnstr/md-crafter:prod-latest
+docker run -d -p 3001:3001 \
+  -e DATABASE_URL=postgresql://user:pass@host:5432/db \
+  ghcr.io/thtmnisamnstr/md-crafter:prod-latest
+```
+
+### Image Tags
+
+- `latest` - Standalone image with SQLite (built from `Dockerfile`)
+- `prod-latest` - Production image for PostgreSQL/MySQL (built from `Dockerfile.prod`)
+- Version tags (e.g., `v0.1.0`) - Specific version releases
+
+### Local Build vs Published Images
+
+- **Published images**: Use for production deployments (recommended)
+- **Local build**: Use for development or custom configurations
+
 ## Configuration
 
 ### Environment Variables
@@ -43,7 +78,7 @@ docker-compose -f docker-compose.mysql.yml up -d
 |----------|---------|-------------|
 | `PORT` | `3001` | Server port |
 | `NODE_ENV` | `production` | Environment mode |
-| `DB_FILENAME` | `/app/data/md-crafter.json` | SQLite file path (standalone) |
+| `DB_PATH` | `/app/data/md-crafter.db` | SQLite file path (standalone) |
 | `DATABASE_URL` | - | PostgreSQL/MySQL connection string |
 | `CORS_ORIGIN` | `*` | Allowed CORS origins |
 | `MAX_DOCUMENT_VERSIONS` | `50` | Max versions per document |
@@ -89,7 +124,7 @@ volumes:
 ```
 
 Data is stored in:
-- `/app/data/md-crafter.json` - Database file
+- `/app/data/md-crafter.db` - Database file
 - `/app/data/` - Uploaded files
 
 ### PostgreSQL
@@ -117,7 +152,7 @@ All containers include health checks:
 curl http://localhost:3001/api/health
 
 # Response
-{"status":"ok","timestamp":"2025-01-01T00:00:00.000Z","version":"0.1.0-pre"}
+{"status":"ok","timestamp":"2025-01-01T00:00:00.000Z","version":"0.1.0-beta-1"}
 ```
 
 ## Reverse Proxy (nginx)
@@ -179,10 +214,10 @@ services:
 
 ```bash
 # Backup
-docker cp md-crafter:/app/data/md-crafter.json ./backup.json
+docker cp md-crafter:/app/data/md-crafter.db ./backup.db
 
 # Restore
-docker cp ./backup.json md-crafter:/app/data/md-crafter.json
+docker cp ./backup.db md-crafter:/app/data/md-crafter.db
 docker restart md-crafter
 ```
 

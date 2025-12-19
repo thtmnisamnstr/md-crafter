@@ -1,0 +1,21 @@
+{
+  "rules": {
+    "spelling": {
+      "language": "en"
+    },
+    "common-misspellings": true,
+    "write-good": {
+      "passive": true,
+      "weasel": true,
+      "adverb": true,
+      "tooWordy": true,
+      "cliches": true,
+      "thereIs": true,
+      "eprime": false
+    }
+  },
+  "filters": {
+    "comments": true
+  }
+}
+

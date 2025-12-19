@@ -149,9 +149,11 @@ md-crafter/
 
 ### Testing
 
-- Unit tests with Vitest
-- E2E tests with Playwright
-- Aim for high coverage on critical paths
+- **Unit tests** with Vitest and happy-dom
+- **E2E tests** with Playwright (Chromium, Firefox, WebKit)
+- **Testing Library** - Use `render()` return values, avoid `screen` for better reliability
+- Aim for 80%+ coverage on components and utilities
+- See [docs/TESTING.md](docs/TESTING.md) for detailed testing guide
 
 ## Architecture Guidelines
 
@@ -174,9 +176,50 @@ The `packages/server` package:
 ### Web Package
 
 The `packages/web` package:
-- Uses React 18
+- Uses React 19.2.3
 - Monaco Editor for code editing
 - Zustand for state management
+- **Editor Context** for managing editor instances (see below)
+
+#### Editor Context Guidelines
+
+**DO:**
+- Use `useEditorContext()` hook to access editor instances
+- Use `getActiveEditor()` to get the currently focused editor
+- Wrap components that use `useEditorContext()` with `MockEditorContextProvider` in tests
+- Pass editor instances as parameters to store actions instead of accessing global `window` objects
+
+**DON'T:**
+- Access `window.monacoEditor`, `window.monaco`, or `window.grammarService` directly
+- Store editor instances on global objects
+- Access editor instances outside of React components without using the context
+
+**Example:**
+```typescript
+// ✅ Good: Use Editor Context
+function MyComponent() {
+  const { getActiveEditor } = useEditorContext();
+  const editor = getActiveEditor();
+  // Use editor...
+}
+
+// ❌ Bad: Direct global access
+function MyComponent() {
+  const editor = (window as any).monacoEditor; // Don't do this!
+}
+```
+
+**Testing:**
+```typescript
+// ✅ Good: Use MockEditorContextProvider
+render(
+  <MockEditorContextProvider primaryEditor={mockEditor} primaryMonaco={mockMonaco}>
+    <MyComponent />
+  </MockEditorContextProvider>
+);
+```
+
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed Editor Context architecture.
 
 ### Desktop Package
 
@@ -208,21 +251,32 @@ npm run test:desktop
 
 ### Writing Tests
 
+See [docs/TESTING.md](docs/TESTING.md) for comprehensive testing guide.
+
+**Quick Example:**
+
 ```typescript
 // Unit test example
-import { describe, it, expect } from 'vitest';
-import { myFunction } from './myModule';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render } from '@testing-library/react';
+import { MyComponent } from './MyComponent';
 
-describe('myFunction', () => {
-  it('should do something', () => {
-    expect(myFunction('input')).toBe('expected');
+describe('MyComponent', () => {
+  it('should render', () => {
+    const { container } = render(<MyComponent />);
+    expect(container.querySelector('[data-testid="my-component"]')).toBeTruthy();
   });
 });
 ```
 
+**Key Points:**
+- Use `render()` return values (`getByText`, `getByRole`, `container`) instead of `screen`
+- Test user-visible behavior, not implementation details
+- Mock only external dependencies (APIs, file system, browser APIs)
+
 ## Documentation
 
-- Update README.md for user-facing changes
+- Update ../README.md for user-facing changes
 - Update DESKTOP.md for desktop-specific changes
 - Update DOCKER.md for deployment changes
 - Add JSDoc comments for public APIs
@@ -232,7 +286,7 @@ describe('myFunction', () => {
 Releases are managed by maintainers:
 
 1. Version bump in package.json files
-2. Update CHANGELOG.md
+2. Update docs/CHANGELOG.md
 3. Create GitHub release
 4. CI/CD handles building and publishing
 

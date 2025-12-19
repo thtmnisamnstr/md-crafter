@@ -33,14 +33,10 @@ export function MarkdownPreview({ content, isMdx = false }: MarkdownPreviewProps
     // Check for common MDX patterns
     return /<[A-Z][a-zA-Z]*/.test(content) || /^import\s+/m.test(content);
   }, [content, isMdx]);
-  
-  // If MDX, use the MDX preview
-  if (hasJsx) {
-    return <MDXPreview content={content} />;
-  }
 
   // Parse and sanitize markdown
   const html = useMemo(() => {
+    if (hasJsx) return '';
     try {
       const rawHtml = marked.parse(content) as string;
       return sanitizeHtml(rawHtml);
@@ -52,6 +48,7 @@ export function MarkdownPreview({ content, isMdx = false }: MarkdownPreviewProps
 
   // Handle link clicks to open in new tab
   useEffect(() => {
+    if (hasJsx) return;
     const container = containerRef.current;
     if (!container) return;
 
@@ -75,15 +72,20 @@ export function MarkdownPreview({ content, isMdx = false }: MarkdownPreviewProps
 
     container.addEventListener('click', handleClick);
     return () => container.removeEventListener('click', handleClick);
-  }, []);
+  }, [hasJsx]);
 
   // Add IDs to headers for anchor links
   const processedHtml = useMemo(() => {
+    if (hasJsx) return '';
     return html.replace(/<(h[1-6])>([^<]+)<\/\1>/gi, (_match, tag, text) => {
       const id = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
       return `<${tag} id="${id}">${text}</${tag}>`;
     });
-  }, [html]);
+  }, [html, hasJsx]);
+
+  if (hasJsx) {
+    return <MDXPreview content={content} />;
+  }
 
   return (
     <div
