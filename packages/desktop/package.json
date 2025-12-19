@@ -40,6 +40,7 @@
   "build": {
     "appId": "com.mdcrafter.app",
     "productName": "md-crafter",
+    "artifactName": "${productName}-${version}-${arch}.${ext}",
     "asar": true,
     "directories": {
       "output": "release",
