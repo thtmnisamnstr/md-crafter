@@ -78,7 +78,7 @@ jobs:
             artifact_pattern: |
               packages/desktop/release/*.dmg
               packages/desktop/release/*.zip
-          - os: macos-15-intel
+          - os: macos-14
             build_cmd: npm run package:mac
             artifact_pattern: |
               packages/desktop/release/*.dmg
