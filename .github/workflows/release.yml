@@ -4,23 +4,129 @@ on:
   release:
     types: [published]
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
-  release:
-    name: Release
+  # Build and push multi-arch Docker images
+  docker:
+    name: Docker (${{ matrix.variant }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - variant: standalone
+            dockerfile: Dockerfile
+            suffix: ""
+          - variant: production
+            dockerfile: Dockerfile.prod
+            suffix: "-prod"
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}${{ matrix.suffix }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ matrix.variant == 'standalone' }}
+            
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Build desktop binaries for all platforms
+  desktop:
+    name: Desktop (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            build_cmd: npm run package:mac
+            artifact_pattern: "packages/desktop/release/*.{dmg,zip}"
+          - os: macos-13
+            build_cmd: npm run package:mac
+            artifact_pattern: "packages/desktop/release/*.{dmg,zip}"
+          - os: windows-latest
+            build_cmd: npm run package:win
+            artifact_pattern: "packages/desktop/release/*.{exe,msi}"
+          - os: ubuntu-latest
+            build_cmd: npm run package:linux
+            artifact_pattern: "packages/desktop/release/*.{AppImage,deb}"
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build desktop app
+        run: ${{ matrix.build_cmd }}
+        working-directory: packages/desktop
+        
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ matrix.artifact_pattern }}
+          fail_on_unmatched_files: false
+
+  # Upload web dist as additional asset
+  web:
+    name: Web Assets
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
+      
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
+          
       - run: npm ci
       - run: npm run build
-      - name: Upload Release Assets
+      
+      - name: Create web dist archive
+        run: tar -czvf web-dist.tar.gz -C packages/web dist
+        
+      - name: Upload to Release
         uses: softprops/action-gh-release@v1
         with:
-          files: packages/web/dist/**
-          generate_release_notes: true
-
+          files: web-dist.tar.gz
