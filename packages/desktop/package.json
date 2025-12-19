@@ -1,7 +1,12 @@
 {
   "name": "@md-crafter/desktop",
   "version": "0.1.0-beta-1",
-  "description": "Desktop application for md-crafter",
+  "description": "Cloud-synced markdown and MDX editor",
+  "homepage": "https://github.com/thtmnisamnstr/md-crafter",
+  "author": {
+    "name": "Gavin Johnson",
+    "email": "gavinj1984@gmail.com"
+  },
   "main": "dist/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",

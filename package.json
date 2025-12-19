@@ -2,6 +2,11 @@
   "name": "md-crafter",
   "version": "0.1.0-beta-1",
   "description": "Cloud-synced markdown and MDX editor",
+  "homepage": "https://github.com/thtmnisamnstr/md-crafter",
+  "author": {
+    "name": "Gavin Johnson",
+    "email": "gavinj1984@gmail.com"
+  },
   "private": true,
   "workspaces": [
     "packages/*"
