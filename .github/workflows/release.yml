@@ -75,16 +75,23 @@ jobs:
         include:
           - os: macos-latest
             build_cmd: npm run package:mac
-            artifact_pattern: "packages/desktop/release/*.{dmg,zip}"
+            artifact_pattern: |
+              packages/desktop/release/*.dmg
+              packages/desktop/release/*.zip
           - os: macos-15-intel
             build_cmd: npm run package:mac
-            artifact_pattern: "packages/desktop/release/*.{dmg,zip}"
+            artifact_pattern: |
+              packages/desktop/release/*.dmg
+              packages/desktop/release/*.zip
           - os: windows-latest
             build_cmd: npm run package:win
-            artifact_pattern: "packages/desktop/release/*.{exe,msi}"
+            artifact_pattern: |
+              packages/desktop/release/*.exe
           - os: ubuntu-latest
             build_cmd: npm run package:linux
-            artifact_pattern: "packages/desktop/release/*.{AppImage,deb}"
+            artifact_pattern: |
+              packages/desktop/release/*.AppImage
+              packages/desktop/release/*.deb
     steps:
       - uses: actions/checkout@v4
       
