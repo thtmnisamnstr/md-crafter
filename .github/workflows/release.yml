@@ -76,7 +76,7 @@ jobs:
           - os: macos-latest
             build_cmd: npm run package:mac
             artifact_pattern: "packages/desktop/release/*.{dmg,zip}"
-          - os: macos-13
+          - os: macos-15-intel
             build_cmd: npm run package:mac
             artifact_pattern: "packages/desktop/release/*.{dmg,zip}"
           - os: windows-latest
@@ -95,6 +95,9 @@ jobs:
           
       - name: Install dependencies
         run: npm ci
+        
+      - name: Build shared package
+        run: npm run build -w @md-crafter/shared
         
       - name: Build desktop app
         run: ${{ matrix.build_cmd }}
@@ -130,3 +133,4 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: web-dist.tar.gz
+          
