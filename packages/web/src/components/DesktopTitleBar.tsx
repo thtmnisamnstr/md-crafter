@@ -26,7 +26,7 @@ export function DesktopTitleBar() {
     if (!window.api?.isMaximized) return;
 
     const checkMaximized = async () => {
-      const maximized = await window.api!.isMaximized();
+      const maximized = await window.api?.isMaximized?.() ?? false;
       setIsMaximized(maximized);
     };
 

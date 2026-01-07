@@ -287,7 +287,7 @@ export function EditorContextProvider({ children }: EditorContextProviderProps) 
       }
       if (secondaryEditor && !window.secondaryEditor) {
         window.secondaryEditor = secondaryEditor;
-      }
+    }
     }
     // NO CLEANUP HERE - cleanup is handled by unregister functions synchronously
     // Having cleanup here causes race conditions with React StrictMode

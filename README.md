@@ -10,7 +10,7 @@ md-crafter is a modern markdown editor that combines VS Code's Monaco Editor wit
 
 ## Cool Features
 
-- **VS Code Editor** - Monaco Editor with syntax highlighting (25+ languages configured)
+- **VS Code Editor** - Monaco Editor with syntax highlighting (50+ languages)
 - **MDX Support** - Full MDX editing with built-in React component library
 - **Live Preview** - Side-by-side GitHub-flavored markdown rendering with scroll sync
 - **Cloud Sync** - Automatic synchronization with conflict detection

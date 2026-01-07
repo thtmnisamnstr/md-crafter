@@ -599,7 +599,7 @@ npx serve packages/web/dist
 ### Docker (Example)
 
 ```dockerfile
-FROM node:18-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 COPY . .

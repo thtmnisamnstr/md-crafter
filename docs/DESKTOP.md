@@ -5,7 +5,7 @@ This document provides comprehensive instructions for developing, building, and 
 ## Overview
 
 The desktop app is built with:
-- **Electron 28** - Cross-platform desktop framework
+- **Electron 39** - Cross-platform desktop framework
 - **electron-vite** - Fast build tooling for Electron
 - **electron-builder** - Packaging and distribution
 - **electron-store** - Persistent local storage
@@ -176,6 +176,34 @@ const result = await window.electronAPI.readFile('/path/to/file');
 | `sync:get-mapping` | Get cloud-to-local mapping |
 | `sync:set-mapping` | Set cloud-to-local mapping |
 | `sync:remove-mapping` | Remove cloud-to-local mapping |
+| `window:minimize` | Minimize window (Windows/Linux title bar) |
+| `window:maximize` | Maximize/restore window (Windows/Linux title bar) |
+| `window:close` | Close window (Windows/Linux title bar) |
+| `window:is-maximized` | Check if window is maximized |
+
+### Desktop Title Bar
+
+The desktop app uses a custom title bar component (`DesktopTitleBar`) for cross-platform window management:
+
+- **macOS**: Hidden title bar with inset traffic lights (native close/minimize/maximize buttons). The title bar provides a draggable region for moving the window.
+- **Windows/Linux**: Custom title bar with minimize, maximize/restore, and close buttons. The entire bar is draggable except for the control buttons.
+
+The title bar uses CSS `-webkit-app-region: drag` for native window dragging behavior.
+
+### Native Menu Items
+
+The desktop app includes a native menu bar with the following items not present in the web version:
+
+**File Menu:**
+- Revert to Last Saved - Reverts the current document to its last saved state
+
+**Edit Menu:**
+- Format Document (`Ctrl+Shift+F` / `Cmd+Shift+F`) - Auto-format the current document
+- Check Grammar (`Ctrl+Shift+G` / `Cmd+Shift+G`) - Run grammar check on current document
+- Manage Dictionary... - Open the custom dictionary manager
+
+**View Menu:**
+- Change Theme - Submenu with all 6 themes (Dark+, Light+, Monokai, Dracula, GitHub Dark, Nord)
 
 ## Building
 
@@ -212,14 +240,15 @@ The build is configured in `packages/desktop/package.json`:
 ```json
 {
   "build": {
-    "appId": "com.mdedit.app",
+    "appId": "com.mdcrafter.app",
     "productName": "md-crafter",
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
     "mac": {
       "category": "public.app-category.developer-tools",
       "target": ["dmg", "zip"]
     },
     "win": {
-      "target": ["nsis", "portable"]
+      "target": ["nsis"]
     },
     "linux": {
       "target": ["AppImage", "deb"]
