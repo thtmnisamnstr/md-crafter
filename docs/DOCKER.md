@@ -50,20 +50,26 @@ docker run -d -p 3001:3001 \
   ghcr.io/thtmnisamnstr/md-crafter:latest
 ```
 
-### Production Image (PostgreSQL/MySQL)
+### External Database Image (PostgreSQL/MySQL)
 
 ```bash
-docker pull ghcr.io/thtmnisamnstr/md-crafter:prod-latest
+docker pull ghcr.io/thtmnisamnstr/md-crafter-ext-db:latest
 docker run -d -p 3001:3001 \
   -e DATABASE_URL=postgresql://user:pass@host:5432/db \
-  ghcr.io/thtmnisamnstr/md-crafter:prod-latest
+  ghcr.io/thtmnisamnstr/md-crafter-ext-db:latest
 ```
 
-### Image Tags
+### Image Names and Tags
 
-- `latest` - Standalone image with SQLite (built from `Dockerfile`)
-- `prod-latest` - Production image for PostgreSQL/MySQL (built from `Dockerfile.prod`)
-- Version tags (e.g., `v0.1.0`) - Specific version releases
+| Image | Description |
+|-------|-------------|
+| `ghcr.io/thtmnisamnstr/md-crafter` | Standalone with embedded SQLite |
+| `ghcr.io/thtmnisamnstr/md-crafter-ext-db` | External database (PostgreSQL/MySQL) |
+
+**Available tags for both images:**
+- `latest` - Most recent release
+- `X.Y.Z` - Specific version (e.g., `0.1.0`)
+- `X.Y` - Minor version (e.g., `0.1`)
 
 ### Local Build vs Published Images
 

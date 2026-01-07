@@ -40,11 +40,11 @@ docker run -d -p 3001:3001 \
   -v md-crafter-data:/app/data \
   ghcr.io/thtmnisamnstr/md-crafter:latest
 
-# With PostgreSQL
-docker pull ghcr.io/thtmnisamnstr/md-crafter:prod-latest
+# With PostgreSQL (external database)
+docker pull ghcr.io/thtmnisamnstr/md-crafter-ext-db:latest
 docker run -d -p 3001:3001 \
   -e DATABASE_URL=postgresql://user:pass@host:5432/db \
-  ghcr.io/thtmnisamnstr/md-crafter:prod-latest
+  ghcr.io/thtmnisamnstr/md-crafter-ext-db:latest
 ```
 
 Access at `http://localhost:3001`
@@ -53,11 +53,21 @@ See [docs/DOCKER.md](docs/DOCKER.md) for detailed deployment options.
 
 ### Download Desktop App
 
-Download the latest release for your platform:
+Download the latest release for your platform from [GitHub Releases](https://github.com/thtmnisamnstr/md-crafter/releases/latest):
 
-- **macOS**: [Download .dmg](https://github.com/thtmnisamnstr/md-crafter/releases/latest)
-- **Windows**: [Download .exe](https://github.com/thtmnisamnstr/md-crafter/releases/latest)
-- **Linux**: [Download AppImage](https://github.com/thtmnisamnstr/md-crafter/releases/latest)
+| Platform | File | Description |
+|----------|------|-------------|
+| **macOS (Apple Silicon)** | `md-crafter-*-arm64.dmg` | M1/M2/M3 Macs |
+| **macOS (Intel)** | `md-crafter-*-x64.dmg` or `md-crafter-*-x64.zip` | Intel Macs |
+| **Windows** | `md-crafter-*-x64.exe` | Windows installer |
+| **Linux** | `md-crafter-*-x64.AppImage` | Universal Linux app |
+| **Linux (Debian/Ubuntu)** | `md-crafter-*-x64.deb` | Debian package |
+
+> **⚠️ macOS Users:** The app is not code-signed. After downloading, you may see "app is damaged and can't be opened." To fix this, open Terminal and run:
+> ```bash
+> xattr -cr /Applications/md-crafter.app
+> ```
+> Then open the app normally. See [docs/DESKTOP.md](docs/DESKTOP.md) for more details.
 
 See [docs/DESKTOP.md](docs/DESKTOP.md) for more information.
 

@@ -17,26 +17,64 @@ Pre-built executables are available on [GitHub Releases](https://github.com/thtm
 
 ### Available Formats
 
-**macOS:**
-- `.dmg` - Disk image installer (recommended)
-- `.zip` - Unpackaged application bundle
+| Platform | Filename Pattern | Description |
+|----------|------------------|-------------|
+| **macOS (Apple Silicon)** | `md-crafter-*-arm64.dmg` | Disk image for M1/M2/M3 Macs |
+| **macOS (Apple Silicon)** | `md-crafter-*-arm64.zip` | ZIP archive for M1/M2/M3 Macs |
+| **macOS (Intel)** | `md-crafter-*-x64.dmg` | Disk image for Intel Macs |
+| **macOS (Intel)** | `md-crafter-*-x64.zip` | ZIP archive for Intel Macs |
+| **Windows** | `md-crafter-*-x64.exe` | Windows installer (NSIS) |
+| **Linux** | `md-crafter-*-x64.AppImage` | Universal Linux application |
+| **Linux** | `md-crafter-*-x64.deb` | Debian/Ubuntu package |
 
-**Windows:**
-- `.exe` (NSIS) - Installer with setup wizard (recommended)
-- `.exe` (portable) - Portable executable, no installation required
-
-**Linux:**
-- `.AppImage` - Universal Linux application (recommended)
-- `.deb` - Debian/Ubuntu package
+**Architecture guide:**
+- `arm64` = Apple Silicon (M1, M2, M3 chips)
+- `x64` = Intel/AMD 64-bit processors
 
 ### Installation
 
 1. Visit [GitHub Releases](https://github.com/thtmnisamnstr/md-crafter/releases)
 2. Download the appropriate file for your platform
-3. Follow platform-specific installation:
-   - **macOS**: Open `.dmg` and drag to Applications folder
-   - **Windows**: Run `.exe` installer or extract portable `.exe`
-   - **Linux**: Make AppImage executable (`chmod +x md-crafter.AppImage`) or install `.deb` package
+3. Follow platform-specific installation below
+
+#### macOS Installation
+
+1. Download the `.dmg` file for your Mac:
+   - Apple Silicon (M1/M2/M3): `md-crafter-*-arm64.dmg`
+   - Intel Mac: `md-crafter-*-x64.dmg`
+2. Open the `.dmg` and drag md-crafter to your Applications folder
+3. **Important:** The app is not code-signed. When you first open it, you'll see an error: "md-crafter.app is damaged and can't be opened."
+
+**To fix the Gatekeeper error:**
+
+Open Terminal and run:
+```bash
+xattr -cr /Applications/md-crafter.app
+```
+
+Then open the app normally. This removes the quarantine flag that macOS adds to downloaded apps.
+
+> **Why is this necessary?** macOS Gatekeeper blocks apps that aren't signed with an Apple Developer certificate ($99/year). As an open-source project, we don't currently have code signing set up. The `xattr -cr` command tells macOS you trust this app.
+
+#### Windows Installation
+
+1. Download `md-crafter-*-x64.exe`
+2. Run the installer and follow the setup wizard
+3. Windows SmartScreen may show a warning for unsigned apps - click "More info" → "Run anyway"
+
+#### Linux Installation
+
+**AppImage (recommended - works on any distro):**
+```bash
+# Download the AppImage
+chmod +x md-crafter-*-x64.AppImage
+./md-crafter-*-x64.AppImage
+```
+
+**Debian/Ubuntu (.deb):**
+```bash
+sudo dpkg -i md-crafter-*-x64.deb
+```
 
 ### Development Build
 
@@ -291,6 +329,19 @@ MimeType=text/markdown;text/mdx;
 ```
 
 ## Troubleshooting
+
+### macOS: "App is damaged and can't be opened"
+
+This error occurs because the app is not code-signed with an Apple Developer certificate. macOS Gatekeeper blocks unsigned apps downloaded from the internet.
+
+**Solution:**
+```bash
+xattr -cr /Applications/md-crafter.app
+```
+
+Then try opening the app again. This removes the quarantine attribute that macOS adds to downloaded files.
+
+**Alternative method:** Right-click the app → "Open" → Click "Open" in the dialog. This sometimes bypasses Gatekeeper (though it's less reliable on macOS 15+).
 
 ### Black Screen on Launch
 
