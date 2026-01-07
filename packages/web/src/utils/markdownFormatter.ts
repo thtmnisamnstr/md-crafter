@@ -110,7 +110,10 @@ export async function formatMarkdown(content: string): Promise<string> {
       proseWrap: 'preserve',
     });
     
-    return formatted;
+    // Post-process to clean up excessive newlines
+    const cleaned = cleanupExcessiveNewlines(formatted);
+    
+    return cleaned;
   } catch (error) {
     throw new Error(`Failed to format markdown: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
@@ -151,7 +154,10 @@ export async function formatMdx(content: string): Promise<string> {
     // Post-process to restore indentation inside HTML/JSX tags
     const reindented = reindentHtmlTagContent(formatted);
     
-    return reindented;
+    // Clean up excessive newlines
+    const cleaned = cleanupExcessiveNewlines(reindented);
+    
+    return cleaned;
   } catch (error) {
     // If formatting fails (e.g., due to JSX syntax), return original content
     // This prevents breaking MDX files that the markdown parser can't handle
@@ -166,6 +172,39 @@ export async function formatMdx(content: string): Promise<string> {
     }
     throw new Error('Failed to format MDX: Unknown error');
   }
+}
+
+/**
+ * Clean up excessive newlines in formatted content.
+ * Reduces 3+ consecutive newlines to 2 (one blank line between paragraphs).
+ * Also removes empty formatting markers that may have been left behind.
+ */
+function cleanupExcessiveNewlines(content: string): string {
+  let result = content;
+  
+  // Collapse 3+ consecutive newlines to 2 (preserves one blank line)
+  result = result.replace(/\n{3,}/g, '\n\n');
+  
+  // Remove lines that contain only whitespace (but keep truly blank lines)
+  result = result.split('\n').map(line => {
+    // If line is only whitespace, make it empty
+    return line.trim() === '' ? '' : line;
+  }).join('\n');
+  
+  // After trimming, collapse excessive newlines again
+  result = result.replace(/\n{3,}/g, '\n\n');
+  
+  // Remove empty bold/italic markers that may appear after formatting
+  // These are rare but can happen with certain input
+  result = result.replace(/\*\*\s*\*\*/g, '');
+  result = result.replace(/__\s*__/g, '');
+  result = result.replace(/(?<!\*)\*\s*\*(?!\*)/g, '');
+  result = result.replace(/(?<!_)_\s*_(?!_)/g, '');
+  
+  // Ensure file ends with single newline
+  result = result.trimEnd() + '\n';
+  
+  return result;
 }
 
 /**

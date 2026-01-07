@@ -22,6 +22,16 @@ const api = {
   setSyncMapping: (cloudId: string, localPath: string) => ipcRenderer.invoke('sync:set-mapping', cloudId, localPath),
   removeSyncMapping: (cloudId: string) => ipcRenderer.invoke('sync:remove-mapping', cloudId),
 
+  // Window controls (for custom title bar on Windows/Linux)
+  minimizeWindow: () => ipcRenderer.invoke('window:minimize'),
+  maximizeWindow: () => ipcRenderer.invoke('window:maximize'),
+  closeWindow: () => ipcRenderer.invoke('window:close'),
+  isMaximized: () => ipcRenderer.invoke('window:is-maximized'),
+  onWindowStateChange: (callback: (isMaximized: boolean) => void) => {
+    ipcRenderer.on('window:state-changed', (_event, isMaximized) => callback(isMaximized));
+    return () => ipcRenderer.removeAllListeners('window:state-changed');
+  },
+
   // Event listeners for file operations
   onFileOpened: (callback: (data: { path: string; content: string; name: string }) => void) => {
     ipcRenderer.on('file:opened', (_event, data) => callback(data));
@@ -52,6 +62,10 @@ const api = {
   onMenuCloseTab: (callback: () => void) => {
     ipcRenderer.on('menu:close-tab', callback);
     return () => ipcRenderer.removeAllListeners('menu:close-tab');
+  },
+  onMenuRevert: (callback: () => void) => {
+    ipcRenderer.on('menu:revert', callback);
+    return () => ipcRenderer.removeAllListeners('menu:revert');
   },
   
   // Menu events - Import/Export
@@ -93,6 +107,18 @@ const api = {
     ipcRenderer.on('menu:paste-from-word', callback);
     return () => ipcRenderer.removeAllListeners('menu:paste-from-word');
   },
+  onMenuFormat: (callback: () => void) => {
+    ipcRenderer.on('menu:format', callback);
+    return () => ipcRenderer.removeAllListeners('menu:format');
+  },
+  onMenuGrammar: (callback: () => void) => {
+    ipcRenderer.on('menu:grammar', callback);
+    return () => ipcRenderer.removeAllListeners('menu:grammar');
+  },
+  onMenuDictionary: (callback: () => void) => {
+    ipcRenderer.on('menu:dictionary', callback);
+    return () => ipcRenderer.removeAllListeners('menu:dictionary');
+  },
 
   // Menu events - View menu
   onMenuToggleSidebar: (callback: () => void) => {
@@ -114,6 +140,10 @@ const api = {
   onMenuZenMode: (callback: () => void) => {
     ipcRenderer.on('menu:zen-mode', callback);
     return () => ipcRenderer.removeAllListeners('menu:zen-mode');
+  },
+  onMenuSetTheme: (callback: (themeId: string) => void) => {
+    ipcRenderer.on('menu:set-theme', (_event, themeId) => callback(themeId));
+    return () => ipcRenderer.removeAllListeners('menu:set-theme');
   },
   onMenuSplitVertical: (callback: () => void) => {
     ipcRenderer.on('menu:split-vertical', callback);
@@ -158,7 +188,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('electron', electronAPI);
     contextBridge.exposeInMainWorld('api', api);
   } catch (error) {
-    logger.error('Preload error', error);
+    console.error('Preload error', error);
   }
 } else {
   // @ts-expect-error (define in dts)

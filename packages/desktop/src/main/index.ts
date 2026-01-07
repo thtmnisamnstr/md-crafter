@@ -23,6 +23,9 @@ const fileWatchers: Map<string, FSWatcher> = new Map();
 function createWindow(): void {
   const windowState = store.get('windowState') as { width: number; height: number; x?: number; y?: number };
 
+  // Platform-specific window options
+  const isMac = process.platform === 'darwin';
+  
   mainWindow = new BrowserWindow({
     width: windowState.width,
     height: windowState.height,
@@ -32,8 +35,12 @@ function createWindow(): void {
     minHeight: 600,
     show: false,
     autoHideMenuBar: false,
-    titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 12, y: 12 },
+    // macOS: hiddenInset shows traffic lights inset
+    // Windows/Linux: hidden removes title bar entirely (we use custom controls)
+    titleBarStyle: isMac ? 'hiddenInset' : 'hidden',
+    trafficLightPosition: isMac ? { x: 12, y: 8 } : undefined,
+    // Enable native window frame features on Windows
+    frame: isMac ? true : false,
     backgroundColor: '#1e1e1e',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -53,6 +60,15 @@ function createWindow(): void {
     if (bounds) {
       store.set('windowState', bounds);
     }
+  });
+
+  // Notify renderer of maximize/unmaximize state changes
+  mainWindow.on('maximize', () => {
+    mainWindow?.webContents.send('window:state-changed', true);
+  });
+  
+  mainWindow.on('unmaximize', () => {
+    mainWindow?.webContents.send('window:state-changed', false);
   });
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -128,6 +144,10 @@ function createMenu(): void {
           accelerator: 'CmdOrCtrl+Shift+S',
           click: () => handleSaveAs(),
         },
+        {
+          label: 'Revert to Last Saved',
+          click: () => mainWindow?.webContents.send('menu:revert'),
+        },
         { type: 'separator' },
         {
           label: 'Import from Word (.docx)',
@@ -185,13 +205,27 @@ function createMenu(): void {
         },
         {
           label: 'Find in All Files',
-          accelerator: 'CmdOrCtrl+Shift+F',
           click: () => mainWindow?.webContents.send('menu:search'),
         },
         {
           label: 'Replace',
           accelerator: 'CmdOrCtrl+H',
           click: () => mainWindow?.webContents.send('menu:replace'),
+        },
+        { type: 'separator' },
+        {
+          label: 'Format Document',
+          accelerator: 'CmdOrCtrl+Shift+F',
+          click: () => mainWindow?.webContents.send('menu:format'),
+        },
+        {
+          label: 'Check Grammar',
+          accelerator: 'CmdOrCtrl+Shift+G',
+          click: () => mainWindow?.webContents.send('menu:grammar'),
+        },
+        {
+          label: 'Manage Dictionary...',
+          click: () => mainWindow?.webContents.send('menu:dictionary'),
         },
       ],
     },
@@ -254,6 +288,36 @@ function createMenu(): void {
           label: 'Zen Mode',
           accelerator: 'CmdOrCtrl+K Z',
           click: () => mainWindow?.webContents.send('menu:zen-mode'),
+        },
+        { type: 'separator' },
+        {
+          label: 'Change Theme',
+          submenu: [
+            {
+              label: 'Dark+ (Default)',
+              click: () => mainWindow?.webContents.send('menu:set-theme', 'dark'),
+            },
+            {
+              label: 'Light+',
+              click: () => mainWindow?.webContents.send('menu:set-theme', 'light'),
+            },
+            {
+              label: 'Monokai',
+              click: () => mainWindow?.webContents.send('menu:set-theme', 'monokai'),
+            },
+            {
+              label: 'Dracula',
+              click: () => mainWindow?.webContents.send('menu:set-theme', 'dracula'),
+            },
+            {
+              label: 'GitHub Dark',
+              click: () => mainWindow?.webContents.send('menu:set-theme', 'github-dark'),
+            },
+            {
+              label: 'Nord',
+              click: () => mainWindow?.webContents.send('menu:set-theme', 'nord'),
+            },
+          ],
         },
         { type: 'separator' },
         { role: 'toggleDevTools' },
@@ -494,6 +558,27 @@ ipcMain.handle('dialog:select-folder', async () => {
     return result.filePaths[0];
   }
   return null;
+});
+
+// Window control handlers (for custom title bar on Windows/Linux)
+ipcMain.handle('window:minimize', () => {
+  mainWindow?.minimize();
+});
+
+ipcMain.handle('window:maximize', () => {
+  if (mainWindow?.isMaximized()) {
+    mainWindow.unmaximize();
+  } else {
+    mainWindow?.maximize();
+  }
+});
+
+ipcMain.handle('window:close', () => {
+  mainWindow?.close();
+});
+
+ipcMain.handle('window:is-maximized', () => {
+  return mainWindow?.isMaximized() ?? false;
 });
 
 // App lifecycle

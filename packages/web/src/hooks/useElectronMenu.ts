@@ -53,6 +53,12 @@ export function useElectronMenu() {
         if (activeTabId) closeTab(activeTabId);
       }));
     }
+    if (api.onMenuRevert) {
+      cleanups.push(api.onMenuRevert(() => {
+        const { activeTabId } = useStore.getState();
+        if (activeTabId) useStore.getState().revertToSaved(activeTabId);
+      }));
+    }
     
     // File opening handler for Electron
     if (api.onFileOpened) {
@@ -178,6 +184,9 @@ export function useElectronMenu() {
     if (api.onMenuZenMode) {
       cleanups.push(api.onMenuZenMode(() => useStore.getState().toggleZenMode()));
     }
+    if (api.onMenuSetTheme) {
+      cleanups.push(api.onMenuSetTheme((themeId: string) => useStore.getState().setTheme(themeId)));
+    }
     if (api.onMenuSplitVertical) {
       cleanups.push(api.onMenuSplitVertical(() => useStore.getState().setSplitMode('vertical')));
     }
@@ -223,6 +232,22 @@ export function useElectronMenu() {
         const editor = getActiveEditor();
         useStore.getState().pasteFromWordDocs(editor || undefined);
       }));
+    }
+    
+    // Edit menu - Format and Grammar
+    if (api.onMenuFormat) {
+      cleanups.push(api.onMenuFormat(() => useStore.getState().formatDocument()));
+    }
+    if (api.onMenuGrammar) {
+      cleanups.push(api.onMenuGrammar(() => {
+        const editor = getActiveEditor();
+        if (editor && window.monaco) {
+          useStore.getState().checkGrammar({ editor, monaco: window.monaco });
+        }
+      }));
+    }
+    if (api.onMenuDictionary) {
+      cleanups.push(api.onMenuDictionary(() => useStore.getState().setShowDictionaryModal(true)));
     }
     
     // Export actions

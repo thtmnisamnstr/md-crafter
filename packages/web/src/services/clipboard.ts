@@ -82,7 +82,52 @@ export function convertHtmlToMarkdown(html: string): string {
   const cleaned = cleanHtml(html);
   
   // Use turndown to convert
-  return turndownService.turndown(cleaned);
+  let markdown = turndownService.turndown(cleaned);
+  
+  // Post-process to clean up any remaining empty formatting markers
+  markdown = cleanupMarkdown(markdown);
+  
+  return markdown;
+}
+
+/**
+ * Clean up markdown after conversion
+ * Removes empty formatting markers and excessive whitespace
+ */
+function cleanupMarkdown(markdown: string): string {
+  let result = markdown;
+  
+  // Remove empty bold markers (** or __) that may be on their own lines or inline
+  // Matches: **\n, \n**, ** (surrounded by whitespace), etc.
+  result = result.replace(/\*\*\s*\*\*/g, ''); // Empty bold: ****
+  result = result.replace(/__\s*__/g, '');     // Empty bold: ____
+  result = result.replace(/^\s*\*\*\s*$/gm, ''); // Line with only **
+  result = result.replace(/^\s*__\s*$/gm, '');   // Line with only __
+  
+  // Remove empty italic markers (* or _)
+  result = result.replace(/(?<!\*)\*\s*\*(?!\*)/g, ''); // Empty italic: * * (but not **)
+  result = result.replace(/(?<!_)_\s*_(?!_)/g, '');     // Empty italic: _ _ (but not __)
+  result = result.replace(/^\s*\*\s*$/gm, ''); // Line with only *
+  result = result.replace(/^\s*_\s*$/gm, '');  // Line with only _
+  
+  // Remove empty strikethrough markers
+  result = result.replace(/~~\s*~~/g, ''); // Empty strikethrough: ~~~~
+  result = result.replace(/^\s*~~\s*$/gm, ''); // Line with only ~~
+  
+  // Remove empty inline code markers
+  result = result.replace(/`\s*`/g, ''); // Empty code: ``
+  result = result.replace(/^\s*`\s*$/gm, ''); // Line with only `
+  
+  // Collapse excessive newlines (more than 2) to just 2
+  result = result.replace(/\n{3,}/g, '\n\n');
+  
+  // Remove leading/trailing whitespace from each line but preserve blank lines
+  result = result.split('\n').map(line => line.trimEnd()).join('\n');
+  
+  // Trim leading/trailing whitespace from the entire content
+  result = result.trim();
+  
+  return result;
 }
 
 /**
@@ -132,6 +177,25 @@ function cleanHtml(html: string): string {
       // Otherwise, just keep the text content
       span.removeAttribute('style');
     }
+  });
+  
+  // Remove empty inline formatting elements (bold, italic, etc.)
+  // These often appear from Word/Google Docs copy/paste and create empty ** or * markers
+  const formattingTags = ['strong', 'b', 'em', 'i', 'u', 's', 'strike', 'del', 'code'];
+  formattingTags.forEach((tag) => {
+    doc.querySelectorAll(tag).forEach((el) => {
+      // Check if element is empty or contains only whitespace
+      const textContent = el.textContent || '';
+      if (textContent.trim() === '') {
+        // Replace with its text content (preserves whitespace) or remove entirely
+        if (textContent === '') {
+          el.remove();
+        } else {
+          // Has whitespace - replace element with just a text node
+          el.replaceWith(doc.createTextNode(textContent));
+        }
+      }
+    });
   });
   
   return doc.body.innerHTML;

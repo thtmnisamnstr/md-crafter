@@ -1,11 +1,12 @@
 import { useEffect, useCallback, lazy, Suspense } from 'react';
 import { useStore } from './store';
 import { MenuBar } from './components/MenuBar';
+import { DesktopTitleBar } from './components/DesktopTitleBar';
 import { Layout } from './components/Layout';
 import { Toast } from './components/Toast';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { EditorContextProvider } from './contexts/EditorContext';
-import { isElectron, isMacOS } from './utils/platform';
+import { isElectron } from './utils/platform';
 import { useKeyboardShortcuts, useOnlineStatus, useElectronMenu } from './hooks';
 import { getLanguageFromExtension } from './utils/language';
 import { ConfirmationModal } from './components/ConfirmationModal';
@@ -149,20 +150,17 @@ function AppContent() {
   // Check if running in Electron - only show web menu bar in browser
   const inElectron = isElectron();
   const showMenuBar = !zenMode && !inElectron;
-  
-  // Add padding for macOS traffic lights when in Electron with hidden title bar
-  const needsTrafficLightPadding = inElectron && isMacOS();
 
   return (
     <div className="h-full w-full flex flex-col" style={{ background: 'var(--editor-bg)' }}>
+      {/* Desktop title bar for Electron - provides draggable region and window controls */}
+      {inElectron && <DesktopTitleBar />}
+      
       {/* Show web menu bar only when not in Electron (Electron uses native menu) */}
       {showMenuBar && <MenuBar />}
       
-      {/* Main content with optional padding for macOS traffic lights */}
-      <div 
-        className="flex-1 overflow-hidden"
-        style={needsTrafficLightPadding ? { paddingTop: '28px' } : undefined}
-      >
+      {/* Main content */}
+      <div className="flex-1 overflow-hidden">
         <Layout />
       </div>
       

@@ -28,6 +28,13 @@ declare global {
       setSyncMapping: (cloudId: string, localPath: string) => Promise<void>;
       removeSyncMapping: (cloudId: string) => Promise<void>;
 
+      // Window controls (for custom title bar on Windows/Linux)
+      minimizeWindow?: () => Promise<void>;
+      maximizeWindow?: () => Promise<void>;
+      closeWindow?: () => Promise<void>;
+      isMaximized?: () => Promise<boolean>;
+      onWindowStateChange?: (callback: (isMaximized: boolean) => void) => () => void;
+
       // Event listeners for file operations
       onFileOpened: (callback: (data: { path: string; content: string; name: string }) => void) => () => void;
       onFileSaveAsPath: (callback: (path: string | null) => void) => () => void;
@@ -38,6 +45,7 @@ declare global {
       onMenuSave: (callback: () => void) => () => void;
       onMenuSaveToCloud: (callback: () => void) => () => void;
       onMenuCloseTab: (callback: () => void) => () => void;
+      onMenuRevert: (callback: () => void) => () => void;
 
       // Menu events - Import/Export
       onMenuImportWord: (callback: () => void) => () => void;
@@ -51,6 +59,9 @@ declare global {
       onMenuSearch: (callback: () => void) => () => void;
       onMenuCopyForWord: (callback: () => void) => () => void;
       onMenuPasteFromWord: (callback: () => void) => () => void;
+      onMenuFormat: (callback: () => void) => () => void;
+      onMenuGrammar: (callback: () => void) => () => void;
+      onMenuDictionary: (callback: () => void) => () => void;
 
       // Menu events - View menu
       onMenuToggleSidebar: (callback: () => void) => () => void;
@@ -58,6 +69,7 @@ declare global {
       onMenuCommandPalette: (callback: () => void) => () => void;
       onMenuSettings: (callback: () => void) => () => void;
       onMenuZenMode: (callback: () => void) => () => void;
+      onMenuSetTheme: (callback: (themeId: string) => void) => () => void;
       onMenuSplitVertical: (callback: () => void) => () => void;
       onMenuSplitHorizontal: (callback: () => void) => () => void;
       onMenuNoSplit: (callback: () => void) => () => void;
