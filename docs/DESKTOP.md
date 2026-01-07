@@ -19,17 +19,18 @@ Pre-built executables are available on [GitHub Releases](https://github.com/thtm
 
 | Platform | Filename Pattern | Description |
 |----------|------------------|-------------|
-| **macOS (Apple Silicon)** | `md-crafter-*-arm64.dmg` | Disk image for M1/M2/M3 Macs |
-| **macOS (Apple Silicon)** | `md-crafter-*-arm64.zip` | ZIP archive for M1/M2/M3 Macs |
-| **macOS (Intel)** | `md-crafter-*-x64.dmg` | Disk image for Intel Macs |
-| **macOS (Intel)** | `md-crafter-*-x64.zip` | ZIP archive for Intel Macs |
-| **Windows** | `md-crafter-*-x64.exe` | Windows installer (NSIS) |
-| **Linux** | `md-crafter-*-x64.AppImage` | Universal Linux application |
-| **Linux** | `md-crafter-*-x64.deb` | Debian/Ubuntu package |
+| **macOS (Apple Silicon)** | `md-crafter-*-mac-arm64.dmg` | Disk image for M1/M2/M3 Macs |
+| **macOS (Apple Silicon)** | `md-crafter-*-mac-arm64.zip` | ZIP archive for M1/M2/M3 Macs |
+| **macOS (Intel)** | `md-crafter-*-mac-x64.dmg` | Disk image for Intel Macs |
+| **macOS (Intel)** | `md-crafter-*-mac-x64.zip` | ZIP archive for Intel Macs |
+| **Windows** | `md-crafter-*-win-x64.exe` | Windows installer (NSIS) |
+| **Linux** | `md-crafter-*-linux-x64.AppImage` | Universal Linux application |
+| **Linux** | `md-crafter-*-linux-amd64.deb` | Debian/Ubuntu package |
 
-**Architecture guide:**
+**Filename guide:**
+- `mac` / `win` / `linux` = Operating system
 - `arm64` = Apple Silicon (M1, M2, M3 chips)
-- `x64` = Intel/AMD 64-bit processors
+- `x64` / `amd64` = Intel/AMD 64-bit processors
 
 ### Installation
 
@@ -40,8 +41,8 @@ Pre-built executables are available on [GitHub Releases](https://github.com/thtm
 #### macOS Installation
 
 1. Download the `.dmg` file for your Mac:
-   - Apple Silicon (M1/M2/M3): `md-crafter-*-arm64.dmg`
-   - Intel Mac: `md-crafter-*-x64.dmg`
+   - Apple Silicon (M1/M2/M3): `md-crafter-*-mac-arm64.dmg`
+   - Intel Mac: `md-crafter-*-mac-x64.dmg`
 2. Open the `.dmg` and drag md-crafter to your Applications folder
 3. **Important:** The app is not code-signed. When you first open it, you'll see an error: "md-crafter.app is damaged and can't be opened."
 
@@ -58,7 +59,7 @@ Then open the app normally. This removes the quarantine flag that macOS adds to 
 
 #### Windows Installation
 
-1. Download `md-crafter-*-x64.exe`
+1. Download `md-crafter-*-win-x64.exe`
 2. Run the installer and follow the setup wizard
 3. Windows SmartScreen may show a warning for unsigned apps - click "More info" → "Run anyway"
 
@@ -67,13 +68,13 @@ Then open the app normally. This removes the quarantine flag that macOS adds to 
 **AppImage (recommended - works on any distro):**
 ```bash
 # Download the AppImage
-chmod +x md-crafter-*-x64.AppImage
-./md-crafter-*-x64.AppImage
+chmod +x md-crafter-*-linux-x64.AppImage
+./md-crafter-*-linux-x64.AppImage
 ```
 
 **Debian/Ubuntu (.deb):**
 ```bash
-sudo dpkg -i md-crafter-*-x64.deb
+sudo dpkg -i md-crafter-*-linux-amd64.deb
 ```
 
 ### Development Build

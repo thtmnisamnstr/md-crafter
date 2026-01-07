@@ -57,11 +57,11 @@ Download the latest release for your platform from [GitHub Releases](https://git
 
 | Platform | File | Description |
 |----------|------|-------------|
-| **macOS (Apple Silicon)** | `md-crafter-*-arm64.dmg` | M1/M2/M3 Macs |
-| **macOS (Intel)** | `md-crafter-*-x64.dmg` or `md-crafter-*-x64.zip` | Intel Macs |
-| **Windows** | `md-crafter-*-x64.exe` | Windows installer |
-| **Linux** | `md-crafter-*-x64.AppImage` | Universal Linux app |
-| **Linux (Debian/Ubuntu)** | `md-crafter-*-x64.deb` | Debian package |
+| **macOS (Apple Silicon)** | `md-crafter-*-mac-arm64.dmg` | M1/M2/M3 Macs |
+| **macOS (Intel)** | `md-crafter-*-mac-x64.dmg` | Intel Macs |
+| **Windows** | `md-crafter-*-win-x64.exe` | Windows installer |
+| **Linux** | `md-crafter-*-linux-x64.AppImage` | Universal Linux app |
+| **Linux (Debian/Ubuntu)** | `md-crafter-*-linux-amd64.deb` | Debian package |
 
 > **⚠️ macOS Users:** The app is not code-signed. After downloading, you may see "app is damaged and can't be opened." To fix this, open Terminal and run:
 > ```bash
