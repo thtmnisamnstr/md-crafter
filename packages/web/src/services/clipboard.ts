@@ -1,5 +1,6 @@
 import { marked } from 'marked';
 import TurndownService from 'turndown';
+import { gfm } from 'turndown-plugin-gfm';
 import { logger } from '@md-crafter/shared';
 import { getDOMParser } from '../utils/dom';
 
@@ -9,11 +10,8 @@ const turndownService = new TurndownService({
   bulletListMarker: '-',
 });
 
-// Configure turndown for better conversion
-turndownService.addRule('strikethrough', {
-  filter: ['del', 's'] as (keyof HTMLElementTagNameMap)[],
-  replacement: (content) => `~~${content}~~`,
-});
+// Enable GFM support (tables, strikethrough, task lists)
+turndownService.use(gfm);
 
 /**
  * Copy markdown content as rich HTML for pasting into Word/Google Docs
@@ -75,19 +73,305 @@ export async function pasteAsMarkdown(): Promise<string | null> {
 }
 
 /**
+ * Extract tables from HTML and convert them to Markdown
+ */
+function extractTablesFromHtml(html: string): { html: string, tables: Array<{id: string, markdown: string}> } {
+  const parser = new (getDOMParser())();
+  const doc = parser.parseFromString(html, 'text/html');
+  const tables: Array<{id: string, markdown: string}> = [];
+
+  // Find all tables
+  const tableElements = doc.querySelectorAll('table');
+  tableElements.forEach((tableElement, index) => {
+    if (tableElement instanceof HTMLElement) {
+      const tableId = `table_${index}_${Date.now()}`;
+      const markdown = convertTableToMarkdown(tableElement);
+
+      // Replace table with a text marker that Turndown will preserve
+      const marker = doc.createTextNode(`UNIQUE_TABLE_MARKER_${tableId}_END`);
+      tableElement.replaceWith(marker);
+
+      tables.push({ id: tableId, markdown });
+    }
+  });
+
+  return {
+    html: doc.body.innerHTML,
+    tables
+  };
+}
+
+/**
+ * Convert a single HTML table element to Markdown
+ */
+function convertTableToMarkdown(tableElement: HTMLElement): string {
+  const rows = Array.from(tableElement.querySelectorAll('tr'));
+  if (rows.length === 0) return '';
+
+  // Detect header row
+  const headerRow = detectHeaderRow(rows);
+  const dataRows = rows.filter(row => row !== headerRow);
+
+  if (!headerRow && dataRows.length === 0) return '';
+
+  // Extract headers
+  const headers = headerRow ? extractCellTexts(headerRow) : [];
+
+  // Extract data rows
+  const data = dataRows.map(row => extractCellTexts(row));
+
+  // Generate Markdown table
+  let markdown = '';
+
+  // Header row
+  if (headers.length > 0) {
+    markdown += `| ${headers.join(' | ')} |\n`;
+    markdown += `| ${headers.map(() => '---').join(' | ')} |\n`;
+  }
+
+  // Data rows
+  data.forEach(row => {
+    markdown += `| ${row.join(' | ')} |\n`;
+  });
+
+  return markdown.trim();
+}
+
+/**
+ * Detect which row should be treated as the header
+ */
+function detectHeaderRow(rows: HTMLTableRowElement[]): HTMLTableRowElement | null {
+  if (rows.length === 0) return null;
+
+  // Check if first row has <th> elements
+  const firstRow = rows[0];
+  const hasThElements = Array.from(firstRow.children).some(cell => cell.tagName === 'TH');
+  if (hasThElements) return firstRow;
+
+  // Check if first row has bold text (common in Google Docs)
+  const hasBoldText = Array.from(firstRow.children).some(cell =>
+    cell.querySelector('strong, b') !== null
+  );
+  if (hasBoldText) return firstRow;
+
+  // If no clear header, treat first row as header anyway
+  return firstRow;
+}
+
+/**
+ * Extract clean text content from table cells
+ */
+function extractCellTexts(row: HTMLTableRowElement): string[] {
+  return Array.from(row.children).map(cell => {
+    if (cell instanceof HTMLElement) {
+      return cleanCellContent(cell);
+    }
+    return '';
+  });
+}
+
+/**
+ * Clean cell content for Markdown table
+ */
+function cleanCellContent(cell: HTMLElement): string {
+  // Clone the cell to avoid modifying the original
+  const cellClone = cell.cloneNode(true) as HTMLElement;
+
+  // Remove nested <p> tags but keep their content
+  const paragraphs = cellClone.querySelectorAll('p');
+  paragraphs.forEach(p => {
+    if (p instanceof HTMLElement) {
+      // If <p> is the only child, unwrap it
+      if (cellClone.children.length === 1 && cellClone.children[0] === p) {
+        while (p.firstChild) {
+          cellClone.insertBefore(p.firstChild, p);
+        }
+        p.remove();
+      }
+    }
+  });
+
+  // Convert <br> tags to spaces
+  const brTags = cellClone.querySelectorAll('br');
+  brTags.forEach(br => {
+    const spaceNode = document.createTextNode(' ');
+    br.replaceWith(spaceNode);
+  });
+
+  // Clean up lists - convert to bullet-separated text for table cells
+  const lists = cellClone.querySelectorAll('ul, ol');
+  lists.forEach(list => {
+    if (list instanceof HTMLElement) {
+      const listItems = list.querySelectorAll('li');
+      const itemTexts: string[] = [];
+
+      listItems.forEach(li => {
+        if (li instanceof HTMLElement) {
+          // Get text content from nested elements, prioritizing <p> elements
+          let textContent = '';
+
+          const nestedParagraphs = li.querySelectorAll('p');
+          if (nestedParagraphs.length > 0) {
+            textContent = Array.from(nestedParagraphs)
+              .map(p => p.textContent?.trim())
+              .filter(text => text)
+              .join(' ');
+          } else {
+            textContent = li.textContent?.trim() || '';
+          }
+
+          if (textContent) {
+            itemTexts.push(textContent);
+          }
+        }
+      });
+
+      if (itemTexts.length > 0) {
+        // Join list items with bullet separators
+        const listText = itemTexts.join(' • ') + ' ';
+        const textNode = document.createTextNode(listText);
+        list.replaceWith(textNode);
+      } else {
+        list.remove();
+      }
+    }
+  });
+
+  // Clean up nested divs/spans
+  const nestedElements = cellClone.querySelectorAll('div, span');
+  nestedElements.forEach(el => {
+    if (el instanceof HTMLElement) {
+      // Only unwrap if element has no significant attributes
+      const hasAttributes = el.attributes.length > 1; // More than just style/class
+      if (!hasAttributes) {
+        while (el.firstChild) {
+          el.parentNode?.insertBefore(el.firstChild, el);
+        }
+        el.remove();
+      }
+    }
+  });
+
+  // Get clean text content
+  let text = cellClone.textContent?.trim() || '';
+
+  // Replace line breaks with spaces
+  text = text.replace(/\n/g, ' ').replace(/\r/g, ' ');
+
+  // Collapse multiple spaces
+  text = text.replace(/\s+/g, ' ');
+
+  return text;
+}
+
+/**
  * Convert HTML to Markdown
  */
 export function convertHtmlToMarkdown(html: string): string {
-  // Clean up the HTML first
-  const cleaned = cleanHtml(html);
-  
-  // Use turndown to convert
+  // Phase 1: Extract and convert tables to Markdown
+  const { html: htmlWithoutTables, tables } = extractTablesFromHtml(html);
+
+  // Phase 2: Clean remaining HTML (without table-specific logic)
+  const cleaned = cleanHtmlWithoutTables(htmlWithoutTables);
+
+  // Phase 3: Convert non-table content with Turndown
   let markdown = turndownService.turndown(cleaned);
-  
-  // Post-process to clean up any remaining empty formatting markers
+
+  // Phase 4: Replace table markers with Markdown tables
+  // Turndown escapes underscores, so we need to match the fully escaped version
+  tables.forEach(({id, markdown: tableMarkdown}) => {
+    // Create the fully escaped marker: UNIQUE_TABLE_MARKER_table_0_1767817593292_END
+    // becomes UNIQUE\_TABLE\_MARKER\_table\_0\_1767817593292\_END
+    const fullyEscapedMarker = `UNIQUE\\_TABLE\\_MARKER\\_${id.replace(/_/g, '\\_')}\\_END`;
+    markdown = markdown.replace(fullyEscapedMarker, tableMarkdown);
+  });
+
+  // Phase 5: Post-process to clean up any remaining empty formatting markers
   markdown = cleanupMarkdown(markdown);
-  
+
   return markdown;
+}
+
+/**
+ * Clean HTML without table-specific processing
+ */
+function cleanHtmlWithoutTables(html: string): string {
+  // If HTML contains only table markers/whitespace, return as-is
+  const trimmed = html.trim();
+  if (trimmed.startsWith('UNIQUE_TABLE_MARKER_') && trimmed.endsWith('_END')) {
+    return html;
+  }
+
+  // Parse HTML
+  const parser = new (getDOMParser())();
+  const doc = parser.parseFromString(html, 'text/html');
+
+  // Remove unnecessary elements
+  const elementsToRemove = doc.querySelectorAll('script, style, meta, link, head');
+  elementsToRemove.forEach((el) => el.remove());
+
+  // Clean up Word-specific elements
+  const wordElements = doc.querySelectorAll('[class^="Mso"], [style*="mso-"]');
+  wordElements.forEach((el) => {
+    // Keep the content but remove Word-specific styling
+    if (el instanceof HTMLElement) {
+      el.removeAttribute('class');
+      el.removeAttribute('style');
+    }
+  });
+
+  // Handle Google Docs spans
+  const googleSpans = doc.querySelectorAll('span[style]');
+  googleSpans.forEach((span) => {
+    if (span instanceof HTMLElement) {
+      const style = span.getAttribute('style') || '';
+
+      // Check for bold
+      if (style.includes('font-weight: 700') || style.includes('font-weight:700') || style.includes('font-weight: bold')) {
+        const b = doc.createElement('strong');
+        b.innerHTML = span.innerHTML;
+        span.replaceWith(b);
+        return;
+      }
+
+      // Check for italic
+      if (style.includes('font-style: italic') || style.includes('font-style:italic')) {
+        const i = doc.createElement('em');
+        i.innerHTML = span.innerHTML;
+        span.replaceWith(i);
+        return;
+      }
+
+      // Otherwise, just keep the text content
+      span.removeAttribute('style');
+    }
+  });
+
+  // Remove empty inline formatting elements (bold, italic, etc.)
+  // These often appear from Word/Google Docs copy/paste and create empty ** or * markers
+  const formattingTags = ['strong', 'b', 'em', 'i', 'u', 's', 'strike', 'del', 'code'];
+  formattingTags.forEach((tag) => {
+    doc.querySelectorAll(tag).forEach((el) => {
+      // Check if element is empty or contains only whitespace
+      const textContent = el.textContent || '';
+      if (textContent.trim() === '') {
+        // Replace with its text content (preserves whitespace) or remove entirely
+        if (textContent === '') {
+          el.remove();
+        } else {
+          // Has whitespace - replace element with just a text node
+          el.replaceWith(doc.createTextNode(textContent));
+        }
+      }
+    });
+  });
+
+  // If body is empty but document has content, return the full document
+  if (!doc.body.innerHTML.trim() && doc.documentElement.innerHTML.trim()) {
+    return doc.documentElement.innerHTML;
+  }
+
+  return doc.body.innerHTML;
 }
 
 /**
@@ -130,76 +414,6 @@ function cleanupMarkdown(markdown: string): string {
   return result;
 }
 
-/**
- * Clean HTML before conversion
- */
-function cleanHtml(html: string): string {
-  // Parse HTML
-  const parser = new (getDOMParser())();
-  const doc = parser.parseFromString(html, 'text/html');
-  
-  // Remove unnecessary elements
-  const elementsToRemove = doc.querySelectorAll('script, style, meta, link, head');
-  elementsToRemove.forEach((el) => el.remove());
-  
-  // Clean up Word-specific elements
-  const wordElements = doc.querySelectorAll('[class^="Mso"], [style*="mso-"]');
-  wordElements.forEach((el) => {
-    // Keep the content but remove Word-specific styling
-    if (el instanceof HTMLElement) {
-      el.removeAttribute('class');
-      el.removeAttribute('style');
-    }
-  });
-  
-  // Handle Google Docs spans
-  const googleSpans = doc.querySelectorAll('span[style]');
-  googleSpans.forEach((span) => {
-    if (span instanceof HTMLElement) {
-      const style = span.getAttribute('style') || '';
-      
-      // Check for bold
-      if (style.includes('font-weight: 700') || style.includes('font-weight:700') || style.includes('font-weight: bold')) {
-        const b = doc.createElement('strong');
-        b.innerHTML = span.innerHTML;
-        span.replaceWith(b);
-        return;
-      }
-      
-      // Check for italic
-      if (style.includes('font-style: italic') || style.includes('font-style:italic')) {
-        const i = doc.createElement('em');
-        i.innerHTML = span.innerHTML;
-        span.replaceWith(i);
-        return;
-      }
-      
-      // Otherwise, just keep the text content
-      span.removeAttribute('style');
-    }
-  });
-  
-  // Remove empty inline formatting elements (bold, italic, etc.)
-  // These often appear from Word/Google Docs copy/paste and create empty ** or * markers
-  const formattingTags = ['strong', 'b', 'em', 'i', 'u', 's', 'strike', 'del', 'code'];
-  formattingTags.forEach((tag) => {
-    doc.querySelectorAll(tag).forEach((el) => {
-      // Check if element is empty or contains only whitespace
-      const textContent = el.textContent || '';
-      if (textContent.trim() === '') {
-        // Replace with its text content (preserves whitespace) or remove entirely
-        if (textContent === '') {
-          el.remove();
-        } else {
-          // Has whitespace - replace element with just a text node
-          el.replaceWith(doc.createTextNode(textContent));
-        }
-      }
-    });
-  });
-  
-  return doc.body.innerHTML;
-}
 
 /**
  * Wrap HTML with inline styles for Word/Google Docs compatibility

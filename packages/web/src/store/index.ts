@@ -252,23 +252,83 @@ export const useStore = create<AppState>()(
         const activeTab = tabs.find((t) => t.id === activeTabId);
         if (!activeTab || !activeTabId) return;
         
+        // Capture the selection/range immediately (before async clipboard work),
+        // so we replace the correct range even if focus/selection changes during await.
+        let initialRange: {
+          startLineNumber: number;
+          startColumn: number;
+          endLineNumber: number;
+          endColumn: number;
+        } | null = null;
+
+        let initialPosition: { lineNumber: number; column: number } | null = null;
+
+        if (editor) {
+          const sel = editor.getSelection();
+          if (sel) {
+            initialRange = {
+              startLineNumber: sel.startLineNumber,
+              startColumn: sel.startColumn,
+              endLineNumber: sel.endLineNumber,
+              endColumn: sel.endColumn,
+            };
+          }
+          const pos = editor.getPosition();
+          if (pos) {
+            initialPosition = { lineNumber: pos.lineNumber, column: pos.column };
+          }
+        }
+
         try {
           const markdown = await pasteAsMarkdown();
           if (markdown) {
             // Insert at cursor position or append
             if (editor) {
-              const selection = editor.getSelection();
-              const range = selection ? {
-                startLineNumber: selection.startLineNumber,
-                startColumn: selection.startColumn,
-                endLineNumber: selection.endLineNumber,
-                endColumn: selection.endColumn,
-              } : null;
-              
+              // Ensure editor has focus so selection is available
+              if (!editor.hasTextFocus()) {
+                editor.focus();
+              }
+
+              let selection = initialRange ? {
+                startLineNumber: initialRange.startLineNumber,
+                startColumn: initialRange.startColumn,
+                endLineNumber: initialRange.endLineNumber,
+                endColumn: initialRange.endColumn,
+              } as import('monaco-editor').Selection : editor.getSelection();
+
+              // Fallback to stored selection if Monaco doesn't have one (e.g., focus shift)
+              if (!selection && activeTab.selection) {
+                selection = {
+                  startLineNumber: activeTab.selection.startLine,
+                  startColumn: activeTab.selection.startColumn,
+                  endLineNumber: activeTab.selection.endLine,
+                  endColumn: activeTab.selection.endColumn,
+                } as unknown as import('monaco-editor').Selection;
+                editor.setSelection(selection);
+              }
+
+              const position = initialPosition || editor.getPosition();
+              const range = selection
+                ? {
+                    startLineNumber: selection.startLineNumber,
+                    startColumn: selection.startColumn,
+                    endLineNumber: selection.endLineNumber,
+                    endColumn: selection.endColumn,
+                  }
+                : position
+                  ? {
+                      startLineNumber: position.lineNumber,
+                      startColumn: position.column,
+                      endLineNumber: position.lineNumber,
+                      endColumn: position.column,
+                    }
+                  : null;
+
               if (range) {
                 editor.executeEdits('paste', [{
                   range,
                   text: markdown,
+                  forceMoveMarkers: true,
                 }]);
               } else {
                 // Append to content

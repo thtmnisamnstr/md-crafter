@@ -194,12 +194,18 @@ function cleanupExcessiveNewlines(content: string): string {
   // After trimming, collapse excessive newlines again
   result = result.replace(/\n{3,}/g, '\n\n');
   
-  // Remove empty bold/italic markers that may appear after formatting
-  // These are rare but can happen with certain input
-  result = result.replace(/\*\*\s*\*\*/g, '');
-  result = result.replace(/__\s*__/g, '');
-  result = result.replace(/(?<!\*)\*\s*\*(?!\*)/g, '');
-  result = result.replace(/(?<!_)_\s*_(?!_)/g, '');
+  // Remove lines containing ONLY formatting markers at document START
+  // These can appear from copy/paste artifacts but should not affect content
+  result = result.replace(/^(\s*\*\*\s*\n)+/, '');
+  result = result.replace(/^(\s*__\s*\n)+/, '');
+  result = result.replace(/^(\s*\*\s*\n)+/, '');
+  result = result.replace(/^(\s*_\s*\n)+/, '');
+
+  // Remove lines containing ONLY formatting markers at document END
+  result = result.replace(/(\n\s*\*\*\s*)+$/, '');
+  result = result.replace(/(\n\s*__\s*)+$/, '');
+  result = result.replace(/(\n\s*\*\s*)+$/, '');
+  result = result.replace(/(\n\s*_\s*)+$/, '');
   
   // Ensure file ends with single newline
   result = result.trimEnd() + '\n';

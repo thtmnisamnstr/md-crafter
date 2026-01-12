@@ -251,7 +251,17 @@ The editor automatically handles rich text pasting:
 - **Word/Docs Paste** (`Ctrl+Shift+V`) - Converts rich text to markdown format, preserving formatting
 - **Plain Text** - Plain text pastes normally without conversion
 
+**Supported conversions** (when using `Ctrl+Shift+V`):
+- **Tables** - HTML tables are converted to GitHub Flavored Markdown (GFM) table syntax
+- **Bold/Italic** - Formatting is preserved as `**bold**` and `*italic*`
+- **Lists** - Ordered and unordered lists are converted to markdown list syntax
+- **Headings** - HTML headings become markdown headings (`#`, `##`, etc.)
+- **Links** - Hyperlinks are converted to `[text](url)` format
+- **Strikethrough** - Deleted text becomes `~~strikethrough~~`
+
 This ensures that when you paste content from Word or Google Docs, it's automatically converted to plaintext or markdown, preventing formatting issues in your markdown documents.
+
+**Note**: Complex table features like merged cells are not supported by markdown and will be simplified during conversion.
 
 **Browser Compatibility**: Clipboard features work across all modern browsers (Chrome, Firefox, Safari). Rich text paste (ClipboardItem API) has full support in Chrome/Chromium, with automatic fallback to plain text in Firefox and Safari when needed.
 

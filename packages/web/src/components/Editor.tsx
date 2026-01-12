@@ -415,6 +415,15 @@ export function Editor({
       const editorDomNode = editor.getDomNode();
       if (!editorDomNode || document.activeElement !== editorDomNode) return;
 
+      // Skip paste interception if Ctrl+Shift+V (or Cmd+Shift+V) is pressed
+      // This allows the special "Paste from Word/Docs" functionality to work
+      const keyboardEvent = e as ClipboardEvent & { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean; altKey: boolean };
+      const isCtrlShiftV = (keyboardEvent.ctrlKey || keyboardEvent.metaKey) && keyboardEvent.shiftKey && !keyboardEvent.altKey;
+      if (isCtrlShiftV) {
+        // Let the keyboard shortcut handler take care of this paste
+        return;
+      }
+
       // Check if clipboard contains rich text
       if (e.clipboardData?.types.includes('text/html')) {
         try {
@@ -435,6 +444,7 @@ export function Editor({
               editor.executeEdits('paste', [{
                 range,
                 text: plainText,
+                forceMoveMarkers: true,
               }]);
             }
           }
