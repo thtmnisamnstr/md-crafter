@@ -1,6 +1,6 @@
 {
   "name": "@md-crafter/desktop",
-  "version": "0.1.0-beta-1",
+  "version": "0.1.0-alpha-1",
   "description": "Cloud-synced markdown and MDX editor",
   "homepage": "https://github.com/thtmnisamnstr/md-crafter",
   "author": {

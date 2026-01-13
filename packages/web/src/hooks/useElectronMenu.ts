@@ -269,6 +269,22 @@ export function useElectronMenu() {
       cleanups.push(api.onMenuSearch(() => useStore.getState().setShowSearch(true)));
     }
     
+    // Find & Replace
+    if (api.onMenuFind) {
+      cleanups.push(api.onMenuFind(() => {
+        const editor = getActiveEditor();
+        // Use standard Monaco find action
+        editor?.getAction('actions.find')?.run();
+      }));
+    }
+    if (api.onMenuReplace) {
+      cleanups.push(api.onMenuReplace(() => {
+        const editor = getActiveEditor();
+        // Use standard Monaco replace action
+        editor?.getAction('editor.action.startFindReplaceAction')?.run();
+      }));
+    }
+    
     // Help menu actions
     if (api.onMenuAbout) {
       cleanups.push(api.onMenuAbout(() => useStore.getState().setShowAbout(true)));

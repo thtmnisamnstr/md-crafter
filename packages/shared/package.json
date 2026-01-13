@@ -1,6 +1,6 @@
 {
   "name": "@md-crafter/shared",
-  "version": "0.1.0-beta-1",
+  "version": "0.1.0-alpha-1",
   "description": "Shared types, utilities, and sync logic for md-crafter",
   "main": "./dist/index.js",
   "module": "./dist/index.js",

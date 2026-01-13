@@ -4,6 +4,29 @@ import { MONACO_INIT_TIMEOUT_MS } from '../packages/web/src/constants';
 export const MONACO_TIMEOUT = MONACO_INIT_TIMEOUT_MS;
 
 /**
+ * Grant clipboard permissions - browser-specific handling
+ * Different browsers support different clipboard permission names
+ */
+export async function grantClipboardPermissions(context: any, browserName: string): Promise<void> {
+  try {
+    if (browserName === 'chromium') {
+      // Chromium supports both permissions
+      await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    } else if (browserName === 'firefox') {
+      // Firefox doesn't support clipboard-read, only clipboard-write
+      await context.grantPermissions(['clipboard-write']);
+    } else if (browserName === 'webkit') {
+      // WebKit doesn't support clipboard-write, only clipboard-read
+      await context.grantPermissions(['clipboard-read']);
+    }
+  } catch (error) {
+    // Some browsers handle clipboard permissions differently or don't require them
+    // Continue with test - clipboard API may still work
+    console.warn(`Clipboard permissions not granted for ${browserName}, continuing anyway`);
+  }
+}
+
+/**
  * Wait for Monaco editor to be ready and interactable
  */
 export async function waitForMonacoEditor(page: Page): Promise<void> {

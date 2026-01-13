@@ -8,6 +8,11 @@ import type { TextlintEngine, TextlintConfig } from '../types/textlint-engine';
 import type { TextlintResults } from '../types/textlint';
 import { logger } from '@md-crafter/shared';
 
+// Polyfill __dirname for browser environment (needed by textlint dependencies)
+if (typeof self !== 'undefined' && typeof (self as any).__dirname === 'undefined') {
+  (self as any).__dirname = '/';
+}
+
 // Import textlint dynamically
 let textlintEngine: TextlintEngine | null = null;
 let config: TextlintConfig | null = null;

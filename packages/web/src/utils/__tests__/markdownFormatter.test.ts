@@ -98,6 +98,14 @@ describe('markdownFormatter', () => {
       expect(result).toContain('|');
     });
 
+    it('should tighten loose lists that contain single-line items', async () => {
+      const input = '- Item 1\n\n- Item 2\n\n- Item 3';
+      const result = await formatMarkdown(input);
+      // Should be tightened to single newlines
+      expect(result).toContain('- Item 1\n- Item 2\n- Item 3');
+      expect(result).not.toMatch(/- Item 1\n\n- Item 2/);
+    });
+
     it('should end file with single newline', async () => {
       const input = '# Heading';
       const result = await formatMarkdown(input);

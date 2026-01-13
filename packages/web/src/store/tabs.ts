@@ -2,6 +2,7 @@ import { StateCreator } from 'zustand';
 import { Document } from '@md-crafter/shared';
 import { Tab, AppState } from './types';
 import { generateId } from './utils';
+import { isElectron } from '../utils/platform';
 
 export interface TabsSlice {
   tabs: Tab[];
@@ -172,6 +173,11 @@ export const createTabsSlice: StateCreator<AppState, [], [], TabsSlice> = (set, 
             exitDiffMode();
           }
           
+          // Stop watching file in Electron to prevent leaks
+          if (isElectron() && tab.path && window.api?.unwatchFile) {
+            window.api.unwatchFile(tab.path);
+          }
+          
           set({ tabs: newTabs, activeTabId: newActiveTabId });
           get().clearConfirmation();
         },
@@ -195,6 +201,11 @@ export const createTabsSlice: StateCreator<AppState, [], [], TabsSlice> = (set, 
     // Exit diff mode if this tab was involved
     if (isInDiffMode) {
       exitDiffMode();
+    }
+    
+    // Stop watching file in Electron to prevent leaks
+    if (isElectron() && tab?.path && window.api?.unwatchFile) {
+      window.api.unwatchFile(tab.path);
     }
     
     set({ tabs: newTabs, activeTabId: newActiveTabId });

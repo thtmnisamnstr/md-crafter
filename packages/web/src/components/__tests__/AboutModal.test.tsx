@@ -26,7 +26,7 @@ describe('AboutModal', () => {
 
     it('should render version number', () => {
       const { getByText } = render(<AboutModal onClose={mockOnClose} />);
-      expect(getByText('Version 0.1.0-beta-1')).toBeTruthy();
+      expect(getByText('Version 0.1.0-alpha-1')).toBeTruthy();
     });
 
     it('should render description', () => {

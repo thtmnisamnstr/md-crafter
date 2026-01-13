@@ -82,6 +82,16 @@ export default defineConfig({
     optimizeDeps: {
       include: ['react', 'react-dom'],
       exclude: [],
+      esbuildOptions: {
+        define: {
+          global: 'globalThis',
+          __dirname: '"/"',
+        },
+      },
+    },
+    define: {
+      // Define __dirname for textlint and its dependencies which might expect it
+      __dirname: JSON.stringify('/'),
     },
     worker: {
       format: 'es',

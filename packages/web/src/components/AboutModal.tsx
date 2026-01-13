@@ -38,7 +38,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
           </h1>
           
           <p className="text-sm opacity-70 mb-4" style={{ color: 'var(--editor-fg)' }}>
-            Version 0.1.0-beta-1
+            Version 0.1.0-alpha-1
           </p>
 
           <p className="mb-4" style={{ color: 'var(--editor-fg)' }}>

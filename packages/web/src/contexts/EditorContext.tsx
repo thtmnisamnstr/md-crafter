@@ -45,6 +45,10 @@ export function EditorContextProvider({ children }: EditorContextProviderProps) 
   const monacoRef = useRef<typeof monaco | null>(null);
   const modelsRef = useRef<Map<string, monaco.editor.ITextModel>>(new Map());
   
+  // Refs for synchronous access to editors (fixes race conditions in event handlers)
+  const primaryEditorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const secondaryEditorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  
   // Services stored in refs to avoid re-renders
   const grammarServiceRef = useRef<GrammarService | null>(null);
   const spellcheckServiceRef = useRef<SpellcheckService | null>(null);
@@ -61,6 +65,7 @@ export function EditorContextProvider({ children }: EditorContextProviderProps) 
       window.monaco = monacoInstance;
     }
     
+    primaryEditorRef.current = editor;
     setPrimaryEditor(editor);
     setPrimaryMonaco(monacoInstance);
     monacoRef.current = monacoInstance;
@@ -80,6 +85,7 @@ export function EditorContextProvider({ children }: EditorContextProviderProps) 
       window.secondaryEditor = editor;
     }
     
+    secondaryEditorRef.current = editor;
     setSecondaryEditor(editor);
     setSecondaryMonaco(monacoInstance);
     monacoRef.current = monacoInstance;
@@ -110,35 +116,37 @@ export function EditorContextProvider({ children }: EditorContextProviderProps) 
     // the value when a new editor mounts, and page unload cleans up naturally.
     
     // Cleanup focus tracking using WeakMap (type-safe)
-    if (primaryEditor) {
-      const disposable = editorDisposables.get(primaryEditor);
+    if (primaryEditorRef.current) {
+      const disposable = editorDisposables.get(primaryEditorRef.current);
       disposable?.dispose();
-      editorDisposables.delete(primaryEditor);
+      editorDisposables.delete(primaryEditorRef.current);
     }
     
+    primaryEditorRef.current = null;
     setPrimaryEditor(null);
     setPrimaryMonaco(null);
     if (focusedEditorRef.current === 'primary') {
       focusedEditorRef.current = null;
     }
-  }, [primaryEditor]);
+  }, []);
   
   const unregisterSecondaryEditor = useCallback(() => {
     // NOTE: Do NOT delete window.secondaryEditor here - same race condition issue
     
     // Cleanup focus tracking using WeakMap (type-safe)
-    if (secondaryEditor) {
-      const disposable = editorDisposables.get(secondaryEditor);
+    if (secondaryEditorRef.current) {
+      const disposable = editorDisposables.get(secondaryEditorRef.current);
       disposable?.dispose();
-      editorDisposables.delete(secondaryEditor);
+      editorDisposables.delete(secondaryEditorRef.current);
     }
     
+    secondaryEditorRef.current = null;
     setSecondaryEditor(null);
     setSecondaryMonaco(null);
     if (focusedEditorRef.current === 'secondary') {
       focusedEditorRef.current = null;
     }
-  }, [secondaryEditor]);
+  }, []);
   
   const unregisterDiffEditor = useCallback(() => {
     // NOTE: Do NOT delete window.diffEditor here - same race condition issue
@@ -167,21 +175,21 @@ export function EditorContextProvider({ children }: EditorContextProviderProps) 
   // Helper to get active editor (primary or secondary based on focus)
   const getActiveEditor = useCallback((): monaco.editor.IStandaloneCodeEditor | null => {
     // If we have a focused editor preference, use that
-    if (focusedEditorRef.current === 'secondary' && secondaryEditor) {
-      return secondaryEditor;
+    if (focusedEditorRef.current === 'secondary' && secondaryEditorRef.current) {
+      return secondaryEditorRef.current;
     }
-    if (focusedEditorRef.current === 'primary' && primaryEditor) {
-      return primaryEditor;
+    if (focusedEditorRef.current === 'primary' && primaryEditorRef.current) {
+      return primaryEditorRef.current;
     }
     
     // Fallback to primary editor if available
-    if (primaryEditor) {
-      return primaryEditor;
+    if (primaryEditorRef.current) {
+      return primaryEditorRef.current;
     }
     
     // Last resort: secondary editor
-    return secondaryEditor;
-  }, [primaryEditor, secondaryEditor]);
+    return secondaryEditorRef.current;
+  }, []);
 
   // Monaco model management
   const hydrateModelHistory = useCallback((model: monaco.editor.ITextModel, tab: Tab) => {

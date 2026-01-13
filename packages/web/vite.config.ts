@@ -102,5 +102,15 @@ export default defineConfig({
     include: ['monaco-editor'],
     // Include textlint in optimization with polyfills
     exclude: [],
+    esbuildOptions: {
+      define: {
+        global: 'globalThis',
+        __dirname: '"/"',
+      },
+    },
+  },
+  define: {
+    // Define __dirname for textlint and its dependencies which might expect it
+    __dirname: JSON.stringify('/'),
   },
 });

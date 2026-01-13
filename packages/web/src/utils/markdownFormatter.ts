@@ -113,7 +113,10 @@ export async function formatMarkdown(content: string): Promise<string> {
     // Post-process to clean up excessive newlines
     const cleaned = cleanupExcessiveNewlines(formatted);
     
-    return cleaned;
+    // Tighten lists (remove blank lines between single-line list items)
+    const tightened = tightenLists(cleaned);
+    
+    return tightened;
   } catch (error) {
     throw new Error(`Failed to format markdown: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
@@ -157,7 +160,10 @@ export async function formatMdx(content: string): Promise<string> {
     // Clean up excessive newlines
     const cleaned = cleanupExcessiveNewlines(reindented);
     
-    return cleaned;
+    // Tighten lists
+    const tightened = tightenLists(cleaned);
+    
+    return tightened;
   } catch (error) {
     // If formatting fails (e.g., due to JSX syntax), return original content
     // This prevents breaking MDX files that the markdown parser can't handle
@@ -212,6 +218,20 @@ function cleanupExcessiveNewlines(content: string): string {
   
   return result;
 }
+
+/**
+ * Tighten lists by removing blank lines between single-line list items.
+ * Converts "loose" lists to "tight" lists where appropriate.
+ */
+function tightenLists(content: string): string {
+  // Regex matches:
+  // 1. A list item line (bullet or number)
+  // 2. Followed by exactly 2 newlines (a blank line)
+  // 3. Followed by another list item (lookahead)
+  // Replacement: The first list item followed by a single newline
+  return content.replace(/^(\s*([-*+]|\d+\.) .*)\n\n(?=\s*([-*+]|\d+\.) )/gm, '$1\n');
+}
+
 
 /**
  * Detects whether content is likely MDX (even if extension is .md)
