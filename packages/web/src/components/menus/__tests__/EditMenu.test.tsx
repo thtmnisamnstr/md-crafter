@@ -137,7 +137,7 @@ describe('EditMenu', () => {
       expect(grammarItem?.disabled).toBe(false);
     });
 
-    it('should disable Copy for Word/Docs when no active tab', () => {
+    it('should disable Copy to Word/Docs when no active tab', () => {
       (useStore.getState as any).mockReturnValue({
         ...mockStore,
         activeTabId: null,
@@ -151,7 +151,7 @@ describe('EditMenu', () => {
   });
 
   describe('Actions', () => {
-    it('should call copyForWordDocs when Copy for Word/Docs action is executed', () => {
+    it('should call copyForWordDocs when Copy to Word/Docs action is executed', () => {
       const items = getEditMenuItems(mockEditorContext);
       const copyWordItem = items.find(item => item.id === 'copy-word');
       copyWordItem?.action?.();

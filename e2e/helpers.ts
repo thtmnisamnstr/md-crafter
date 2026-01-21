@@ -32,13 +32,13 @@ export async function grantClipboardPermissions(context: any, browserName: strin
 export async function waitForMonacoEditor(page: Page): Promise<void> {
   // Wait for DOM element first
   await page.waitForSelector('.monaco-editor', { timeout: MONACO_TIMEOUT });
-  
+
   // Then wait for window.monacoEditor to be set (React state must settle)
   await page.waitForFunction(
     () => !!(window as any).monacoEditor,
     { timeout: MONACO_TIMEOUT }
   );
-  
+
   // Focus the editor
   await page.click('.monaco-editor');
   await page.waitForTimeout(100); // Brief settle time after focus
@@ -65,7 +65,7 @@ export async function setEditorContent(page: Page, content: string): Promise<voi
     },
     { timeout: MONACO_TIMEOUT }
   );
-  
+
   // Set content
   await page.evaluate((text) => {
     const editor = (window as any).monacoEditor;
@@ -73,7 +73,7 @@ export async function setEditorContent(page: Page, content: string): Promise<voi
       editor.setValue(text);
     }
   }, content);
-  
+
   // Verify content was applied
   await page.waitForFunction(
     (expected) => {
@@ -105,14 +105,14 @@ export async function getEditorContent(page: Page): Promise<string> {
 export async function saveDocument(page: Page): Promise<void> {
   // Use keyboard shortcut to save
   await page.keyboard.press('Control+s');
-  
+
   // If a save dialog appears, handle it (for new documents)
   const saveDialog = page.locator('input[placeholder*="filename"], input[placeholder*="name"]');
   if (await saveDialog.isVisible({ timeout: 1000 }).catch(() => false)) {
     // Just press Enter to accept default name
     await page.keyboard.press('Enter');
   }
-  
+
   // Wait for save operation to complete by checking for toast or isDirty state
   await page.waitForFunction(
     () => {
@@ -121,7 +121,7 @@ export async function saveDocument(page: Page): Promise<void> {
       return toast?.textContent?.includes('saved') || true; // Allow test to continue
     },
     { timeout: 2000 }
-  ).catch(() => {}); // Ignore timeout - save may complete without toast
+  ).catch(() => { }); // Ignore timeout - save may complete without toast
 }
 
 /**
@@ -135,13 +135,13 @@ export async function createDocumentWithSavedVersion(
 ): Promise<void> {
   // Create new document
   await createNewDocument(page);
-  
+
   // Set initial content
   await setEditorContent(page, savedContent);
-  
+
   // Save the document to create a saved version
   await saveDocument(page);
-  
+
   // Now modify the content to create unsaved changes
   await setEditorContent(page, modifiedContent);
 }
@@ -181,7 +181,7 @@ export function getStatusBar(page: Page) {
 export async function selectAllText(page: Page): Promise<void> {
   await page.click('.monaco-editor');
   await page.keyboard.press('Control+a');
-  
+
   // Also use Monaco API to ensure selection
   await page.evaluate(() => {
     const editor = (window as any).monacoEditor;
@@ -193,15 +193,15 @@ export async function selectAllText(page: Page): Promise<void> {
       }
     }
   });
-  
+
   // Wait for selection to be applied
   await page.waitForFunction(() => {
     const editor = (window as any).monacoEditor;
     if (!editor) return false;
     const selection = editor.getSelection();
     if (!selection) return false;
-    return !(selection.startLineNumber === selection.endLineNumber && 
-             selection.startColumn === selection.endColumn);
+    return !(selection.startLineNumber === selection.endLineNumber &&
+      selection.startColumn === selection.endColumn);
   }, { timeout: 5000 });
 }
 
@@ -216,8 +216,8 @@ export async function clearSelection(page: Page): Promise<void> {
     if (!editor) return true;
     const selection = editor.getSelection();
     if (!selection) return true;
-    return selection.startLineNumber === selection.endLineNumber && 
-           selection.startColumn === selection.endColumn;
+    return selection.startLineNumber === selection.endLineNumber &&
+      selection.startColumn === selection.endColumn;
   }, { timeout: 5000 });
 }
 
@@ -231,7 +231,7 @@ export async function openDiffViewer(page: Page): Promise<void> {
   await page.getByText('Compare with Saved Version').click();
   await page.waitForSelector('.monaco-editor', { timeout: MONACO_TIMEOUT });
   // Wait for diff editor to be ready
-  await page.waitForFunction(() => !!(window as any).diffEditor, { timeout: 5000 }).catch(() => {});
+  await page.waitForFunction(() => !!(window as any).diffEditor, { timeout: 5000 }).catch(() => { });
 }
 
 /**
@@ -242,3 +242,27 @@ export async function verifyEditorContent(page: Page, expectedContent: string): 
   expect(content).toBe(expectedContent);
 }
 
+
+/**
+ * Browser-compatible clipboard write with HTML content
+ * Falls back to plain text if ClipboardItem is not supported
+ */
+export async function writeClipboardWithHtml(page: Page, html: string, plainTextFallback: string): Promise<void> {
+  await page.evaluate(async ({ html, fallback }) => {
+    try {
+      // @ts-ignore
+      if (typeof ClipboardItem !== 'undefined') {
+        // @ts-ignore
+        const clipboardItem = new ClipboardItem({
+          'text/html': new Blob([html], { type: 'text/html' }),
+          'text/plain': new Blob([fallback], { type: 'text/plain' }),
+        });
+        await navigator.clipboard.write([clipboardItem]);
+      } else {
+        await navigator.clipboard.writeText(fallback);
+      }
+    } catch (error) {
+      await navigator.clipboard.writeText(fallback);
+    }
+  }, { html, fallback: plainTextFallback });
+}

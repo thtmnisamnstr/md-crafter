@@ -72,12 +72,12 @@ export interface AppState {
   // Hydration tracking
   _hasHydrated: boolean;
   setHasHydrated: (hasHydrated: boolean) => void;
-  
+
   // Auth
   apiToken: string | null;
   userId: string | null;
   isAuthenticated: boolean;
-  
+
   // UI State
   theme: string;
   showSidebar: boolean;
@@ -102,26 +102,26 @@ export interface AppState {
     compareWithSaved?: boolean; // If true, compare activeTabId with its saved version
     viewMode?: 'side-by-side' | 'over-under';
   };
-  
+
   // Documents
   tabs: Tab[];
   activeTabId: string | null;
   cloudDocuments: Document[];
   recentFiles: RecentFile[];
-  
+
   // Sync
   isOnline: boolean;
   conflict: ConflictInfo | null;
-  
+
   // Confirmation
   confirmation: ConfirmationState | null;
-  
+
   // Notifications
   toasts: Toast[];
-  
+
   // Settings
   settings: Settings;
-  
+
   // Actions
   initializeApp: () => Promise<void>;
   setTheme: (theme: string) => void;
@@ -163,14 +163,14 @@ export interface AppState {
   showGrammarReview: boolean;
   showDictionaryModal: boolean;
   setShowDictionaryModal: (show: boolean) => void;
-  
+
   // Clipboard actions
   copyForWordDocs: () => Promise<void>;
   pasteFromWordDocs: (editor?: import('monaco-editor').editor.IStandaloneCodeEditor) => Promise<void>;
-  
+
   // Import actions
   importDocxFile: (file: File) => Promise<void>;
-  
+
   // Tab actions
   openTab: (doc: Partial<Document> & { id?: string; title: string; content: string; path?: string }) => void;
   closeTab: (tabId: string) => void;
@@ -180,10 +180,7 @@ export interface AppState {
   updateTabPath: (tabId: string, path: string) => void;
   reorderTabs: (fromIndex: number, toIndex: number) => void;
   revertToSaved: (tabId: string) => void;
-  // Legacy no-ops kept for compatibility; Monaco manages undo/redo in-session
-  undoTab: (tabId: string, editor?: import('monaco-editor').editor.IStandaloneCodeEditor | null) => void;
-  redoTab: (tabId: string, editor?: import('monaco-editor').editor.IStandaloneCodeEditor | null) => void;
-  
+
   // Document actions
   createNewDocument: () => void;
   saveCurrentDocument: () => Promise<void>;
@@ -193,29 +190,29 @@ export interface AppState {
   deleteCloudDocument: (documentId: string) => Promise<void>;
   addRecentFile: (file: Omit<RecentFile, 'lastOpened'>) => void;
   removeRecentFile: (fileId: string) => void;
-  
+
   // Auth actions
   login: (token: string) => Promise<boolean>;
   logout: () => void;
   generateToken: (email?: string) => Promise<string | null>;
-  
+
   // Sync actions
   setOnline: (online: boolean) => void;
   setConflict: (conflict: ConflictInfo | null) => void;
   resolveConflict: (resolution: 'keep_local' | 'keep_remote' | 'merge', mergedContent?: string) => Promise<void>;
   syncDocument: (tabId: string) => Promise<void>;
   cleanupSyncDebouncer: (documentId: string) => void;
-  
+
   // Settings actions
   updateSettings: (settings: Partial<Settings>) => void;
-  
+
   // Toast actions
   addToast: (toast: Omit<Toast, 'id'>) => void;
   removeToast: (id: string) => void;
-  
+
   // Format actions
   formatDocument: () => Promise<void>;
-  
+
   // Grammar check actions
   checkGrammar: (options?: {
     editor?: import('monaco-editor').editor.IStandaloneCodeEditor;

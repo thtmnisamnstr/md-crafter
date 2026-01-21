@@ -100,7 +100,7 @@ export const WelcomeTab = () => {
   const createNewDocument = () => {
     openTab({
       title: 'Untitled.md',
-      content: '# Getting Started\n\nStart writing your markdown here!\n\n## Tips\n\n- Use **bold** and *italic* for emphasis\n- Create [links](https://example.com)\n- Add `inline code` or code blocks\n- Use the preview panel to see rendered output\n\nHappy writing!',
+      content: '',
       language: 'markdown',
     });
   };

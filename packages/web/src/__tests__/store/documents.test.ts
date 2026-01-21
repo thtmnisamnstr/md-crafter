@@ -63,7 +63,11 @@ describe('Documents Slice', () => {
     mockState = createMockState();
     mockSet = vi.fn();
     mockGet = vi.fn(() => mockState);
-    slice = createDocumentsSlice(mockSet, mockGet, {} as any);
+    slice = createDocumentsSlice(
+      mockSet as unknown as any,
+      mockGet as unknown as any,
+      {} as any
+    );
   });
 
   describe('Initial State', () => {
@@ -89,7 +93,7 @@ describe('Documents Slice', () => {
         id: 'mock-doc-id',
         title: 'Untitled.md',
         language: 'markdown',
-        isDirty: true,
+        isDirty: false,
         isCloudSynced: false,
         hasSavedVersion: false,
       });
@@ -102,7 +106,7 @@ describe('Documents Slice', () => {
       const setFn = mockSet.mock.calls[0][0];
       const result = setFn({ tabs: [] });
 
-      expect(result.tabs[0].content).toBe('# New Document\n\nStart writing here...\n');
+      expect(result.tabs[0].content).toBe('');
     });
 
     it('should reset UI state for new document', () => {
@@ -125,7 +129,11 @@ describe('Documents Slice', () => {
     it('should do nothing if no active tab', async () => {
       mockState = createMockState({ activeTabId: null });
       mockGet.mockReturnValue(mockState);
-      slice = createDocumentsSlice(mockSet, mockGet, {} as any);
+      slice = createDocumentsSlice(
+        mockSet as unknown as any,
+        mockGet as unknown as any,
+        {} as any
+      );
 
       await slice.saveCurrentDocument();
 
@@ -146,7 +154,11 @@ describe('Documents Slice', () => {
         isAuthenticated: false,
       });
       mockGet.mockReturnValue(mockState);
-      slice = createDocumentsSlice(mockSet, mockGet, {} as any);
+      slice = createDocumentsSlice(
+        mockSet as unknown as any,
+        mockGet as unknown as any,
+        {} as any
+      );
 
       await slice.saveCurrentDocument();
 
@@ -174,7 +186,11 @@ describe('Documents Slice', () => {
         isAuthenticated: true,
       });
       mockGet.mockReturnValue(mockState);
-      slice = createDocumentsSlice(mockSet, mockGet, {} as any);
+      slice = createDocumentsSlice(
+        mockSet as unknown as any,
+        mockGet as unknown as any,
+        {} as any
+      );
 
       await slice.saveCurrentDocument();
 
@@ -193,7 +209,11 @@ describe('Documents Slice', () => {
         tabs: [tab],
       });
       mockGet.mockReturnValue(mockState);
-      slice = createDocumentsSlice(mockSet, mockGet, {} as any);
+      slice = createDocumentsSlice(
+        mockSet as unknown as any,
+        mockGet as unknown as any,
+        {} as any
+      );
 
       await slice.saveCurrentDocument();
 
@@ -216,7 +236,11 @@ describe('Documents Slice', () => {
         isAuthenticated: true,
       });
       mockGet.mockReturnValue(mockState);
-      slice = createDocumentsSlice(mockSet, mockGet, {} as any);
+      slice = createDocumentsSlice(
+        mockSet as unknown as any,
+        mockGet as unknown as any,
+        {} as any
+      );
 
       await slice.saveDocumentToCloud('non-existent');
 
@@ -237,7 +261,11 @@ describe('Documents Slice', () => {
         isAuthenticated: true,
       });
       mockGet.mockReturnValue(mockState);
-      slice = createDocumentsSlice(mockSet, mockGet, {} as any);
+      slice = createDocumentsSlice(
+        mockSet as unknown as any,
+        mockGet as unknown as any,
+        {} as any
+      );
 
       vi.mocked(api.createDocument).mockResolvedValue({
         id: 'new-cloud-doc',
@@ -268,7 +296,11 @@ describe('Documents Slice', () => {
         isAuthenticated: true,
       });
       mockGet.mockReturnValue(mockState);
-      slice = createDocumentsSlice(mockSet, mockGet, {} as any);
+      slice = createDocumentsSlice(
+        mockSet as unknown as any,
+        mockGet as unknown as any,
+        {} as any
+      );
 
       vi.mocked(api.updateDocument).mockResolvedValue({
         id: 'existing-doc',
@@ -299,7 +331,11 @@ describe('Documents Slice', () => {
         isAuthenticated: true,
       });
       mockGet.mockReturnValue(mockState);
-      slice = createDocumentsSlice(mockSet, mockGet, {} as any);
+      slice = createDocumentsSlice(
+        mockSet as unknown as any,
+        mockGet as unknown as any,
+        {} as any
+      );
 
       vi.mocked(api.createDocument).mockResolvedValue({ id: 'new-doc' } as any);
 
@@ -324,7 +360,11 @@ describe('Documents Slice', () => {
         isAuthenticated: true,
       });
       mockGet.mockReturnValue(mockState);
-      slice = createDocumentsSlice(mockSet, mockGet, {} as any);
+      slice = createDocumentsSlice(
+        mockSet as unknown as any,
+        mockGet as unknown as any,
+        {} as any
+      );
 
       vi.mocked(api.createDocument).mockRejectedValue(new Error('Network error'));
 
@@ -375,7 +415,11 @@ describe('Documents Slice', () => {
         addRecentFile: vi.fn(),
       });
       mockGet.mockReturnValue(mockState);
-      slice = createDocumentsSlice(mockSet, mockGet, {} as any);
+      slice = createDocumentsSlice(
+        mockSet as unknown as any,
+        mockGet as unknown as any,
+        {} as any
+      );
 
       await slice.openCloudDocument('cloud-doc-1');
 
@@ -447,7 +491,11 @@ describe('Documents Slice', () => {
         tabs: [tab],
       });
       mockGet.mockReturnValue(mockState);
-      slice = createDocumentsSlice(mockSet, mockGet, {} as any);
+      slice = createDocumentsSlice(
+        mockSet as unknown as any,
+        mockGet as unknown as any,
+        {} as any
+      );
 
       vi.mocked(api.deleteDocument).mockResolvedValue(undefined);
 
@@ -513,7 +561,11 @@ describe('Documents Slice', () => {
         ],
       });
       mockGet.mockReturnValue(mockState);
-      slice = createDocumentsSlice(mockSet, mockGet, {} as any);
+      slice = createDocumentsSlice(
+        mockSet as unknown as any,
+        mockGet as unknown as any,
+        {} as any
+      );
 
       slice.addRecentFile({
         id: 'file-1',
@@ -533,7 +585,11 @@ describe('Documents Slice', () => {
         ],
       });
       mockGet.mockReturnValue(mockState);
-      slice = createDocumentsSlice(mockSet, mockGet, {} as any);
+      slice = createDocumentsSlice(
+        mockSet as unknown as any,
+        mockGet as unknown as any,
+        {} as any
+      );
 
       slice.addRecentFile({
         id: 'file-2',
@@ -555,7 +611,11 @@ describe('Documents Slice', () => {
         ],
       });
       mockGet.mockReturnValue(mockState);
-      slice = createDocumentsSlice(mockSet, mockGet, {} as any);
+      slice = createDocumentsSlice(
+        mockSet as unknown as any,
+        mockGet as unknown as any,
+        {} as any
+      );
 
       slice.addRecentFile({
         id: 'new-file',
@@ -578,7 +638,11 @@ describe('Documents Slice', () => {
         ],
       });
       mockGet.mockReturnValue(mockState);
-      slice = createDocumentsSlice(mockSet, mockGet, {} as any);
+      slice = createDocumentsSlice(
+        mockSet as unknown as any,
+        mockGet as unknown as any,
+        {} as any
+      );
 
       slice.removeRecentFile('file-1');
 
@@ -594,7 +658,11 @@ describe('Documents Slice', () => {
         ],
       });
       mockGet.mockReturnValue(mockState);
-      slice = createDocumentsSlice(mockSet, mockGet, {} as any);
+      slice = createDocumentsSlice(
+        mockSet as unknown as any,
+        mockGet as unknown as any,
+        {} as any
+      );
 
       slice.removeRecentFile('non-existent');
 

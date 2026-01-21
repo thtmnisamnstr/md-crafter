@@ -19,7 +19,8 @@ md-crafter is a modern markdown editor that combines VS Code's Monaco Editor wit
 - **Split Editor** - View multiple documents side-by-side or top-bottom
 - **Open Recent** - Quick access to recently opened files with remove functionality
 - **Grammar & Spell Check** - Advanced spell checking and grammar/style checking with textlint
-- **Smart Paste** - Automatically converts rich text (Word/Docs) to plaintext
+- **Rich Text Copy/Paste** - Copy Markdown as rich text or paste rich text as Markdown with style stripping (`Shift+Cmd+C` / `Shift+Cmd+V`)
+- **HTML Copy/Paste** - Copy Markdown as HTML or paste HTML as Markdown with style stripping (`Alt+Cmd+C` / `Alt+Cmd+V`)
 - **Word & Character Count** - Real-time word and character count in status bar (including selection counts)
 - **Export Options** - Export to PDF, HTML, Word (.docx), or Google Drive
 - **6 Themes** - Dark+, Light+, Monokai, Dracula, GitHub Dark, Nord

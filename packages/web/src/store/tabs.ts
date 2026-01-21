@@ -7,7 +7,7 @@ import { isElectron } from '../utils/platform';
 export interface TabsSlice {
   tabs: Tab[];
   activeTabId: string | null;
-  
+
   // Tab actions
   openTab: (doc: Partial<Document> & { id?: string; title: string; content: string; path?: string }) => void;
   closeTab: (tabId: string) => void;
@@ -16,8 +16,6 @@ export interface TabsSlice {
   updateTabLanguage: (tabId: string, language: string) => void;
   updateTabPath: (tabId: string, path: string) => void;
   reorderTabs: (fromIndex: number, toIndex: number) => void;
-  undoTab: (tabId: string, editor?: import('monaco-editor').editor.IStandaloneCodeEditor | null) => void;
-  redoTab: (tabId: string, editor?: import('monaco-editor').editor.IStandaloneCodeEditor | null) => void;
   setTabPreviewRatio: (tabId: string, ratio: number) => void;
   setTabSplitState: (tabId: string, options: { secondaryTabId?: string | null; ratio?: number }) => void;
   setTabCursor: (tabId: string, cursor: { line: number; column: number } | null) => void;
@@ -38,16 +36,64 @@ export interface TabsSlice {
  * @param get - Zustand state getter function
  * @returns TabsSlice with tab state and actions
  */
+const performCloseTab = (
+  tabId: string,
+  get: () => AppState,
+  set: (state: Partial<AppState>) => void
+) => {
+  const { tabs, activeTabId, diffMode, exitDiffMode } = get();
+  const tabIndex = tabs.findIndex((t) => t.id === tabId);
+  const tab = tabs[tabIndex];
+  if (!tab) return;
+
+  // Check if this tab is involved in diff mode
+  const isInDiffMode = diffMode.enabled && (
+    diffMode.leftTabId === tabId ||
+    diffMode.rightTabId === tabId ||
+    (diffMode.compareWithSaved && activeTabId === tabId)
+  );
+
+  const newTabs = tabs.filter((t) => t.id !== tabId);
+  let newActiveTabId = activeTabId;
+
+  if (activeTabId === tabId) {
+    if (newTabs.length > 0) {
+      // Select the tab to the left, or the first tab
+      const newIndex = Math.max(0, tabIndex - 1);
+      newActiveTabId = newTabs[newIndex]?.id || null;
+    } else {
+      newActiveTabId = null;
+    }
+  }
+
+  // Exit diff mode if this tab was involved
+  if (isInDiffMode) {
+    exitDiffMode();
+  }
+
+  // Stop watching file in Electron to prevent leaks
+  if (isElectron() && tab.path && window.api?.unwatchFile) {
+    window.api.unwatchFile(tab.path);
+  }
+
+  // Remove from recent files if it was never saved
+  if (!tab.path && !tab.documentId) {
+    get().removeRecentFile(tabId);
+  }
+
+  set({ tabs: newTabs, activeTabId: newActiveTabId });
+};
+
 export const createTabsSlice: StateCreator<AppState, [], [], TabsSlice> = (set, get) => ({
   tabs: [],
   activeTabId: null,
-  
+
   openTab: (doc) => {
     // Check if file is already open by documentId, id, or path
     const existingTab = get().tabs.find(
       (t) => t.documentId === doc.id || (doc.id && t.id === doc.id) || (doc.path && t.path === doc.path)
     );
-    
+
     if (existingTab) {
       set({ activeTabId: existingTab.id });
       // Still add to recent files even if tab already exists
@@ -70,7 +116,7 @@ export const createTabsSlice: StateCreator<AppState, [], [], TabsSlice> = (set, 
       }
       return;
     }
-    
+
     const tabId = generateId();
     const newTab: Tab = {
       id: tabId,
@@ -95,7 +141,7 @@ export const createTabsSlice: StateCreator<AppState, [], [], TabsSlice> = (set, 
       diffPaneRatio: undefined,
       cursor: null,
     };
-    
+
     set((state) => ({
       tabs: [...state.tabs, newTab],
       activeTabId: tabId,
@@ -104,7 +150,7 @@ export const createTabsSlice: StateCreator<AppState, [], [], TabsSlice> = (set, 
       diffMode: newTab.diffMode,
       showPreview: false,
     }));
-    
+
     // Add to recent files
     if (doc.id) {
       // Cloud document
@@ -124,7 +170,7 @@ export const createTabsSlice: StateCreator<AppState, [], [], TabsSlice> = (set, 
       });
     }
   },
-  
+
   /**
    * Closes a tab, with confirmation if there are unsaved changes
    * 
@@ -135,17 +181,9 @@ export const createTabsSlice: StateCreator<AppState, [], [], TabsSlice> = (set, 
    * @param tabId - The ID of the tab to close
    */
   closeTab: (tabId) => {
-    const { tabs, activeTabId, setConfirmation, diffMode, exitDiffMode } = get();
-    const tabIndex = tabs.findIndex((t) => t.id === tabId);
-    const tab = tabs[tabIndex];
-    
-    // Check if this tab is involved in diff mode
-    const isInDiffMode = diffMode.enabled && (
-      diffMode.leftTabId === tabId ||
-      diffMode.rightTabId === tabId ||
-      (diffMode.compareWithSaved && activeTabId === tabId)
-    );
-    
+    const { tabs, setConfirmation } = get();
+    const tab = tabs.find((t) => t.id === tabId);
+
     if (tab?.isDirty && setConfirmation) {
       // Show confirmation modal
       setConfirmation({
@@ -153,64 +191,16 @@ export const createTabsSlice: StateCreator<AppState, [], [], TabsSlice> = (set, 
         message: 'You have unsaved changes. Close anyway?',
         variant: 'warning',
         onConfirm: () => {
-          const { tabs: currentTabs, activeTabId: currentActiveTabId } = get();
-          const currentTabIndex = currentTabs.findIndex((t) => t.id === tabId);
-          const newTabs = currentTabs.filter((t) => t.id !== tabId);
-          let newActiveTabId = currentActiveTabId;
-          
-          if (currentActiveTabId === tabId) {
-            if (newTabs.length > 0) {
-              // Select the tab to the left, or the first tab
-              const newIndex = Math.max(0, currentTabIndex - 1);
-              newActiveTabId = newTabs[newIndex]?.id || null;
-            } else {
-              newActiveTabId = null;
-            }
-          }
-          
-          // Exit diff mode if this tab was involved
-          if (isInDiffMode) {
-            exitDiffMode();
-          }
-          
-          // Stop watching file in Electron to prevent leaks
-          if (isElectron() && tab.path && window.api?.unwatchFile) {
-            window.api.unwatchFile(tab.path);
-          }
-          
-          set({ tabs: newTabs, activeTabId: newActiveTabId });
+          performCloseTab(tabId, get, set);
           get().clearConfirmation();
         },
       });
       return;
     }
-    
-    const newTabs = tabs.filter((t) => t.id !== tabId);
-    let newActiveTabId = activeTabId;
-    
-    if (activeTabId === tabId) {
-      if (newTabs.length > 0) {
-        // Select the tab to the left, or the first tab
-        const newIndex = Math.max(0, tabIndex - 1);
-        newActiveTabId = newTabs[newIndex]?.id || null;
-      } else {
-        newActiveTabId = null;
-      }
-    }
-    
-    // Exit diff mode if this tab was involved
-    if (isInDiffMode) {
-      exitDiffMode();
-    }
-    
-    // Stop watching file in Electron to prevent leaks
-    if (isElectron() && tab?.path && window.api?.unwatchFile) {
-      window.api.unwatchFile(tab.path);
-    }
-    
-    set({ tabs: newTabs, activeTabId: newActiveTabId });
+
+    performCloseTab(tabId, get, set);
   },
-  
+
   setActiveTab: (tabId) => {
     set((state) => {
       const tab = state.tabs.find((t) => t.id === tabId);
@@ -222,31 +212,31 @@ export const createTabsSlice: StateCreator<AppState, [], [], TabsSlice> = (set, 
       };
     });
   },
-  
+
   updateTabContent: (tabId, content, options) => {
     set((state) => ({
       tabs: state.tabs.map((tab) =>
         tab.id === tabId
-          ? { 
-              ...tab, 
-              content, 
-              isDirty: content !== tab.savedContent,
-              undoStack: options?.skipHistory
+          ? {
+            ...tab,
+            content,
+            isDirty: content !== tab.savedContent,
+            undoStack: options?.skipHistory
+              ? tab.undoStack || []
+              : content === tab.content
                 ? tab.undoStack || []
-                : content === tab.content
-                  ? tab.undoStack || []
-                  : [...(tab.undoStack || []), tab.content].slice(-50),
-              redoStack: options?.skipHistory || content === tab.content ? tab.redoStack || [] : [],
-              // Reset cursor/selection when content changes externally (diff view, revert, etc.)
-              ...(options?.resetCursor ? { 
-                cursor: { line: 1, column: 1 }, 
-                selection: null 
-              } : {}),
-            }
+                : [...(tab.undoStack || []), tab.content].slice(-50),
+            redoStack: options?.skipHistory || content === tab.content ? tab.redoStack || [] : [],
+            // Reset cursor/selection when content changes externally (diff view, revert, etc.)
+            ...(options?.resetCursor ? {
+              cursor: { line: 1, column: 1 },
+              selection: null
+            } : {}),
+          }
           : tab
       ),
     }));
-    
+
     // Trigger auto-sync if enabled
     const { settings, isAuthenticated, syncDocument } = get();
     const tab = get().tabs.find((t) => t.id === tabId);
@@ -254,7 +244,7 @@ export const createTabsSlice: StateCreator<AppState, [], [], TabsSlice> = (set, 
       syncDocument(tabId);
     }
   },
-  
+
   updateTabLanguage: (tabId, language) => {
     set((state) => ({
       tabs: state.tabs.map((tab) =>
@@ -262,7 +252,7 @@ export const createTabsSlice: StateCreator<AppState, [], [], TabsSlice> = (set, 
       ),
     }));
   },
-  
+
   updateTabPath: (tabId, path) => {
     set((state) => ({
       tabs: state.tabs.map((tab) =>
@@ -270,7 +260,7 @@ export const createTabsSlice: StateCreator<AppState, [], [], TabsSlice> = (set, 
       ),
     }));
   },
-  
+
   reorderTabs: (fromIndex, toIndex) => {
     set((state) => {
       const newTabs = [...state.tabs];
@@ -279,7 +269,7 @@ export const createTabsSlice: StateCreator<AppState, [], [], TabsSlice> = (set, 
       return { tabs: newTabs };
     });
   },
-  
+
   setTabPreviewRatio: (tabId, ratio) => {
     set((state) => ({
       tabs: state.tabs.map((t) => t.id === tabId ? { ...t, previewPaneRatio: ratio } : t),
@@ -372,27 +362,24 @@ export const createTabsSlice: StateCreator<AppState, [], [], TabsSlice> = (set, 
   revertToSaved: (tabId) => {
     const tab = get().tabs.find((t) => t.id === tabId);
     if (!tab || !tab.hasSavedVersion || !tab.isDirty) return;
-    
+
     set((state) => ({
       tabs: state.tabs.map((t) =>
         t.id === tabId
           ? {
-              ...t,
-              content: t.savedContent,
-              isDirty: false,
-              undoStack: [],
-              redoStack: [],
-              cursor: { line: 1, column: 1 },
-              selection: null,
-            }
+            ...t,
+            content: t.savedContent,
+            isDirty: false,
+            undoStack: [],
+            redoStack: [],
+            cursor: { line: 1, column: 1 },
+            selection: null,
+          }
           : t
       ),
     }));
-    
+
     get().addToast({ type: 'info', message: 'Reverted to last saved version' });
   },
 
-  // undoTab/redoTab are no longer used for in-session undo; kept for compatibility
-  undoTab: () => {},
-  redoTab: () => {},
 });

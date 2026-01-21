@@ -48,27 +48,6 @@ npm run dev
 
 ## User Interface
 
-### Status Bar
-
-The status bar at the bottom of the editor displays:
-
-- **Connection Status** - Shows "Online" or "Offline" based on network connectivity
-- **Auth Status** - Shows "Syncing enabled" when you're signed in and cloud sync is available
-- **Sync Status** - For cloud-synced documents, shows the current sync state:
-  - **Synced** - Document is up to date with the cloud
-  - **Syncing** - Document is currently being synchronized
-  - **Pending** - Changes are queued for sync
-  - **Conflict** - A sync conflict has been detected
-- **File Information** - Language, line count, word count, character count
-- **Selection Statistics** - When text is selected, shows:
-  - Selected word count
-  - Selected character count
-  - Total word count
-  - Total character count
-- **Preview Toggle** - Toggle markdown preview (for markdown files)
-- **Unsaved Indicator** - Shows "● Unsaved" when document has unsaved changes
-
-The status bar automatically updates as you type, select text, or change documents.
 
 ### Layout
 
@@ -107,13 +86,20 @@ The status bar automatically updates as you type, select text, or change documen
 The status bar at the bottom of the editor displays:
 
 - **Sidebar toggle**: Show/hide sidebar
-- **Online/Offline**: Network status
-- **Syncing enabled**: Cloud sync status
-- **Language**: Current file type
+- **Online/Offline**: Network status based on connectivity
+- **Auth Status**: Shows "Syncing enabled" when signed in and cloud sync is available
+- **Sync Status**: For cloud-synced documents, shows the current sync state:
+  - **Synced** - Document is up to date with the cloud
+  - **Syncing** - Document is currently being synchronized
+  - **Pending** - Changes are queued for sync
+  - **Conflict** - A sync conflict has been detected
+- **Language**: Current file type/language
 - **Lines**: Line count for the document
-- **Word & Character Count**: Document statistics (see below)
-- **Preview**: Toggle markdown preview (for markdown files)
-- **Unsaved**: Indicates unsaved changes
+- **Document Statistics**: Document-wide and selection-based word/character counts (see below)
+- **Preview Toggle**: Toggle markdown preview (for markdown files)
+- **Unsaved Indicator**: Shows "● Unsaved" when document has unsaved changes
+
+The status bar automatically updates as you type, select text, or change documents.
 
 #### Word and Character Count
 
@@ -123,7 +109,6 @@ The status bar at the bottom of the editor displays:
   - Total word and character count for the entire document
 - **Real-time Updates** - Counts update automatically as you type or change selection
 - **Works in All Editor Modes** - Selection stats work in regular editor, split editor, and diff view modes
-  - In diff view, selection stats track the modified/right side editor (typically where users select text)
 - **Display Format**:
   - No selection: "X words | Y chars"
   - With selection: "X words selected | Y chars selected | A words total | B chars total"
@@ -249,6 +234,8 @@ The editor automatically handles rich text pasting:
 
 - **Regular Paste** (`Ctrl+V`) - Automatically converts rich text (from Word, Google Docs, etc.) to plaintext
 - **Word/Docs Paste** (`Ctrl+Shift+V`) - Converts rich text to markdown format, preserving formatting
+- **Copy to HTML** (`Alt+Cmd+C` / `Alt+Ctrl+C`) - Converts selected Markdown to clean HTML and copies to clipboard
+- **Paste from HTML** (`Alt+Cmd+V` / `Alt+Ctrl+V`) - Converts HTML from clipboard to Markdown, stripping non-text CSS (colors, backgrounds, classes)
 - **Plain Text** - Plain text pastes normally without conversion
 
 **Supported conversions** (when using `Ctrl+Shift+V`):
@@ -356,8 +343,10 @@ Comprehensive grammar and style checking using textlint:
 | `Ctrl+Shift+G` | Check grammar |
 | `Ctrl+C` | Copy |
 | `Ctrl+V` | Paste (converts rich text to plaintext) |
-| `Ctrl+Shift+C` | Copy for Word/Docs |
+| `Ctrl+Shift+C` | Copy to Word/Docs (Rich Text) |
 | `Ctrl+Shift+V` | Paste from Word/Docs (as markdown) |
+| `Alt+Cmd+C` | Copy to HTML |
+| `Alt+Cmd+V` | Paste from HTML (strips styles) |
 | `Ctrl+Z` | Undo |
 | `Ctrl+Shift+Z` | Redo |
 | `Ctrl+/` | Toggle comment |

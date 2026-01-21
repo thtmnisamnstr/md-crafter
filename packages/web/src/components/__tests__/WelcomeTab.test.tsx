@@ -79,7 +79,7 @@ describe('WelcomeTab', () => {
       const docLink = getByText('Documentation');
       expect(docLink.closest('a')).toHaveAttribute('href', 'https://github.com/thtmnisamnstr/md-crafter');
       expect(docLink.closest('a')).toHaveAttribute('target', '_blank');
-      
+
       const issueLink = getByText('Report Issue');
       expect(issueLink.closest('a')).toHaveAttribute('href', 'https://github.com/thtmnisamnstr/md-crafter/issues');
       expect(issueLink.closest('a')).toHaveAttribute('target', '_blank');
@@ -91,10 +91,10 @@ describe('WelcomeTab', () => {
       const { getByText } = render(<WelcomeTab />);
       const createButton = getByText('Create');
       fireEvent.click(createButton);
-      
+
       expect(mockOpenTab).toHaveBeenCalledWith({
         title: 'Untitled.md',
-        content: expect.stringContaining('# Getting Started'),
+        content: '',
         language: 'markdown',
       });
     });
@@ -103,7 +103,7 @@ describe('WelcomeTab', () => {
       const { container } = render(<WelcomeTab />);
       // Find all buttons and get the one in the Command Palette card
       const buttons = Array.from(container.querySelectorAll('button'));
-      const commandPaletteButton = buttons.find(btn => 
+      const commandPaletteButton = buttons.find(btn =>
         btn.closest('.p-4')?.textContent?.includes('Command Palette')
       );
       if (commandPaletteButton) {
@@ -141,11 +141,11 @@ describe('WelcomeTab', () => {
         writable: true,
         value: 'MacIntel',
       });
-      
+
       const { container } = render(<WelcomeTab />);
       // Check that modifier key is displayed (should be ⌘ for Mac)
       const buttons = Array.from(container.querySelectorAll('button'));
-      const commandPaletteButton = buttons.find(btn => 
+      const commandPaletteButton = buttons.find(btn =>
         btn.closest('.p-4')?.textContent?.includes('Command Palette')
       );
       expect(commandPaletteButton?.textContent).toContain('⌘');
@@ -156,10 +156,10 @@ describe('WelcomeTab', () => {
         writable: true,
         value: 'Win32',
       });
-      
+
       const { container } = render(<WelcomeTab />);
       const buttons = Array.from(container.querySelectorAll('button'));
-      const commandPaletteButton = buttons.find(btn => 
+      const commandPaletteButton = buttons.find(btn =>
         btn.closest('.p-4')?.textContent?.includes('Command Palette')
       );
       expect(commandPaletteButton?.textContent).toContain('Ctrl');
@@ -170,10 +170,10 @@ describe('WelcomeTab', () => {
         writable: true,
         value: 'Linux x86_64',
       });
-      
+
       const { container } = render(<WelcomeTab />);
       const buttons = Array.from(container.querySelectorAll('button'));
-      const commandPaletteButton = buttons.find(btn => 
+      const commandPaletteButton = buttons.find(btn =>
         btn.closest('.p-4')?.textContent?.includes('Command Palette')
       );
       expect(commandPaletteButton?.textContent).toContain('Ctrl');
@@ -184,7 +184,7 @@ describe('WelcomeTab', () => {
         writable: true,
         value: 'MacIntel',
       });
-      
+
       const { container } = render(<WelcomeTab />);
       // Check that shortcuts show ⌘ symbol
       const shortcuts = container.querySelectorAll('kbd');
@@ -206,7 +206,7 @@ describe('WelcomeTab', () => {
         'Cloud Sync',
         'MDX Support',
       ];
-      
+
       features.forEach((feature) => {
         expect(container.textContent).toContain(feature);
       });
@@ -225,7 +225,7 @@ describe('WelcomeTab', () => {
         'Settings',
         'Zen Mode',
       ];
-      
+
       shortcuts.forEach((shortcut) => {
         expect(container.textContent).toContain(shortcut);
       });
@@ -235,11 +235,11 @@ describe('WelcomeTab', () => {
       const { getByText } = render(<WelcomeTab />);
       const createButton = getByText('Create');
       fireEvent.click(createButton);
-      
+
       expect(mockOpenTab).toHaveBeenCalledWith(
         expect.objectContaining({
           title: 'Untitled.md',
-          content: expect.stringMatching(/# Getting Started[\s\S]*Start writing your markdown here![\s\S]*Happy writing!/),
+          content: '',
           language: 'markdown',
         })
       );

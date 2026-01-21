@@ -9,8 +9,13 @@ import type { TextlintResults } from '../types/textlint';
 import { logger } from '@md-crafter/shared';
 
 // Polyfill __dirname for browser environment (needed by textlint dependencies)
-if (typeof self !== 'undefined' && typeof (self as any).__dirname === 'undefined') {
-  (self as any).__dirname = '/';
+interface GlobalWithDirname {
+  __dirname?: string;
+}
+
+const workerGlobal = self as unknown as GlobalWithDirname;
+if (typeof self !== 'undefined' && typeof workerGlobal.__dirname === 'undefined') {
+  workerGlobal.__dirname = '/';
 }
 
 // Import textlint dynamically
@@ -25,12 +30,12 @@ async function initializeTextlint() {
   try {
     // Dynamic import of textlint
     // Note: textlint requires Node.js polyfills which are provided by vite-plugin-node-polyfills
-    const textlintModule = await import('textlint') as unknown as { 
+    const textlintModule = await import('textlint') as unknown as {
       TextLintEngine: new (config?: TextlintConfig | object) => {
         executeOnText(text: string, filePath: string): Promise<TextlintResults>;
       }
     };
-    
+
     // TextLintEngine is the main entry point for textlint
     // In browser environment, we need to ensure polyfills are available
     const { TextLintEngine } = textlintModule;
@@ -92,7 +97,7 @@ self.onmessage = async (event) => {
         },
       };
       // Reinitialize with merged config
-      const textlintModule = await import('textlint') as unknown as { 
+      const textlintModule = await import('textlint') as unknown as {
         TextLintEngine: new (config?: TextlintConfig | object) => {
           executeOnText(text: string, filePath: string): Promise<TextlintResults>;
         }
@@ -109,7 +114,7 @@ self.onmessage = async (event) => {
 
     // Execute linting
     const results = await textlintEngine.executeOnText(text, filePath || 'document.md');
-    
+
     // Debug logging (development only)
     if (process.env.NODE_ENV === 'development') {
       const totalIssues = results.reduce((sum, result) => sum + (result.messages?.length || 0), 0);

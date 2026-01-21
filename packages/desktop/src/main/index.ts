@@ -25,7 +25,7 @@ function createWindow(): void {
 
   // Platform-specific window options
   const isMac = process.platform === 'darwin';
-  
+
   mainWindow = new BrowserWindow({
     width: windowState.width,
     height: windowState.height,
@@ -66,7 +66,7 @@ function createWindow(): void {
   mainWindow.on('maximize', () => {
     mainWindow?.webContents.send('window:state-changed', true);
   });
-  
+
   mainWindow.on('unmaximize', () => {
     mainWindow?.webContents.send('window:state-changed', false);
   });
@@ -87,7 +87,7 @@ function createWindow(): void {
 // Create application menu that mirrors the web app's menu
 function createMenu(): void {
   const recentFiles = store.get('recentFiles') as string[];
-  
+
   const template: Electron.MenuItemConstructorOptions[] = [
     {
       label: 'File',
@@ -106,27 +106,27 @@ function createMenu(): void {
           label: 'Open Recent',
           submenu: recentFiles.length > 0
             ? [
-                ...recentFiles.map((filePath) => ({
-                  label: filePath.split('/').pop() || filePath,
-                  click: async () => {
-                    try {
-                      const content = await fs.readFile(filePath, 'utf-8');
-                      mainWindow?.webContents.send('file:opened', {
-                        path: filePath,
-                        content,
-                        name: filePath.split('/').pop() || 'Untitled',
-                      });
-                    } catch (error) {
-                      logger.error('Failed to open recent file', error);
-                    }
-                  },
-                })),
-                { type: 'separator' as const },
-                {
-                  label: 'Clear Recent',
-                  click: () => store.set('recentFiles', []),
+              ...recentFiles.map((filePath) => ({
+                label: filePath.split('/').pop() || filePath,
+                click: async () => {
+                  try {
+                    const content = await fs.readFile(filePath, 'utf-8');
+                    mainWindow?.webContents.send('file:opened', {
+                      path: filePath,
+                      content,
+                      name: filePath.split('/').pop() || 'Untitled',
+                    });
+                  } catch (error) {
+                    logger.error('Failed to open recent file', error);
+                  }
                 },
-              ]
+              })),
+              { type: 'separator' as const },
+              {
+                label: 'Clear Recent',
+                click: () => store.set('recentFiles', []),
+              },
+            ]
             : [{ label: 'No Recent Files', enabled: false }],
         },
         { type: 'separator' },
@@ -185,15 +185,25 @@ function createMenu(): void {
         { role: 'cut' },
         { role: 'copy' },
         {
-          label: 'Copy for Word/Docs',
+          label: 'Copy to Word/Docs',
           accelerator: 'CmdOrCtrl+Shift+C',
           click: () => mainWindow?.webContents.send('menu:copy-for-word'),
+        },
+        {
+          label: 'Copy to HTML',
+          accelerator: 'Alt+CmdOrCtrl+Shift+C',
+          click: () => mainWindow?.webContents.send('menu:copy-for-html'),
         },
         { role: 'paste' },
         {
           label: 'Paste from Word/Docs',
           accelerator: 'CmdOrCtrl+Shift+V',
           click: () => mainWindow?.webContents.send('menu:paste-from-word'),
+        },
+        {
+          label: 'Paste from HTML',
+          accelerator: 'Alt+CmdOrCtrl+Shift+V',
+          click: () => mainWindow?.webContents.send('menu:paste-from-html'),
         },
         { type: 'separator' },
         { role: 'selectAll' },
@@ -392,7 +402,7 @@ function createMenu(): void {
       // Insert Settings before Quit
       const quitIndex = fileMenu.submenu.findIndex(item => item.role === 'quit');
       if (quitIndex !== -1) {
-        fileMenu.submenu.splice(quitIndex, 0, 
+        fileMenu.submenu.splice(quitIndex, 0,
           { type: 'separator' },
           {
             label: 'Settings',
@@ -553,7 +563,7 @@ ipcMain.handle('dialog:select-folder', async () => {
   const result = await dialog.showOpenDialog(mainWindow!, {
     properties: ['openDirectory', 'createDirectory'],
   });
-  
+
   if (!result.canceled && result.filePaths.length > 0) {
     return result.filePaths[0];
   }

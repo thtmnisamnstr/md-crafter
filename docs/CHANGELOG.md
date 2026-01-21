@@ -5,9 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0-alpha-1] - 2025-12-17
+## [0.1.0-alpha-2] - 2026-01-20
 
-> **Note**: This is pre-release software (beta). The first stable release will be v0.1.0.
+### Added
+- **HTML Copy/Paste**: New actions to copy Markdown as HTML and paste HTML as clean Markdown.
+  - Shortcuts: `Alt+Cmd+C` (Copy) and `Alt+Cmd+V` (Paste).
+  - Automatically strips non-text CSS (colors, fonts, backgrounds) while preserving structure.
+  - Available in Edit menu and Electron system menu.
+
+### Changed
+- **New Document**: New documents are now created blank by default (removed placeholder text).
+- **Paste Behavior**: Refactored internal paste logic for better reliability and cross-browser support.
+
+## [0.1.0-alpha-1] - 2025-12-17
 
 ### Features
 
@@ -34,7 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Export to Word (.docx) with formatting preserved
 - Export to PDF with print-optimized styling
 - Export to HTML as standalone file
-- Copy for Word/Google Docs (rich text to clipboard)
+- Copy to Word/Google Docs (rich text to clipboard)
 - Paste from Word/Google Docs (rich text to Markdown)
 
 #### Google Drive Integration

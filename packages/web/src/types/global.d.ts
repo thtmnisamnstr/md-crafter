@@ -7,7 +7,7 @@ declare global {
     monaco?: typeof monaco;
     diffEditor?: monaco.editor.IDiffEditor;
     secondaryEditor?: monaco.editor.IStandaloneCodeEditor;
-    
+
     api?: {
       // File operations
       openFile?: () => Promise<string | null>;
@@ -59,6 +59,8 @@ declare global {
       onMenuSearch: (callback: () => void) => () => void;
       onMenuCopyForWord: (callback: () => void) => () => void;
       onMenuPasteFromWord: (callback: () => void) => () => void;
+      onMenuCopyForHtml: (callback: () => void) => () => void;
+      onMenuPasteFromHtml: (callback: () => void) => () => void;
       onMenuFormat: (callback: () => void) => () => void;
       onMenuGrammar: (callback: () => void) => () => void;
       onMenuDictionary: (callback: () => void) => () => void;
@@ -84,5 +86,5 @@ declare global {
   }
 }
 
-export {};
+export { };
 

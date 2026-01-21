@@ -50,7 +50,7 @@ describe('ShortcutsModal', () => {
       expect(getByText('Redo')).toBeTruthy();
       expect(getByText('Cut')).toBeTruthy();
       expect(getByText('Copy')).toBeTruthy();
-      expect(getByText('Copy for Word/Docs')).toBeTruthy();
+      expect(getByText('Copy to Word/Docs')).toBeTruthy();
       expect(getByText('Paste')).toBeTruthy();
       expect(getByText('Paste from Word/Docs')).toBeTruthy();
       expect(getByText('Find')).toBeTruthy();
@@ -142,18 +142,18 @@ describe('ShortcutsModal', () => {
   describe('Shortcuts Display', () => {
     it('should display all shortcuts with correct keys and descriptions', () => {
       const { getByText } = render(<ShortcutsModal onClose={mockOnClose} />);
-      
+
       // File shortcuts
       const newDocRow = getByText('New document').closest('div');
       expect(newDocRow?.querySelector('kbd')?.textContent).toBe('⌘ N');
-      
+
       const saveRow = getByText('Save').closest('div');
       expect(saveRow?.querySelector('kbd')?.textContent).toBe('⌘ S');
-      
+
       // Edit shortcuts
       const undoRow = getByText('Undo').closest('div');
       expect(undoRow?.querySelector('kbd')?.textContent).toBe('⌘ Z');
-      
+
       // View shortcuts
       const commandPaletteRow = getByText('Command palette').closest('div');
       expect(commandPaletteRow?.querySelector('kbd')?.textContent).toBe('⌘ ⇧ P');
@@ -161,19 +161,19 @@ describe('ShortcutsModal', () => {
 
     it('should have correct number of shortcuts per group', () => {
       const { container, getAllByText } = render(<ShortcutsModal onClose={mockOnClose} />);
-      
+
       // File group should have 7 shortcuts
       const fileHeaders = getAllByText('File');
       const fileGroup = fileHeaders[0]?.parentElement;
       const fileShortcuts = fileGroup?.querySelectorAll('.space-y-1 > div');
       expect(fileShortcuts?.length).toBe(7);
-      
+
       // Edit group should have 10 shortcuts
       const editHeaders = getAllByText('Edit');
       const editGroup = editHeaders[0]?.parentElement;
       const editShortcuts = editGroup?.querySelectorAll('.space-y-1 > div');
       expect(editShortcuts?.length).toBe(10);
-      
+
       // Markdown group should have 3 shortcuts
       const markdownHeaders = getAllByText('Markdown (in editor)');
       const markdownGroup = markdownHeaders[0]?.parentElement;

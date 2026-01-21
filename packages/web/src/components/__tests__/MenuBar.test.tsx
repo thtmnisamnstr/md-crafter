@@ -134,13 +134,14 @@ describe('MenuBar', () => {
     // Mock isElectron to return true for this test
     const { isElectron } = await import('../../utils/platform');
     vi.mocked(isElectron).mockReturnValue(true);
-    
+
     Object.assign(mockStore, {
       recentFiles: [
         {
           id: 'recent-1',
           title: 'Recent File.md',
           isCloud: false,
+          path: '/path/to/Recent File.md',
           lastOpened: Date.now(),
         },
       ],
@@ -158,7 +159,7 @@ describe('MenuBar', () => {
       fireEvent.mouseEnter(openRecent);
       expect(getByText('Recent File.md')).toBeTruthy();
     }
-    
+
     // Reset mock
     vi.mocked(isElectron).mockReturnValue(false);
   });
