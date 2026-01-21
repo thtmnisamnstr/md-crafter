@@ -79,10 +79,36 @@ export function getEditMenuItems(editorContext: EditorContext): MenuItem[] {
     },
     {
       id: 'copy-word',
-      label: 'Copy for Word/Docs',
+      label: 'Copy to Word/Docs',
       shortcut: '⌘⇧C',
       icon: <Clipboard size={14} />,
       action: copyForWordDocs,
+      disabled: !activeTab,
+    },
+    {
+      id: 'copy-html',
+      label: 'Copy to HTML',
+      shortcut: '⌥⌘⇧C',
+      icon: <Clipboard size={14} />,
+      action: async () => {
+        const editor = getActiveEditor();
+        const model = editor?.getModel();
+        // If selection, copy selection, else copy entire document
+        const selection = editor?.getSelection();
+        const text = selection && !selection.isEmpty()
+          ? model?.getValueInRange(selection)
+          : model?.getValue();
+
+        if (text) {
+          // Dynamic import to avoid circular dependency if any, or just import at top if needed.
+          // Since we are in the same package, we can import directly.
+          // But wait, the hook uses useStore, we might need to expose this via store or import service directly.
+          // EditMenu imports from '../../store' which doesn't expose clipboard service directly.
+          // Let's import the service function directly at top of file.
+          const { copyAsHtml } = await import('../../services/clipboard');
+          await copyAsHtml(text);
+        }
+      },
       disabled: !activeTab,
     },
     {
@@ -100,6 +126,27 @@ export function getEditMenuItems(editorContext: EditorContext): MenuItem[] {
       action: () => {
         const editor = getActiveEditor();
         pasteFromWordDocs(editor || undefined);
+      },
+    },
+    {
+      id: 'paste-html',
+      label: 'Paste from HTML',
+      shortcut: '⌥⌘⇧V',
+      icon: <ClipboardPaste size={14} />,
+      action: async () => {
+        const editor = getActiveEditor();
+        const { pasteFromHtml } = await import('../../services/clipboard');
+        const markdown = await pasteFromHtml();
+        if (markdown && editor) {
+          const selection = editor.getSelection();
+          if (selection) {
+            editor.executeEdits('paste-html', [{
+              range: selection,
+              text: markdown,
+              forceMoveMarkers: true
+            }]);
+          }
+        }
       },
     },
     { id: 'sep2', label: '', separator: true },
@@ -135,9 +182,9 @@ export function getEditMenuItems(editorContext: EditorContext): MenuItem[] {
       icon: <CheckSquare size={14} />,
       action: formatDocument,
       disabled: !activeTab || (
-        activeTab.language !== 'markdown' && 
-        activeTab.language !== 'mdx' && 
-        !activeTab.title.endsWith('.md') && 
+        activeTab.language !== 'markdown' &&
+        activeTab.language !== 'mdx' &&
+        !activeTab.title.endsWith('.md') &&
         !activeTab.title.endsWith('.mdx')
       ),
     },

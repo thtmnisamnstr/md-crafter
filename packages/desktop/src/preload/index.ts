@@ -67,7 +67,7 @@ const api = {
     ipcRenderer.on('menu:revert', callback);
     return () => ipcRenderer.removeAllListeners('menu:revert');
   },
-  
+
   // Menu events - Import/Export
   onMenuImportWord: (callback: () => void) => {
     ipcRenderer.on('menu:import-word', callback);
@@ -106,6 +106,14 @@ const api = {
   onMenuPasteFromWord: (callback: () => void) => {
     ipcRenderer.on('menu:paste-from-word', callback);
     return () => ipcRenderer.removeAllListeners('menu:paste-from-word');
+  },
+  onMenuCopyForHtml: (callback: () => void) => {
+    ipcRenderer.on('menu:copy-for-html', callback);
+    return () => ipcRenderer.removeAllListeners('menu:copy-for-html');
+  },
+  onMenuPasteFromHtml: (callback: () => void) => {
+    ipcRenderer.on('menu:paste-from-html', callback);
+    return () => ipcRenderer.removeAllListeners('menu:paste-from-html');
   },
   onMenuFormat: (callback: () => void) => {
     ipcRenderer.on('menu:format', callback);

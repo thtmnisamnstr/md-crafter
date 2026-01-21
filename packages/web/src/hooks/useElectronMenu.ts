@@ -22,18 +22,18 @@ type ElectronAPI = NonNullable<typeof window.api>;
  */
 export function useElectronMenu() {
   const { getActiveEditor } = useEditorContext();
-  
+
   useEffect(() => {
     if (!isElectron()) return;
-    
+
     // Get the api from the window object (exposed by preload)
     // Use explicit type annotation to ensure correct type resolution
     const api: ElectronAPI = window.api!;
-    
+
     if (!api) return;
-    
+
     const cleanups: (() => void)[] = [];
-    
+
     // File menu actions
     if (api.onMenuNewFile) {
       cleanups.push(api.onMenuNewFile(() => useStore.getState().createNewDocument()));
@@ -59,46 +59,46 @@ export function useElectronMenu() {
         if (activeTabId) useStore.getState().revertToSaved(activeTabId);
       }));
     }
-    
+
     // File opening handler for Electron
     if (api.onFileOpened) {
       cleanups.push(api.onFileOpened((data: { path: string; content: string; name: string }) => {
         const { path, content, name } = data;
         const ext = name.split('.').pop();
         const { openTab, tabs } = useStore.getState();
-        
+
         // Check if file is already open by path
         const existingTab = tabs.find(t => t.path === path);
         if (existingTab) {
           useStore.getState().setActiveTab(existingTab.id);
           return;
         }
-        
+
         openTab({
           title: name,
           content,
           language: getLanguageFromExtension(ext),
           path: path,
         });
-        
+
         // Watch file for external changes
         if (api.watchFile) {
           api.watchFile(path);
         }
       }));
     }
-    
+
     // Save As handler for Electron
     if (api.onFileSaveAsPath) {
       cleanups.push(api.onFileSaveAsPath((filePath: string | null) => {
         const { activeTabId, tabs, updateTabPath } = useStore.getState();
         const tab = tabs.find(t => t.id === activeTabId);
         if (!tab || !filePath) return;
-        
+
         // Store filePath in a const to preserve type narrowing for async callbacks
         // After the null check above, filePath is guaranteed to be string
         const savePath = filePath as string;
-        
+
         // Save file using Electron API
         if (api.writeFile) {
           api.writeFile(savePath, tab.content).then((result: { success: boolean; error?: string }) => {
@@ -106,47 +106,47 @@ export function useElectronMenu() {
               // Update tab with new path and mark as saved
               useStore.getState().updateTabContent(activeTabId, tab.content);
               updateTabPath(activeTabId, savePath);
-              
+
               // Mark as saved
-              const updatedTabs = tabs.map(t => 
-                t.id === activeTabId 
+              const updatedTabs = tabs.map(t =>
+                t.id === activeTabId
                   ? { ...t, path: savePath, isDirty: false, savedContent: t.content }
                   : t
               );
               useStore.setState({ tabs: updatedTabs });
-              
+
               // Watch the new file
               if (api.watchFile) {
                 api.watchFile(savePath);
               }
-              
-              useStore.getState().addToast({ 
-                type: 'success', 
-                message: 'File saved successfully' 
+
+              useStore.getState().addToast({
+                type: 'success',
+                message: 'File saved successfully'
               });
             } else {
-              useStore.getState().addToast({ 
-                type: 'error', 
-                message: `Failed to save: ${result.error}` 
+              useStore.getState().addToast({
+                type: 'error',
+                message: `Failed to save: ${result.error}`
               });
             }
           });
         }
       }));
     }
-    
+
     // External file change handler
     if (api.onExternalChange) {
       cleanups.push(api.onExternalChange((data: { path: string; content: string }) => {
         const { path, content } = data;
         const { tabs, activeTabId } = useStore.getState();
         const tab = tabs.find(t => t.path === path);
-        
+
         if (!tab) return;
-        
+
         // Check if file was modified externally while user was editing
         const isCurrentlyEditing = activeTabId === tab.id && tab.isDirty;
-        
+
         if (isCurrentlyEditing) {
           // Show conflict dialog
           useStore.getState().setConfirmation({
@@ -167,7 +167,7 @@ export function useElectronMenu() {
         }
       }));
     }
-    
+
     // View menu actions
     if (api.onMenuToggleSidebar) {
       cleanups.push(api.onMenuToggleSidebar(() => useStore.getState().toggleSidebar()));
@@ -222,7 +222,7 @@ export function useElectronMenu() {
     if (api.onMenuDiffExit) {
       cleanups.push(api.onMenuDiffExit(() => useStore.getState().exitDiffMode()));
     }
-    
+
     // Edit menu - Copy/Paste for Word
     if (api.onMenuCopyForWord) {
       cleanups.push(api.onMenuCopyForWord(() => useStore.getState().copyForWordDocs()));
@@ -233,7 +233,41 @@ export function useElectronMenu() {
         useStore.getState().pasteFromWordDocs(editor || undefined);
       }));
     }
-    
+
+    // Edit menu - Copy/Paste for HTML
+    if (api.onMenuCopyForHtml) {
+      cleanups.push(api.onMenuCopyForHtml(async () => {
+        const editor = getActiveEditor();
+        const model = editor?.getModel();
+        const selection = editor?.getSelection();
+        const text = selection && !selection.isEmpty()
+          ? model?.getValueInRange(selection)
+          : model?.getValue();
+
+        if (text) {
+          const { copyAsHtml } = await import('../services/clipboard');
+          await copyAsHtml(text);
+        }
+      }));
+    }
+    if (api.onMenuPasteFromHtml) {
+      cleanups.push(api.onMenuPasteFromHtml(async () => {
+        const editor = getActiveEditor();
+        const { pasteFromHtml } = await import('../services/clipboard');
+        const markdown = await pasteFromHtml();
+        if (markdown && editor) {
+          const selection = editor.getSelection();
+          if (selection) {
+            editor.executeEdits('paste-html', [{
+              range: selection,
+              text: markdown,
+              forceMoveMarkers: true
+            }]);
+          }
+        }
+      }));
+    }
+
     // Edit menu - Format and Grammar
     if (api.onMenuFormat) {
       cleanups.push(api.onMenuFormat(() => useStore.getState().formatDocument()));
@@ -249,7 +283,7 @@ export function useElectronMenu() {
     if (api.onMenuDictionary) {
       cleanups.push(api.onMenuDictionary(() => useStore.getState().setShowDictionaryModal(true)));
     }
-    
+
     // Export actions
     if (api.onMenuExportPdf) {
       cleanups.push(api.onMenuExportPdf(() => useStore.getState().setShowExportPdf(true)));
@@ -263,12 +297,12 @@ export function useElectronMenu() {
     if (api.onMenuImportWord) {
       cleanups.push(api.onMenuImportWord(() => useStore.getState().setShowImportDocx(true)));
     }
-    
+
     // Search
     if (api.onMenuSearch) {
       cleanups.push(api.onMenuSearch(() => useStore.getState().setShowSearch(true)));
     }
-    
+
     // Find & Replace
     if (api.onMenuFind) {
       cleanups.push(api.onMenuFind(() => {
@@ -284,7 +318,7 @@ export function useElectronMenu() {
         editor?.getAction('editor.action.startFindReplaceAction')?.run();
       }));
     }
-    
+
     // Help menu actions
     if (api.onMenuAbout) {
       cleanups.push(api.onMenuAbout(() => useStore.getState().setShowAbout(true)));
@@ -292,7 +326,7 @@ export function useElectronMenu() {
     if (api.onMenuShortcuts) {
       cleanups.push(api.onMenuShortcuts(() => useStore.getState().setShowShortcuts(true)));
     }
-    
+
     return () => {
       cleanups.forEach(cleanup => cleanup());
     };

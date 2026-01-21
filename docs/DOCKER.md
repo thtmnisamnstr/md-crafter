@@ -158,7 +158,7 @@ All containers include health checks:
 curl http://localhost:3001/api/health
 
 # Response
-{"status":"ok","timestamp":"2025-01-01T00:00:00.000Z","version":"0.1.0-alpha-1"}
+{"status":"ok","timestamp":"2025-01-01T00:00:00.000Z","version":"0.1.0-alpha-2"}
 ```
 
 ## Reverse Proxy (nginx)

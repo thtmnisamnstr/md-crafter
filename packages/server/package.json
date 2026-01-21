@@ -1,6 +1,6 @@
 {
   "name": "@md-crafter/server",
-  "version": "0.1.0-alpha-1",
+  "version": "0.1.0-alpha-2",
   "description": "Backend API server for md-crafter",
   "main": "./dist/index.js",
   "type": "module",

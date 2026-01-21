@@ -1,9 +1,10 @@
 import { useMemo } from 'react';
 import { useStore } from '../../store';
-import { 
-  Plus, 
-  Save, 
-  Settings, 
+import { MAX_RECENT_FILES } from '../../constants';
+import {
+  Plus,
+  Save,
+  Settings,
   Cloud,
   Eye,
   EyeOff,
@@ -11,10 +12,10 @@ import {
   LogIn,
   LogOut,
   RefreshCw,
-  Clock,
   Palette,
   Download,
   Maximize,
+  FileText,
 } from 'lucide-react';
 
 export interface Command {
@@ -201,12 +202,23 @@ export function useCommands(setShowCommandPalette: (show: boolean) => void): Com
       });
     }
 
+    // Filter recent files: strictly persistent files that are NOT currently open
+    const filteredRecentFiles = recentFiles.filter(file => {
+      const isPersistent = !!file.path || !!file.documentId;
+      const isOpen = tabs.some(t =>
+        t.id === file.id ||
+        (file.documentId && t.documentId === file.documentId) ||
+        (file.path && t.path === file.path)
+      );
+      return isPersistent && !isOpen;
+    });
+
     // Add recent files
-    recentFiles.slice(0, 5).forEach((file, index) => {
+    filteredRecentFiles.slice(0, MAX_RECENT_FILES).forEach((file, index) => {
       cmds.push({
         id: `recent-${index}`,
         label: file.title,
-        icon: <Clock size={16} />,
+        icon: file.isCloud ? <Cloud size={16} /> : <FileText size={16} />,
         action: async () => {
           if (file.documentId) {
             // Cloud document - reopen via API

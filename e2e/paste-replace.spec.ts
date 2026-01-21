@@ -1,17 +1,17 @@
 import { test, expect } from '@playwright/test';
 import { MONACO_INIT_TIMEOUT_MS } from '../packages/web/src/constants';
-import { grantClipboardPermissions } from './helpers';
+import { grantClipboardPermissions, writeClipboardWithHtml } from './helpers';
 
 const MONACO_TIMEOUT = MONACO_INIT_TIMEOUT_MS;
 
 test.describe('Paste Functionality - Replacement', () => {
-  // Skip Firefox due to clipboard permission issues
-  test.skip(({ browserName }) => browserName === 'firefox', 'Clipboard permissions not granted for firefox');
+  // Skip Firefox/Webkit due to clipboard permission issues
+  test.skip(({ browserName }) => browserName === 'firefox' || browserName === 'webkit', 'Clipboard permissions issues');
 
   test.beforeEach(async ({ page, context, browserName }) => {
     // Grant clipboard permissions
     await grantClipboardPermissions(context, browserName);
-    
+
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     // Create a document first so Monaco exists
@@ -37,7 +37,12 @@ test.describe('Paste Functionality - Replacement', () => {
     }, initialText);
     await page.waitForTimeout(200);
 
-    // Select all text
+    // Write to clipboard using shared helper
+    await writeClipboardWithHtml(page, htmlContent, pasteText);
+    await page.waitForTimeout(200);
+
+    // Select all text ensuring editor is focused right before pasting
+    await page.click('.monaco-editor');
     await page.evaluate(() => {
       const editor = (window as any).monacoEditor;
       if (editor) {
@@ -46,28 +51,15 @@ test.describe('Paste Functionality - Replacement', () => {
         editor.setSelection(fullRange);
       }
     });
-    await page.waitForTimeout(200);
+    // Short wait for selection to apply
+    await page.waitForTimeout(50);
 
-    // Mock clipboard behavior directly in the page context since we can't easily trigger the system clipboard from Playwright in all envs
-    // We will override navigator.clipboard.read to return our HTML content
-    await page.evaluate(({ html, text }) => {
-      const originalRead = navigator.clipboard.read;
-      navigator.clipboard.read = async () => {
-        const blobHtml = new Blob([html], { type: 'text/html' });
-        const blobText = new Blob([text], { type: 'text/plain' });
-        const item = new ClipboardItem({
-          'text/html': blobHtml,
-          'text/plain': blobText,
-        });
-        return [item];
-      };
-    }, { html: htmlContent, text: pasteText });
 
     // Trigger the "Paste from Word/Docs" action
     // We can trigger it via command palette or shortcut. Shortcut is easier.
     // Ctrl+Shift+V
     await page.keyboard.press('Control+Shift+V');
-    
+
     // Wait for the paste to happen (it's async)
     await page.waitForTimeout(1000);
 

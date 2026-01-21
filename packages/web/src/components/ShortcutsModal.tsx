@@ -34,7 +34,7 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: '⌘ ⇧ Z', description: 'Redo' },
       { keys: '⌘ X', description: 'Cut' },
       { keys: '⌘ C', description: 'Copy' },
-      { keys: '⌘ ⇧ C', description: 'Copy for Word/Docs' },
+      { keys: '⌘ ⇧ C', description: 'Copy to Word/Docs' },
       { keys: '⌘ V', description: 'Paste' },
       { keys: '⌘ ⇧ V', description: 'Paste from Word/Docs' },
       { keys: '⌘ F', description: 'Find' },

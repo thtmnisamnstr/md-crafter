@@ -14,7 +14,7 @@ Thank you for your interest in contributing to md-crafter! This document provide
 
 1. **Fork and clone the repository**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/md-crafter.git
+   git clone https://github.com/thtmnisamnstr/md-crafter.git
    cd md-crafter
    ```
 

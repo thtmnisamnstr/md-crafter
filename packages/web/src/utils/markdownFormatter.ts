@@ -1,3 +1,5 @@
+import { logger } from '@md-crafter/shared';
+
 /**
  * Re-indents content inside HTML/JSX tags after Prettier formatting.
  * Prettier removes indentation from content inside HTML tags, which breaks MDX.
@@ -7,31 +9,31 @@
 function reindentHtmlTagContent(content: string): string {
   const lines = content.split('\n');
   const result: string[] = [];
-  
+
   // Stack to track nested tags: each entry is { tagName, indent }
   const tagStack: { tagName: string; indent: string }[] = [];
-  
+
   // Regex patterns
   const openTagPattern = /^(\s*)<([A-Za-z][A-Za-z0-9-]*)(?:\s[^>]*)?>(?!.*<\/\2>)/;
   const closeTagPattern = /^(\s*)<\/([A-Za-z][A-Za-z0-9-]*)>/;
   const selfClosingPattern = /^(\s*)<([A-Za-z][A-Za-z0-9-]*)(?:\s[^>]*)?\/>/;
   const sameLineOpenClosePattern = /^(\s*)<([A-Za-z][A-Za-z0-9-]*)(?:\s[^>]*)?>.*<\/\2>/;
-  
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    
+
     // Check for same-line open/close (e.g., <div>content</div>) - no reindent needed
     if (sameLineOpenClosePattern.test(line)) {
       result.push(line);
       continue;
     }
-    
+
     // Check for self-closing tag - no reindent needed
     if (selfClosingPattern.test(line)) {
       result.push(line);
       continue;
     }
-    
+
     // Check for closing tag
     const closeMatch = closeTagPattern.exec(line);
     if (closeMatch) {
@@ -43,7 +45,7 @@ function reindentHtmlTagContent(content: string): string {
       result.push(line);
       continue;
     }
-    
+
     // Check for opening tag
     const openMatch = openTagPattern.exec(line);
     if (openMatch) {
@@ -53,21 +55,21 @@ function reindentHtmlTagContent(content: string): string {
       tagStack.push({ tagName, indent: tagIndent });
       continue;
     }
-    
+
     // Regular content line - apply indentation if inside a tag
     if (tagStack.length > 0) {
       const currentTag = tagStack[tagStack.length - 1];
       const requiredIndent = currentTag.indent + '  '; // One level deeper
-      
+
       // Get current line's content (strip existing leading whitespace)
       const trimmedLine = line.trimStart();
-      
+
       // Skip empty lines - keep them as-is
       if (trimmedLine === '') {
         result.push(line);
         continue;
       }
-      
+
       // Check if line already has correct or more indentation
       const currentIndent = line.substring(0, line.length - trimmedLine.length);
       if (currentIndent.length >= requiredIndent.length) {
@@ -81,7 +83,7 @@ function reindentHtmlTagContent(content: string): string {
       result.push(line);
     }
   }
-  
+
   return result.join('\n');
 }
 
@@ -102,20 +104,20 @@ export async function formatMarkdown(content: string): Promise<string> {
     // Use bundled markdown plugin (covers md and mdx)
     const markdownPluginModule = await import('prettier/plugins/markdown.js');
     const markdownPlugin = markdownPluginModule.default ?? markdownPluginModule;
-    
+
     const formatted = await prettier.format(content, {
       parser: 'markdown',
       plugins: [markdownPlugin],
       printWidth: 80,
       proseWrap: 'preserve',
     });
-    
+
     // Post-process to clean up excessive newlines
     const cleaned = cleanupExcessiveNewlines(formatted);
-    
+
     // Tighten lists (remove blank lines between single-line list items)
     const tightened = tightenLists(cleaned);
-    
+
     return tightened;
   } catch (error) {
     throw new Error(`Failed to format markdown: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -144,7 +146,7 @@ export async function formatMdx(content: string): Promise<string> {
     // Use bundled markdown plugin with mdx parser
     const markdownPluginModule = await import('prettier/plugins/markdown.js');
     const markdownPlugin = markdownPluginModule.default ?? markdownPluginModule;
-    
+
     const formatted = await prettier.format(content, {
       parser: 'mdx',
       plugins: [markdownPlugin],
@@ -153,16 +155,16 @@ export async function formatMdx(content: string): Promise<string> {
       singleQuote: true,
       embeddedLanguageFormatting: 'off',
     });
-    
+
     // Post-process to restore indentation inside HTML/JSX tags
     const reindented = reindentHtmlTagContent(formatted);
-    
+
     // Clean up excessive newlines
     const cleaned = cleanupExcessiveNewlines(reindented);
-    
+
     // Tighten lists
     const tightened = tightenLists(cleaned);
-    
+
     return tightened;
   } catch (error) {
     // If formatting fails (e.g., due to JSX syntax), return original content
@@ -181,25 +183,48 @@ export async function formatMdx(content: string): Promise<string> {
 }
 
 /**
+ * Formats HTML content using Prettier standalone.
+ * 
+ * @param content - The HTML content to format
+ * @returns A promise that resolves to the formatted HTML content
+ */
+export async function formatHtml(content: string): Promise<string> {
+  try {
+    const prettier = await import('prettier/standalone');
+    const htmlPluginModule = await import('prettier/plugins/html.js');
+    const htmlPlugin = htmlPluginModule.default ?? htmlPluginModule;
+
+    return await prettier.format(content, {
+      parser: 'html',
+      plugins: [htmlPlugin],
+      printWidth: 100,
+    });
+  } catch (error) {
+    logger.error('Failed to format HTML', error);
+    return content; // Fallback to original
+  }
+}
+
+/**
  * Clean up excessive newlines in formatted content.
  * Reduces 3+ consecutive newlines to 2 (one blank line between paragraphs).
  * Also removes empty formatting markers that may have been left behind.
  */
 function cleanupExcessiveNewlines(content: string): string {
   let result = content;
-  
+
   // Collapse 3+ consecutive newlines to 2 (preserves one blank line)
   result = result.replace(/\n{3,}/g, '\n\n');
-  
+
   // Remove lines that contain only whitespace (but keep truly blank lines)
   result = result.split('\n').map(line => {
     // If line is only whitespace, make it empty
     return line.trim() === '' ? '' : line;
   }).join('\n');
-  
+
   // After trimming, collapse excessive newlines again
   result = result.replace(/\n{3,}/g, '\n\n');
-  
+
   // Remove lines containing ONLY formatting markers at document START
   // These can appear from copy/paste artifacts but should not affect content
   result = result.replace(/^(\s*\*\*\s*\n)+/, '');
@@ -212,10 +237,10 @@ function cleanupExcessiveNewlines(content: string): string {
   result = result.replace(/(\n\s*__\s*)+$/, '');
   result = result.replace(/(\n\s*\*\s*)+$/, '');
   result = result.replace(/(\n\s*_\s*)+$/, '');
-  
+
   // Ensure file ends with single newline
   result = result.trimEnd() + '\n';
-  
+
   return result;
 }
 
@@ -251,7 +276,7 @@ export function isLikelyMdx(content: string): boolean {
   if (tagMatch) {
     const tagName = tagMatch[1].toLowerCase();
     const htmlTags = new Set([
-      'div','span','p','a','ul','ol','li','strong','em','h1','h2','h3','h4','h5','h6','table','thead','tbody','tr','th','td','code','pre','img','blockquote','hr','br','section','article'
+      'div', 'span', 'p', 'a', 'ul', 'ol', 'li', 'strong', 'em', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'code', 'pre', 'img', 'blockquote', 'hr', 'br', 'section', 'article'
     ]);
     if (!htmlTags.has(tagName)) {
       return true;

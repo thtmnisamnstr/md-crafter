@@ -1,4 +1,5 @@
 import { useStore } from '../../store';
+import { MAX_RECENT_FILES } from '../../constants';
 import { FileWithWebkitPath } from '../../types/file';
 import { isElectron } from '../../utils/platform';
 import {
@@ -72,7 +73,7 @@ export function getFileMenuItems(): MenuItem[] {
         input.onchange = async (e) => {
           const files = (e.target as HTMLInputElement).files;
           if (!files || files.length === 0) return;
-          
+
           // Process all selected files
           for (const file of Array.from(files)) {
             if (file.name.endsWith('.docx')) {
@@ -99,86 +100,97 @@ export function getFileMenuItems(): MenuItem[] {
       id: 'recent',
       label: 'Open Recent',
       icon: <Clock size={14} />,
-      submenu: recentFiles.slice(0, 5).map((file, index) => ({
-        id: `recent-${index}`,
-        label: file.title,
-        icon: file.isCloud ? <Cloud size={14} /> : <FileText size={14} />,
-        action: async () => {
-          if (file.documentId) {
-            openCloudDocument(file.documentId);
-          } else if (file.path) {
-            if (window.api?.readFile) {
-              try {
-                const result = await window.api.readFile(file.path);
-                if (result.success && result.content !== undefined) {
-                  const ext = file.title.split('.').pop();
-                  const { getLanguageFromExtension } = await import('../../utils/language');
-                  useStore.getState().openTab({
-                    title: file.title,
-                    content: result.content,
-                    language: getLanguageFromExtension(ext),
-                    path: file.path,
-                  });
-                  if (window.api?.watchFile) {
-                    window.api.watchFile(file.path);
+      submenu: recentFiles
+        .filter(file => {
+          const isPersistent = !!file.path || !!file.documentId;
+          const isOpen = tabs.some(t =>
+            t.id === file.id ||
+            (file.documentId && t.documentId === file.documentId) ||
+            (file.path && t.path === file.path)
+          );
+          return isPersistent && !isOpen;
+        })
+        .slice(0, MAX_RECENT_FILES)
+        .map((file, index) => ({
+          id: `recent-${index}`,
+          label: file.title,
+          icon: file.isCloud ? <Cloud size={14} /> : <FileText size={14} />,
+          action: async () => {
+            if (file.documentId) {
+              openCloudDocument(file.documentId);
+            } else if (file.path) {
+              if (window.api?.readFile) {
+                try {
+                  const result = await window.api.readFile(file.path);
+                  if (result.success && result.content !== undefined) {
+                    const ext = file.title.split('.').pop();
+                    const { getLanguageFromExtension } = await import('../../utils/language');
+                    useStore.getState().openTab({
+                      title: file.title,
+                      content: result.content,
+                      language: getLanguageFromExtension(ext),
+                      path: file.path,
+                    });
+                    if (window.api?.watchFile) {
+                      window.api.watchFile(file.path);
+                    }
+                  } else {
+                    removeRecentFile(file.id);
+                    useStore.getState().addToast({
+                      type: 'warning',
+                      message: `File "${file.title}" not found. Removed from recent files.`,
+                    });
                   }
-                } else {
-                  removeRecentFile(file.id);
+                } catch (error) {
                   useStore.getState().addToast({
-                    type: 'warning',
-                    message: `File "${file.title}" not found. Removed from recent files.`,
+                    type: 'error',
+                    message: `Failed to open "${file.title}"`,
                   });
                 }
-              } catch (error) {
-                useStore.getState().addToast({
-                  type: 'error',
-                  message: `Failed to open "${file.title}"`,
-                });
+              } else {
+                const tab = tabs.find(t => t.id === file.id || t.path === file.path);
+                if (tab) {
+                  setActiveTab(tab.id);
+                } else {
+                  useStore.getState().addToast({
+                    type: 'info',
+                    message: `"${file.title}" is not currently open. Please open it from File > Open.`,
+                  });
+                }
               }
             } else {
-              const tab = tabs.find(t => t.id === file.id || t.path === file.path);
+              const tab = tabs.find(t => t.id === file.id);
               if (tab) {
                 setActiveTab(tab.id);
               } else {
-                useStore.getState().addToast({
-                  type: 'info',
-                  message: `"${file.title}" is not currently open. Please open it from File > Open.`,
-                });
+                const tabByTitle = tabs.find(t => t.title === file.title);
+                if (tabByTitle) {
+                  setActiveTab(tabByTitle.id);
+                } else {
+                  useStore.getState().addToast({
+                    type: 'info',
+                    message: `"${file.title}" is not currently open. Please open it from File > Open.`,
+                  });
+                }
               }
             }
-          } else {
-            const tab = tabs.find(t => t.id === file.id);
-            if (tab) {
-              setActiveTab(tab.id);
-            } else {
-              const tabByTitle = tabs.find(t => t.title === file.title);
-              if (tabByTitle) {
-                setActiveTab(tabByTitle.id);
-              } else {
-                useStore.getState().addToast({
-                  type: 'info',
-                  message: `"${file.title}" is not currently open. Please open it from File > Open.`,
-                });
-              }
-            }
-          }
-        },
-        customElement: (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              removeRecentFile(file.id);
-            }}
-            className="ml-auto opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity p-1 rounded hover:bg-sidebar-hover"
-            title="Remove from recent files"
-            aria-label="Remove from recent files"
-          >
-            <X size={12} />
-          </button>
-        ),
-      })),
+          },
+          customElement: (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                removeRecentFile(file.id);
+              }}
+              className="ml-auto opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity p-1 rounded hover:bg-sidebar-hover"
+              title="Remove from recent files"
+              aria-label="Remove from recent files"
+            >
+              <X size={12} />
+            </button>
+          ),
+        })),
     });
-    
+
     // Add separator only if "Open Recent" was added
     menuItems.push({ id: 'sep1', label: '', separator: true });
   }
