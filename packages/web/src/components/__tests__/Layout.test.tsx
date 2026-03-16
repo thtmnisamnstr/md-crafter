@@ -3,7 +3,7 @@ import { render, cleanup, fireEvent, waitFor } from '@testing-library/react';
 import { Layout } from '../Layout';
 import { useStore } from '../../store';
 import { MockEditorContextProvider, createMockEditor, createMockMonaco } from '../../__tests__/mocks/editor-context';
-import { SIDEBAR_MIN_WIDTH, SIDEBAR_MAX_WIDTH, DEFAULT_PREVIEW_RATIO } from '../../constants';
+import { SIDEBAR_MIN_WIDTH, SIDEBAR_MAX_WIDTH } from '../../constants';
 
 // Mock the store
 vi.mock('../../store', () => ({
@@ -653,4 +653,3 @@ describe('Layout', () => {
     });
   });
 });
-

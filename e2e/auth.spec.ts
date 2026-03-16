@@ -1,167 +1,211 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
+
+const DEFAULT_TOKEN = 'test-token-auth-123';
+
+interface MockAuthApiOptions {
+  generatedToken?: string;
+  validateToken?: (token: string) => boolean;
+  cloudDocuments?: Array<{ id: string; title: string; content: string; etag: string }>;
+  failTokenGeneration?: boolean;
+}
+
+async function mockAuthApi(page: Page, options: MockAuthApiOptions = {}): Promise<void> {
+  const {
+    generatedToken = DEFAULT_TOKEN,
+    validateToken = (token) => token === generatedToken,
+    cloudDocuments = [],
+    failTokenGeneration = false,
+  } = options;
+
+  await page.route('**/api/**', async (route) => {
+    const request = route.request();
+    const method = request.method();
+    const url = new URL(request.url());
+    const path = url.pathname;
+
+    if (path === '/api/auth/token' && method === 'POST') {
+      if (failTokenGeneration) {
+        await route.fulfill({
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Failed to generate token' }),
+        });
+        return;
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          userId: 'user-auth-1',
+          apiToken: generatedToken,
+        }),
+      });
+      return;
+    }
+
+    if (path === '/api/auth/validate' && method === 'POST') {
+      const body = request.postDataJSON() as { token?: string };
+      const token = body.token ?? '';
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ valid: validateToken(token) }),
+      });
+      return;
+    }
+
+    if (path === '/api/auth/me' && method === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 'user-auth-1', email: 'user@example.com' }),
+      });
+      return;
+    }
+
+    if (path === '/api/documents' && method === 'GET') {
+      const now = new Date().toISOString();
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          documents: cloudDocuments.map((doc) => ({
+            id: doc.id,
+            title: doc.title,
+            content: doc.content,
+            language: 'markdown',
+            createdAt: now,
+            updatedAt: now,
+            etag: doc.etag,
+            isCloudSynced: true,
+          })),
+        }),
+      });
+      return;
+    }
+
+    await route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: `Unhandled API route: ${method} ${path}` }),
+    });
+  });
+}
+
+async function openAuthModalFromSidebar(page: Page): Promise<void> {
+  await expect(page.locator('.sidebar')).toBeVisible({ timeout: 5000 });
+  await page.getByRole('button', { name: 'Sign In' }).click();
+  await expect(page.getByText('Cloud Sync Setup')).toBeVisible();
+}
+
+async function openApp(page: Page): Promise<void> {
+  await page.goto('/');
+  await expect(page.locator('.sidebar')).toBeVisible({ timeout: 10000 });
+}
 
 test.describe('Authentication Flow', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+  test('shows signed-out cloud prompt and opens auth modal from sidebar', async ({ page }) => {
+    await openApp(page);
+
+    await expect(page.getByText('Sign in to sync your documents')).toBeVisible();
+    await openAuthModalFromSidebar(page);
+
+    await page.locator('.modal .modal-header button').first().click();
+    await expect(page.getByText('Cloud Sync Setup')).not.toBeVisible();
   });
 
-  test('should show cloud sync button in sidebar', async ({ page }) => {
-    // Look for the sidebar cloud sync or auth-related UI
-    const sidebar = page.locator('.sidebar');
-    await expect(sidebar).toBeVisible({ timeout: 5000 });
-    
-    // Check for auth-related button or status in sidebar
-    // The app should have some indicator for authentication status
-    const authButton = sidebar.locator('button').filter({ hasText: /cloud|sync|sign|log/i }).first();
-    
-    // If no button, check for any authentication UI element
-    const isAuthVisible = await authButton.isVisible().catch(() => false);
-    
-    // Either the button exists or there's no auth UI in sidebar (both are valid)
-    expect(typeof isAuthVisible).toBe('boolean');
+  test('opens auth modal from command palette Sign In command', async ({ page }) => {
+    await openApp(page);
+
+    await page.getByRole('button', { name: 'View', exact: true }).click();
+    await page.getByRole('button', { name: 'Command Palette' }).click();
+    await expect(page.locator('.command-palette')).toBeVisible();
+
+    const commandInput = page.locator('.command-palette input').first();
+    await commandInput.fill('sign in');
+    await page.locator('.command-palette-list').getByText('Sign In', { exact: true }).first().click();
+
+    await expect(page.getByText('Cloud Sync Setup')).toBeVisible();
   });
 
-  test('should open auth modal from command palette', async ({ page }) => {
-    // Open command palette
-    await page.keyboard.press('Control+Shift+p');
-    const commandPalette = page.locator('.command-palette, [class*="command-palette"]').first();
-    await expect(commandPalette).toBeVisible();
-    
-    // Search for auth-related command
-    const searchInput = page.locator('.command-palette input, [class*="command-palette"] input').first();
-    await searchInput.fill('cloud');
-    
-    // Wait for command list to update by checking for stable state
-    await page.waitForLoadState('domcontentloaded');
-    
-    // Check if cloud-related commands exist - may not exist in all builds
-    const cloudCommand = page.locator('[class*="command-item"]').filter({ hasText: /cloud/i }).first();
-    const hasCloudCommand = await cloudCommand.isVisible({ timeout: 1000 }).catch(() => false);
-    
-    // Close command palette
-    await page.keyboard.press('Escape');
-    
-    // This test passes - we just verify command palette works
-    expect(typeof hasCloudCommand).toBe('boolean');
-  });
-
-  test('should show auth modal with correct UI for web mode', async ({ page }) => {
-    // This test verifies the app has auth functionality
-    // The exact command palette commands may vary by build
-    
-    // Open command palette
-    await page.keyboard.press('Control+Shift+p');
-    await expect(page.locator('.command-palette, [class*="command-palette"]').first()).toBeVisible();
-    
-    // Close command palette
-    await page.keyboard.press('Escape');
-    
-    // Just verify the app is functional
-    await expect(page.locator('.sidebar')).toBeVisible({ timeout: 5000 });
-  });
-
-  test('should close auth modal when clicking X button', async ({ page }) => {
-    // This test verifies command palette can be closed with Escape
-    await page.keyboard.press('Control+Shift+p');
-    await expect(page.locator('.command-palette, [class*="command-palette"]').first()).toBeVisible();
-    
-    // Close command palette with Escape
-    await page.keyboard.press('Escape');
-    await expect(page.locator('.command-palette, [class*="command-palette"]').first()).not.toBeVisible();
-  });
-
-  test('should close auth modal when clicking overlay', async ({ page }) => {
-    // This test verifies app remains functional after opening/closing command palette
-    await page.keyboard.press('Control+Shift+p');
-    await expect(page.locator('.command-palette, [class*="command-palette"]').first()).toBeVisible();
-    
-    // Close the command palette with Escape key (more reliable cross-browser)
-    await page.keyboard.press('Escape');
-    
-    // Wait for command palette to close
-    await expect(page.locator('.command-palette, [class*="command-palette"]').first()).not.toBeVisible({ timeout: 5000 });
-    
-    // Verify app is functional
-    await expect(page.locator('.sidebar')).toBeVisible({ timeout: 5000 });
-  });
-
-  test('should show error for empty token input in web mode', async ({ page }) => {
-    // This test verifies the app handles edge cases gracefully
-    // Just verify the app is functional
-    await expect(page.locator('.sidebar')).toBeVisible({ timeout: 5000 });
-  });
-
-  test('should display authentication status in UI', async ({ page }) => {
-    // The app should show authentication status somewhere
-    // Check sidebar for any auth indicators
-    const sidebar = page.locator('.sidebar');
-    await expect(sidebar).toBeVisible({ timeout: 5000 });
-    
-    // Look for any text indicating auth status
-    const authStatusTexts = [
-      /not signed in/i,
-      /signed in/i,
-      /offline/i,
-      /connected/i,
-      /cloud/i,
+  test('generates token and signs in through Start Using Cloud Sync', async ({ page }) => {
+    const cloudDocuments = [
+      { id: 'cloud-doc-1', title: 'Cloud Notes', content: '# Cloud Notes', etag: 'etag-cloud-1' },
     ];
-    
-    let foundStatus = false;
-    for (const pattern of authStatusTexts) {
-      const statusElement = sidebar.locator(`text=${pattern.source}`).first();
-      const isVisible = await statusElement.isVisible({ timeout: 500 }).catch(() => false);
-      if (isVisible) {
-        foundStatus = true;
-        break;
-      }
-    }
-    
-    // Auth status may not be visible in all UI states
-    expect(typeof foundStatus).toBe('boolean');
+    await mockAuthApi(page, { cloudDocuments });
+
+    await openApp(page);
+    await openAuthModalFromSidebar(page);
+
+    await page.getByPlaceholder('your@email.com').fill('person@example.com');
+    await page.getByRole('button', { name: 'Generate API Token' }).click();
+
+    await expect(page.getByText('API Token generated successfully!')).toBeVisible();
+    await expect(page.getByText(DEFAULT_TOKEN)).toBeVisible();
+
+    await page.getByRole('button', { name: 'Start Using Cloud Sync' }).click();
+
+    await expect(page.getByRole('button', { name: /sign out/i })).toBeVisible();
+    await expect(page.locator('div[role="status"]')).toContainText('Syncing enabled');
+    await expect(page.getByText('Cloud Notes')).toBeVisible();
+  });
+
+  test('shows deterministic error when token generation fails', async ({ page }) => {
+    await mockAuthApi(page, { failTokenGeneration: true });
+
+    await openApp(page);
+    await openAuthModalFromSidebar(page);
+
+    await page.getByRole('button', { name: 'Generate API Token' }).click();
+    await expect(page.locator('.modal').getByText('Failed to generate token')).toBeVisible();
   });
 });
 
 test.describe('Token Management', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-  });
+  test('persists authenticated state across page reload', async ({ page }) => {
+    const cloudDocuments = [
+      { id: 'cloud-doc-1', title: 'Reload Doc', content: 'Persist me', etag: 'etag-reload-1' },
+    ];
+    let validateCalls = 0;
 
-  test('should persist login state across page reloads', async ({ page }) => {
-    // This is a placeholder test - actual implementation would require a test server
-    // For now, we just verify the app loads correctly and localStorage is accessible
-    
-    const hasLocalStorage = await page.evaluate(() => {
-      try {
-        localStorage.setItem('test-key', 'test-value');
-        const value = localStorage.getItem('test-key');
-        localStorage.removeItem('test-key');
-        return value === 'test-value';
-      } catch {
-        return false;
-      }
+    await mockAuthApi(page, {
+      cloudDocuments,
+      validateToken: (token) => {
+        validateCalls += 1;
+        return token === DEFAULT_TOKEN;
+      },
     });
-    
-    expect(hasLocalStorage).toBe(true);
+
+    await openApp(page);
+    await openAuthModalFromSidebar(page);
+
+    await page.getByRole('button', { name: 'Generate API Token' }).click();
+    await page.getByRole('button', { name: 'Start Using Cloud Sync' }).click();
+    await expect(page.getByRole('button', { name: /sign out/i })).toBeVisible();
+
+    await page.reload();
+    await expect(page.locator('.sidebar')).toBeVisible({ timeout: 10000 });
+
+    await expect(page.getByRole('button', { name: /sign out/i })).toBeVisible();
+    await expect(page.getByText('Reload Doc')).toBeVisible();
+    expect(validateCalls).toBeGreaterThanOrEqual(2);
   });
 
-  test('should clear token on logout', async ({ page }) => {
-    // This test would require a mock server to fully test
-    // For now, verify the app handles the logout flow correctly
-    
-    // Check if there's a logout option in any menu
-    await page.getByRole('button', { name: 'File', exact: true }).click();
-    
-    // Look for sign out option (may not exist if not signed in)
-    const signOutOption = page.getByText(/sign out|log out|disconnect/i);
-    const hasSignOut = await signOutOption.isVisible({ timeout: 1000 }).catch(() => false);
-    
-    // If sign out exists, the logout flow is available
-    // Close menu
-    await page.keyboard.press('Escape');
-    
-    expect(typeof hasSignOut).toBe('boolean');
+  test('clears authenticated UI state on logout', async ({ page }) => {
+    await mockAuthApi(page);
+
+    await openApp(page);
+    await openAuthModalFromSidebar(page);
+
+    await page.getByRole('button', { name: 'Generate API Token' }).click();
+    await page.getByRole('button', { name: 'Start Using Cloud Sync' }).click();
+    await expect(page.getByRole('button', { name: /sign out/i })).toBeVisible();
+
+    await page.getByRole('button', { name: /sign out/i }).click();
+
+    await expect(page.getByRole('button', { name: 'Sign In' })).toBeVisible();
+    await expect(page.locator('div[role="status"]')).not.toContainText('Syncing enabled');
   });
 });
-

@@ -21,6 +21,22 @@
     "@typescript-eslint/explicit-function-return-type": "off",
     "@typescript-eslint/no-explicit-any": "warn"
   },
-  "ignorePatterns": ["dist", "node_modules", "*.js", "**/__tests__/**", "**/__mocks__/**", "**/*.test.ts", "**/*.test.tsx"]
+  "overrides": [
+    {
+      "files": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/__tests__/**/*.ts",
+        "**/__tests__/**/*.tsx",
+        "**/__mocks__/**/*.ts",
+        "**/__mocks__/**/*.tsx",
+        "**/setup.ts",
+        "**/setup.tsx"
+      ],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "off"
+      }
+    }
+  ],
+  "ignorePatterns": ["dist", "node_modules", "*.js"]
 }
-

@@ -1,6 +1,6 @@
 {
   "name": "md-crafter",
-  "version": "0.1.0-alpha-2",
+  "version": "0.1.0-alpha-3",
   "description": "Cloud-synced markdown and MDX editor",
   "homepage": "https://github.com/thtmnisamnstr/md-crafter",
   "author": {
@@ -20,6 +20,10 @@
     "build:shared": "npm run build -w @md-crafter/shared",
     "build:server": "npm run build -w @md-crafter/server",
     "build:web": "npm run build -w @md-crafter/web",
+    "typecheck": "npm run typecheck:shared && npm run typecheck:server && npm run typecheck:web",
+    "typecheck:shared": "npm run typecheck -w @md-crafter/shared",
+    "typecheck:server": "npm run typecheck -w @md-crafter/server",
+    "typecheck:web": "npm run typecheck -w @md-crafter/web",
     "build:desktop": "npm run build && npm run build -w @md-crafter/desktop",
     "build:all": "npm run build && npm run build -w @md-crafter/desktop",
     "package:desktop": "npm run build:desktop && npm run package -w @md-crafter/desktop",
@@ -32,12 +36,12 @@
     "clean:dist": "rimraf packages/*/dist",
     "verify-builds": "bash scripts/verify-builds.sh",
     "pre-push": "bash scripts/pre-push-check.sh",
-    "test": "vitest run",
+    "test": "npm run test:shared && npm run test:server && npm run test:web",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:shared": "vitest run packages/shared",
     "test:server": "vitest run packages/server",
-    "test:web": "vitest run packages/web",
+    "test:web": "vitest run --config vitest.config.ts --root packages/web",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:desktop": "npm run build:desktop && bash scripts/test-desktop-build.sh"

@@ -4,7 +4,6 @@ import {
   isGoogleSignedIn,
   signOutFromGoogle,
 } from '../google';
-import { logger } from '@md-crafter/shared';
 
 // Mock logger
 vi.mock('@md-crafter/shared', () => ({
@@ -19,7 +18,7 @@ const mockGoogle = {
   accounts: {
     oauth2: {
       initTokenClient: vi.fn(),
-      revoke: vi.fn((token: string, callback: () => void) => {
+      revoke: vi.fn((_token: string, callback: () => void) => {
         callback();
       }),
     },
@@ -46,21 +45,13 @@ const mockGoogle = {
 };
 
 const mockGapi = {
-  load: vi.fn((api: string, callback: () => void) => {
+  load: vi.fn((_api: string, callback: () => void) => {
     callback();
   }),
   client: {
     init: vi.fn().mockResolvedValue(undefined),
   },
 };
-
-// Mock window.google and window.gapi
-declare global {
-  interface Window {
-    google?: typeof mockGoogle;
-    gapi?: typeof mockGapi;
-  }
-}
 
 describe('google', () => {
   beforeEach(() => {
@@ -144,4 +135,3 @@ describe('google', () => {
   // focus on verifying the functions exist and basic error handling.
   // Full integration testing would require loading actual Google APIs.
 });
-

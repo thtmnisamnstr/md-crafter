@@ -44,12 +44,14 @@ export const createDocumentsSlice: StateCreator<AppState, [], [], DocumentsSlice
       const newTab: Tab = {
         id: tabId,
         documentId: null,
-        title: 'Untitled.md',
+        title: 'Untitled',
+        customTitle: 'Untitled',
         content: '',
         language: 'markdown',
         isDirty: false,
         syncStatus: 'local',
         isCloudSynced: false,
+        etag: null,
         savedContent: '',
         hasSavedVersion: false,
         showPreview: false,
@@ -147,6 +149,7 @@ export const createDocumentsSlice: StateCreator<AppState, [], [], DocumentsSlice
             title: tab.title,
             content: tab.content,
             language: tab.language,
+            etag: tab.etag ?? undefined,
           });
         } else {
           // Create new document
@@ -166,8 +169,10 @@ export const createDocumentsSlice: StateCreator<AppState, [], [], DocumentsSlice
                 isDirty: false,
                 syncStatus: 'synced',
                 isCloudSynced: true,
+                etag: doc.etag,
                 savedContent: tab.content,
                 hasSavedVersion: true,
+                customTitle: undefined,
               }
               : t
           ),
@@ -181,6 +186,13 @@ export const createDocumentsSlice: StateCreator<AppState, [], [], DocumentsSlice
             t.id === tabId ? { ...t, syncStatus: 'pending' } : t
           ),
         }));
+        if (error instanceof Error && /modified|conflict/i.test(error.message)) {
+          set((state) => ({
+            tabs: state.tabs.map((t) =>
+              t.id === tabId ? { ...t, syncStatus: 'conflict' } : t
+            ),
+          }));
+        }
         get().addToast({ type: 'error', message: 'Failed to save to cloud' });
       }
     },
@@ -210,6 +222,29 @@ export const createDocumentsSlice: StateCreator<AppState, [], [], DocumentsSlice
       const existingTab = get().tabs.find((t) => t.documentId === documentId);
       if (existingTab) {
         set({ activeTabId: existingTab.id });
+        if (!existingTab.isDirty) {
+          try {
+            const doc = await api.getDocument(documentId);
+            set((state) => ({
+              tabs: state.tabs.map((t) =>
+                t.id === existingTab.id
+                  ? {
+                    ...t,
+                    title: doc.title,
+                    language: doc.language,
+                    content: doc.content,
+                    savedContent: doc.content,
+                    isDirty: false,
+                    syncStatus: 'synced',
+                    etag: doc.etag,
+                  }
+                  : t
+              ),
+            }));
+          } catch (error) {
+            logger.warn('Failed to refresh open cloud tab', { documentId, error });
+          }
+        }
         // Add to recent files
         get().addRecentFile({
           id: documentId,
@@ -227,6 +262,7 @@ export const createDocumentsSlice: StateCreator<AppState, [], [], DocumentsSlice
           title: doc.title,
           content: doc.content,
           language: doc.language,
+          etag: doc.etag,
         });
 
         // Subscribe to updates

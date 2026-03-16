@@ -47,6 +47,7 @@ export interface EditorContextValue {
   
   // Helper to get active editor (primary or secondary based on focus)
   getActiveEditor: () => EditorInstance | null;
+  executeEditorCommand: (command: 'undo' | 'redo') => boolean;
 
   // Monaco model management (per-tab models for undo/redo persistence)
   getOrCreateModel: (tab: Tab, monacoInstance?: MonacoInstance | null) => monaco.editor.ITextModel | null;

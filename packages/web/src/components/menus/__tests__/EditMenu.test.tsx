@@ -23,10 +23,11 @@ describe('EditMenu', () => {
 
   const mockEditorContext = {
     getActiveEditor: vi.fn(() => ({
-      getAction: vi.fn((action: string) => ({
+      getAction: vi.fn((_action: string) => ({
         run: vi.fn(),
       })),
     })) as any,
+    executeEditorCommand: vi.fn(() => true),
     primaryMonaco: {} as any,
     grammarService: {} as any,
   } as any;
@@ -151,6 +152,20 @@ describe('EditMenu', () => {
   });
 
   describe('Actions', () => {
+    it('should route Undo action through executeEditorCommand', () => {
+      const items = getEditMenuItems(mockEditorContext);
+      const undoItem = items.find(item => item.id === 'undo');
+      undoItem?.action?.();
+      expect(mockEditorContext.executeEditorCommand).toHaveBeenCalledWith('undo');
+    });
+
+    it('should route Redo action through executeEditorCommand', () => {
+      const items = getEditMenuItems(mockEditorContext);
+      const redoItem = items.find(item => item.id === 'redo');
+      redoItem?.action?.();
+      expect(mockEditorContext.executeEditorCommand).toHaveBeenCalledWith('redo');
+    });
+
     it('should call copyForWordDocs when Copy to Word/Docs action is executed', () => {
       const items = getEditMenuItems(mockEditorContext);
       const copyWordItem = items.find(item => item.id === 'copy-word');
@@ -173,4 +188,3 @@ describe('EditMenu', () => {
     });
   });
 });
-

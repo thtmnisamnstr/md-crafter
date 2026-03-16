@@ -74,7 +74,6 @@ vi.mock('../../utils/monacoThemes', () => ({
 // Now import after all mocks are set up
 import { render, cleanup } from '@testing-library/react';
 import { Editor } from '../Editor';
-import { useStore } from '../../store';
 import { MockEditorContextProvider, createMockEditor, createMockMonaco } from '../../__tests__/mocks/editor-context';
 import { EditorContext } from '../../contexts/EditorContext';
 
@@ -159,8 +158,6 @@ describe('Editor', () => {
   });
 
   it('should register editor with context on mount', async () => {
-    const mockEditor = createMockEditor();
-    const mockMonaco = createMockMonaco();
     const mockRegisterPrimaryEditor = vi.fn();
     const mockRegisterSecondaryEditor = vi.fn();
     
@@ -186,6 +183,7 @@ describe('Editor', () => {
         unregisterGrammarService: vi.fn(),
         unregisterSpellcheckService: vi.fn(),
         getActiveEditor: () => null,
+        executeEditorCommand: vi.fn(() => true),
         getOrCreateModel: vi.fn(() => ({
           isDisposed: () => false,
           getValue: () => 'Hello world',
@@ -196,7 +194,7 @@ describe('Editor', () => {
         hydrateModelHistory: vi.fn(),
       };
       
-      return <EditorContext.Provider value={contextValue}>{children}</EditorContext.Provider>;
+      return <EditorContext.Provider value={contextValue as any}>{children}</EditorContext.Provider>;
     };
     
     const { container } = render(
@@ -241,6 +239,7 @@ describe('Editor', () => {
         unregisterGrammarService: vi.fn(),
         unregisterSpellcheckService: vi.fn(),
         getActiveEditor: () => null,
+        executeEditorCommand: vi.fn(() => true),
         getOrCreateModel: vi.fn(() => ({
           isDisposed: () => false,
           getValue: () => 'Hello world',
@@ -251,7 +250,7 @@ describe('Editor', () => {
         hydrateModelHistory: vi.fn(),
       };
       
-      return <EditorContext.Provider value={contextValue}>{children}</EditorContext.Provider>;
+      return <EditorContext.Provider value={contextValue as any}>{children}</EditorContext.Provider>;
     };
     
     const { container } = render(
@@ -346,6 +345,7 @@ describe('Editor', () => {
           unregisterGrammarService: vi.fn(),
           unregisterSpellcheckService: vi.fn(),
           getActiveEditor: () => null,
+        executeEditorCommand: vi.fn(() => true),
           getOrCreateModel: vi.fn(() => ({
             isDisposed: () => false,
             getValue: () => 'Hello world',
@@ -355,7 +355,7 @@ describe('Editor', () => {
           disposeModel: vi.fn(),
           hydrateModelHistory: vi.fn(),
         };
-        return <EditorContext.Provider value={contextValue}>{children}</EditorContext.Provider>;
+        return <EditorContext.Provider value={contextValue as any}>{children}</EditorContext.Provider>;
       };
       
       render(
@@ -408,6 +408,7 @@ describe('Editor', () => {
           unregisterGrammarService: vi.fn(),
           unregisterSpellcheckService: vi.fn(),
           getActiveEditor: () => null,
+        executeEditorCommand: vi.fn(() => true),
           getOrCreateModel: vi.fn(() => ({
             isDisposed: () => false,
             getValue: () => 'Hello world',
@@ -417,7 +418,7 @@ describe('Editor', () => {
           disposeModel: vi.fn(),
           hydrateModelHistory: vi.fn(),
         };
-        return <EditorContext.Provider value={contextValue}>{children}</EditorContext.Provider>;
+        return <EditorContext.Provider value={contextValue as any}>{children}</EditorContext.Provider>;
       };
       
       const { container } = render(
@@ -468,6 +469,7 @@ describe('Editor', () => {
           unregisterGrammarService: vi.fn(),
           unregisterSpellcheckService: vi.fn(),
           getActiveEditor: () => null,
+        executeEditorCommand: vi.fn(() => true),
           getOrCreateModel: vi.fn(() => ({
             isDisposed: () => false,
             getValue: () => 'Hello world',
@@ -477,7 +479,7 @@ describe('Editor', () => {
           disposeModel: vi.fn(),
           hydrateModelHistory: vi.fn(),
         };
-        return <EditorContext.Provider value={contextValue}>{children}</EditorContext.Provider>;
+        return <EditorContext.Provider value={contextValue as any}>{children}</EditorContext.Provider>;
       };
       
       const { unmount } = render(
@@ -544,11 +546,12 @@ describe('Editor', () => {
           unregisterGrammarService: vi.fn(),
           unregisterSpellcheckService: vi.fn(),
           getActiveEditor: () => null,
+        executeEditorCommand: vi.fn(() => true),
           getOrCreateModel: vi.fn(() => createMockModel()),
           disposeModel: vi.fn(),
           hydrateModelHistory: vi.fn(),
         };
-        return <EditorContext.Provider value={contextValue}>{children}</EditorContext.Provider>;
+        return <EditorContext.Provider value={contextValue as any}>{children}</EditorContext.Provider>;
       };
       
       const { container } = render(
@@ -604,11 +607,12 @@ describe('Editor', () => {
           unregisterGrammarService: vi.fn(),
           unregisterSpellcheckService: vi.fn(),
           getActiveEditor: () => null,
+        executeEditorCommand: vi.fn(() => true),
           getOrCreateModel: vi.fn(() => createMockModel()),
           disposeModel: vi.fn(),
           hydrateModelHistory: vi.fn(),
         };
-        return <EditorContext.Provider value={contextValue}>{children}</EditorContext.Provider>;
+        return <EditorContext.Provider value={contextValue as any}>{children}</EditorContext.Provider>;
       };
       
       const { container } = render(
@@ -684,11 +688,12 @@ describe('Editor', () => {
           unregisterGrammarService: vi.fn(),
           unregisterSpellcheckService: vi.fn(),
           getActiveEditor: () => null,
+        executeEditorCommand: vi.fn(() => true),
           getOrCreateModel: vi.fn(() => createMockModelForUndo()),
           disposeModel: vi.fn(),
           hydrateModelHistory: vi.fn(),
         };
-        return <EditorContext.Provider value={contextValue}>{children}</EditorContext.Provider>;
+        return <EditorContext.Provider value={contextValue as any}>{children}</EditorContext.Provider>;
       };
       
       const { container } = render(
@@ -708,4 +713,3 @@ describe('Editor', () => {
     });
   });
 });
-

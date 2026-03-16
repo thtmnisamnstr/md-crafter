@@ -143,8 +143,7 @@ describe('CommandPalette', () => {
 
   describe('Keyboard Navigation', () => {
     it('should navigate down with ArrowDown', () => {
-      const { getByPlaceholderText, container } = render(<CommandPalette />);
-      const input = getByPlaceholderText(/Type a command/) as HTMLInputElement;
+      const { container } = render(<CommandPalette />);
       
       fireEvent.keyDown(window, { key: 'ArrowDown' });
       
@@ -200,7 +199,7 @@ describe('CommandPalette', () => {
     });
 
     it('should not navigate below last item', () => {
-      const { getByPlaceholderText, container } = render(<CommandPalette />);
+      const { container } = render(<CommandPalette />);
       
       // Navigate down many times
       for (let i = 0; i < 100; i++) {
@@ -213,7 +212,7 @@ describe('CommandPalette', () => {
     });
 
     it('should not navigate above first item', () => {
-      const { getByPlaceholderText, container } = render(<CommandPalette />);
+      const { container } = render(<CommandPalette />);
       
       // Navigate down then up many times
       fireEvent.keyDown(window, { key: 'ArrowDown' });
@@ -411,7 +410,7 @@ describe('CommandPalette', () => {
     });
 
     it('should show all themes in themes mode', () => {
-      const { getByText, getByPlaceholderText } = render(<CommandPalette />);
+      const { getByText } = render(<CommandPalette />);
       
       // Switch to themes mode
       const changeThemeItem = getByText('Change Color Theme').closest('.command-palette-item');
@@ -445,7 +444,7 @@ describe('CommandPalette', () => {
     });
 
     it('should apply theme on selection', () => {
-      const { getByText, getByPlaceholderText } = render(<CommandPalette />);
+      const { getByText } = render(<CommandPalette />);
       
       // Switch to themes mode
       const changeThemeItem = getByText('Change Color Theme').closest('.command-palette-item');
@@ -469,7 +468,7 @@ describe('CommandPalette', () => {
         theme: THEMES[0].id,
       });
       
-      const { getByText, getByPlaceholderText } = render(<CommandPalette />);
+      const { getByText } = render(<CommandPalette />);
       
       // Switch to themes mode
       const changeThemeItem = getByText('Change Color Theme').closest('.command-palette-item');
@@ -569,7 +568,7 @@ describe('CommandPalette', () => {
         ],
       });
       
-      const { getByText, container } = render(<CommandPalette />);
+      const { getByText } = render(<CommandPalette />);
       
       const recentFileItem = getByText('file1.md').closest('.command-palette-item');
       if (recentFileItem) {
@@ -620,4 +619,3 @@ describe('CommandPalette', () => {
     });
   });
 });
-

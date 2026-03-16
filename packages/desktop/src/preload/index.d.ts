@@ -32,9 +32,10 @@ declare global {
       onMenuTogglePreview: (callback: () => void) => () => void;
       onMenuCommandPalette: (callback: () => void) => () => void;
       onMenuSettings: (callback: () => void) => () => void;
+      onMenuUndo: (callback: () => void) => () => void;
+      onMenuRedo: (callback: () => void) => () => void;
       onMenuFind: (callback: () => void) => () => void;
       onMenuReplace: (callback: () => void) => () => void;
     };
   }
 }
-

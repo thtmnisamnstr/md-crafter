@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useResize } from '../useResize';
-import { createRef } from 'react';
+import type { MutableRefObject } from 'react';
+
+const createContainerRef = (): MutableRefObject<HTMLDivElement | null> => ({
+  current: null,
+});
 
 describe('useResize', () => {
   beforeEach(() => {
@@ -187,7 +191,7 @@ describe('useResize', () => {
 
   describe('Ratio mode', () => {
     it('should handle horizontal ratio resize', () => {
-      const containerRef = createRef<HTMLDivElement>();
+      const containerRef = createContainerRef();
       const container = document.createElement('div');
       container.style.width = '1000px';
       container.style.height = '500px';
@@ -240,7 +244,7 @@ describe('useResize', () => {
     });
 
     it('should handle vertical ratio resize', () => {
-      const containerRef = createRef<HTMLDivElement>();
+      const containerRef = createContainerRef();
       const container = document.createElement('div');
       container.style.width = '1000px';
       container.style.height = '500px';
@@ -293,7 +297,7 @@ describe('useResize', () => {
     });
 
     it('should respect min constraint in ratio mode', () => {
-      const containerRef = createRef<HTMLDivElement>();
+      const containerRef = createContainerRef();
       const container = document.createElement('div');
       container.style.width = '1000px';
       container.style.height = '500px';
@@ -346,7 +350,7 @@ describe('useResize', () => {
     });
 
     it('should respect max constraint in ratio mode', () => {
-      const containerRef = createRef<HTMLDivElement>();
+      const containerRef = createContainerRef();
       const container = document.createElement('div');
       container.style.width = '1000px';
       container.style.height = '500px';
@@ -458,7 +462,7 @@ describe('useResize', () => {
     });
 
     it('should not resize if container ref is null in ratio mode', () => {
-      const containerRef = createRef<HTMLDivElement>();
+      const containerRef = createContainerRef();
       const onResize = vi.fn();
       const { result } = renderHook(() =>
         useResize({
@@ -484,4 +488,3 @@ describe('useResize', () => {
     });
   });
 });
-

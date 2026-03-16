@@ -29,7 +29,7 @@ describe('Settings Slice', () => {
     mockState = createMockState();
     mockSet = vi.fn();
     mockGet = vi.fn(() => mockState);
-    slice = createSettingsSlice(mockSet, mockGet, {} as any);
+    slice = createSettingsSlice(mockSet as any, mockGet as any, {} as any);
   });
 
   describe('Initial State', () => {

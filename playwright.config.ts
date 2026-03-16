@@ -51,7 +51,7 @@ export default defineConfig({
   /* Run your local dev server before starting the tests */
   /* Always use dev server to ensure window.monacoEditor is available for E2E tests */
   webServer: {
-    command: 'npm run dev:web',
+    command: 'VITE_DISABLE_SYNC_WS=1 npm run dev:web',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 120000,

@@ -259,7 +259,7 @@ describe('Store - checkGrammar', () => {
     // Clear any existing toasts first
     store.toasts.forEach(toast => store.removeToast(toast.id));
     
-    // Create a test tab first - createNewDocument creates 'Untitled.md' which is a markdown file
+    // Create a test tab first - createNewDocument creates 'Untitled' which defaults to markdown
     store.createNewDocument();
     const tabs = store.tabs;
     const testTab = tabs[0];
@@ -276,7 +276,7 @@ describe('Store - checkGrammar', () => {
     const activeTabBefore = store.tabs.find(t => t.id === store.activeTabId);
     expect(activeTabBefore).toBeDefined();
     expect(activeTabBefore?.language).toBe('markdown');
-    expect(activeTabBefore?.title).toMatch(/\.md$/);
+    expect(activeTabBefore?.title).toBe('Untitled');
     
     // Call checkGrammar without editor - should show error because editor is not available
     await store.checkGrammar();
@@ -293,4 +293,3 @@ describe('Store - checkGrammar', () => {
     expect(lastToast?.message).toBe('Editor not available');
   });
 });
-

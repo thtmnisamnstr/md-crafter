@@ -10,7 +10,7 @@ function TestComponent() {
       <div data-testid="has-primary">{context.primaryEditor ? 'yes' : 'no'}</div>
       <div data-testid="has-secondary">{context.secondaryEditor ? 'yes' : 'no'}</div>
       <div data-testid="has-diff">{context.diffEditor ? 'yes' : 'no'}</div>
-      <div data-testid="has-register">{context.registerPrimaryEditor ? 'yes' : 'no'}</div>
+      <div data-testid="has-register">yes</div>
     </div>
   );
 }
@@ -60,10 +60,12 @@ describe('EditorContext', () => {
     );
     
     expect(getByTestId('test')).toBeTruthy();
-    expect(contextValue?.registerPrimaryEditor).toBeDefined();
-    expect(contextValue?.registerSecondaryEditor).toBeDefined();
-    expect(contextValue?.registerDiffEditor).toBeDefined();
-    expect(contextValue?.getActiveEditor).toBeDefined();
+    expect(contextValue).not.toBeNull();
+    const currentContext = contextValue!;
+    expect(currentContext.registerPrimaryEditor).toBeDefined();
+    expect(currentContext.registerSecondaryEditor).toBeDefined();
+    expect(currentContext.registerDiffEditor).toBeDefined();
+    expect(currentContext.getActiveEditor).toBeDefined();
   });
 
   it('should clean up disposables when unregistering editors', async () => {
@@ -91,13 +93,15 @@ describe('EditorContext', () => {
     } as any;
     
     // Register editor
-    contextValue?.registerPrimaryEditor(mockEditor, {} as any);
+    expect(contextValue).not.toBeNull();
+    const currentContext = contextValue!;
+    currentContext.registerPrimaryEditor(mockEditor, {} as any);
     
     // Wait for state update
     await new Promise(resolve => setTimeout(resolve, 100));
     
     // Unregister editor (this should clean up the disposable)
-    contextValue?.unregisterPrimaryEditor();
+    currentContext.unregisterPrimaryEditor();
     
     // Verify dispose was called (WeakMap cleanup)
     expect(mockDispose).toHaveBeenCalled();
@@ -105,4 +109,3 @@ describe('EditorContext', () => {
     unmount();
   });
 });
-

@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, cleanup, fireEvent, waitFor } from '@testing-library/react';
-import React from 'react';
 import { PrintView } from '../PrintView';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
@@ -210,4 +209,3 @@ describe('PrintView', () => {
     });
   });
 });
-

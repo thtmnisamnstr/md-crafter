@@ -197,8 +197,7 @@ describe('SearchModal', () => {
     });
 
     it('should cycle filters with Tab key', () => {
-      const { getByPlaceholderText, getByText } = render(<SearchModal onClose={mockOnClose} />);
-      const input = getByPlaceholderText('Search in all documents...') as HTMLInputElement;
+      const { getByText } = render(<SearchModal onClose={mockOnClose} />);
       
       // Start with "All" selected
       expect(getByText('All').className).toContain('bg-editor-accent');
@@ -288,7 +287,7 @@ describe('SearchModal', () => {
 
   describe('Result Selection', () => {
     it('should open tab when tab result is clicked', async () => {
-      const { getByPlaceholderText, getByText, container } = render(<SearchModal onClose={mockOnClose} />);
+      const { getByPlaceholderText, getByText } = render(<SearchModal onClose={mockOnClose} />);
       const input = getByPlaceholderText('Search in all documents...') as HTMLInputElement;
       
       fireEvent.change(input, { target: { value: 'Hello' } });
@@ -378,4 +377,3 @@ describe('SearchModal', () => {
     });
   });
 });
-

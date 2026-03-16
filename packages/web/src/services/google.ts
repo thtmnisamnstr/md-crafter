@@ -273,11 +273,3 @@ export function isGoogleConfigured(): boolean {
   return Boolean(GOOGLE_CLIENT_ID);
 }
 
-// Type declarations for Google APIs
-declare global {
-  interface Window {
-    gapi: typeof gapi;
-    google: typeof google;
-  }
-}
-

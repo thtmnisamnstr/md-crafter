@@ -156,8 +156,6 @@ describe('docx', () => {
         parentNode: document.body,
       };
       const originalCreateElement = document.createElement;
-      const originalAppendChild = document.body.appendChild.bind(document.body);
-      const originalRemoveChild = document.body.removeChild.bind(document.body);
       
       vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
         if (tagName === 'a') {
@@ -231,4 +229,3 @@ describe('docx', () => {
     });
   });
 });
-

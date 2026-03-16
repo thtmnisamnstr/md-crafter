@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createDocumentsSlice, DocumentsSlice } from '../../store/documents';
-import { AppState, Tab, RecentFile } from '../../store/types';
+import { AppState, Tab } from '../../store/types';
 
 // Mock the utils
 vi.mock('../../store/utils', () => ({
@@ -34,7 +34,6 @@ vi.mock('../../utils/platform', () => ({
 // Import mocked modules
 import { api } from '../../services/api';
 import { syncService } from '../../services/sync';
-import { isElectron } from '../../utils/platform';
 
 // Create mock state
 const createMockState = (overrides: Partial<AppState> = {}): AppState => ({
@@ -91,7 +90,9 @@ describe('Documents Slice', () => {
       expect(result.tabs).toHaveLength(1);
       expect(result.tabs[0]).toMatchObject({
         id: 'mock-doc-id',
-        title: 'Untitled.md',
+        title: 'Untitled',
+        customTitle: 'Untitled',
+        etag: null,
         language: 'markdown',
         isDirty: false,
         isCloudSynced: false,
@@ -315,6 +316,7 @@ describe('Documents Slice', () => {
         title: 'Existing.md',
         content: 'Updated content',
         language: 'markdown',
+        etag: undefined,
       });
     });
 
@@ -409,6 +411,7 @@ describe('Documents Slice', () => {
         id: 'tab-1',
         documentId: 'cloud-doc-1',
         title: 'Cloud Doc',
+        isDirty: true,
       } as Tab;
       mockState = createMockState({
         tabs: [existingTab],
@@ -426,6 +429,45 @@ describe('Documents Slice', () => {
       expect(mockSet).toHaveBeenCalledWith({ activeTabId: 'tab-1' });
       expect(api.getDocument).not.toHaveBeenCalled();
       expect(mockState.addRecentFile).toHaveBeenCalled();
+    });
+
+    it('refreshes existing clean tab content from cloud', async () => {
+      const existingTab: Tab = {
+        id: 'tab-1',
+        documentId: 'cloud-doc-1',
+        title: 'Cloud Doc',
+        isDirty: false,
+      } as Tab;
+      mockState = createMockState({
+        tabs: [existingTab],
+        addRecentFile: vi.fn(),
+      });
+      mockGet.mockReturnValue(mockState);
+      slice = createDocumentsSlice(
+        mockSet as unknown as any,
+        mockGet as unknown as any,
+        {} as any
+      );
+
+      vi.mocked(api.getDocument).mockResolvedValue({
+        id: 'cloud-doc-1',
+        title: 'Cloud Doc',
+        content: 'Remote content',
+        language: 'markdown',
+        etag: 'etag-1',
+      } as any);
+
+      await slice.openCloudDocument('cloud-doc-1');
+
+      expect(api.getDocument).toHaveBeenCalledWith('cloud-doc-1');
+      const setFn = mockSet.mock.calls[1][0];
+      const result = setFn({ tabs: [existingTab] });
+      expect(result.tabs[0]).toMatchObject({
+        content: 'Remote content',
+        savedContent: 'Remote content',
+        etag: 'etag-1',
+        syncStatus: 'synced',
+      });
     });
 
     it('should fetch and open new document', async () => {
@@ -671,4 +713,3 @@ describe('Documents Slice', () => {
     });
   });
 });
-

@@ -179,14 +179,14 @@ class ApiService {
    * @param content - Current document content
    * @returns Promise resolving to sync result with potential conflict information
    */
-  async syncDocument(id: string, content: string): Promise<{
+  async syncDocument(id: string, content: string, etag?: string | null): Promise<{
     success: boolean;
     document?: Document;
     conflict?: { serverContent: string; serverEtag: string; serverTimestamp: number };
   }> {
     return this.fetch(`/documents/${id}/sync`, {
       method: 'POST',
-      body: JSON.stringify({ content, localTimestamp: Date.now() }),
+      body: JSON.stringify({ content, etag: etag ?? undefined, localTimestamp: Date.now() }),
     });
   }
 
@@ -260,4 +260,3 @@ class ApiService {
 }
 
 export const api = new ApiService();
-

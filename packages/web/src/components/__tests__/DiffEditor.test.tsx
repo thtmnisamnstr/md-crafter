@@ -19,10 +19,10 @@ const mockDiffEditor = {
 };
 
 // Mock @monaco-editor/react before any imports
-vi.mock('@monaco-editor/react', () => {
-  const React = require('react');
+vi.mock('@monaco-editor/react', async () => {
+  const React = await import('react');
   return {
-    DiffEditor: React.forwardRef(({ onMount, original, modified, language, theme, options }: any, ref: any) => {
+    DiffEditor: React.forwardRef(({ onMount, original, modified, language, theme }: any) => {
       React.useEffect(() => {
         // Simulate editor mount
         if (onMount) {

@@ -10,13 +10,23 @@ import type { SpellcheckService } from '../../services/spellcheck';
  * Mock editor instance for testing
  */
 export interface MockEditor {
-  getSelection: () => monaco.Selection | null;
+  getSelection: () => {
+    startLineNumber: number;
+    startColumn: number;
+    endLineNumber: number;
+    endColumn: number;
+    selectionStartLineNumber?: number;
+    selectionStartColumn?: number;
+    positionLineNumber?: number;
+    positionColumn?: number;
+  } | null;
   getModel: () => monaco.editor.ITextModel | null;
+  updateOptions: (options?: unknown) => void;
   executeEdits: (source: string, edits: monaco.editor.IIdentifiedSingleEditOperation[]) => void;
   getAction: (actionId: string) => { run: () => void } | null;
-  onDidChangeCursorSelection: (callback: () => void) => { dispose: () => void };
-  onDidChangeModelContent: (callback: () => void) => { dispose: () => void };
-  onDidFocusEditorText: (callback: () => void) => { dispose: () => void };
+  onDidChangeCursorSelection: (callback?: () => void) => { dispose: () => void };
+  onDidChangeModelContent: (callback?: () => void) => { dispose: () => void };
+  onDidFocusEditorText: (callback?: () => void) => { dispose: () => void };
   focus: () => void;
   getDomNode: () => HTMLElement | null;
   dispose: () => void;
@@ -26,7 +36,7 @@ export interface MockEditor {
  * Creates a mock Monaco editor instance for testing
  */
 export function createMockEditor(overrides?: Partial<MockEditor>): MockEditor {
-  const mockSelection: monaco.Selection = {
+  const mockSelection = {
     startLineNumber: 1,
     startColumn: 1,
     endLineNumber: 1,
@@ -114,6 +124,7 @@ export function MockEditorContextProvider({
   diffMonaco,
   grammarService,
   spellcheckService,
+  executeEditorCommand,
 }: {
   children: ReactNode;
   primaryEditor?: MockEditor | null;
@@ -124,6 +135,7 @@ export function MockEditorContextProvider({
   diffMonaco?: typeof monaco | null;
   grammarService?: GrammarService | null;
   spellcheckService?: SpellcheckService | null;
+  executeEditorCommand?: (command: 'undo' | 'redo') => boolean;
 }) {
   const mockValue: EditorContextValue = {
     primaryEditor: (primaryEditor as any) || null,
@@ -145,6 +157,7 @@ export function MockEditorContextProvider({
     unregisterGrammarService: vi.fn(),
     unregisterSpellcheckService: vi.fn(),
     getActiveEditor: () => (primaryEditor as any) || null,
+    executeEditorCommand: executeEditorCommand || vi.fn(() => true),
     getOrCreateModel: vi.fn(() => null),
     disposeModel: vi.fn(),
   };
@@ -180,6 +193,7 @@ export function createMockEditorContext(overrides?: Partial<EditorContextValue>)
     unregisterGrammarService: vi.fn(),
     unregisterSpellcheckService: vi.fn(),
     getActiveEditor: () => mockEditor as any,
+    executeEditorCommand: vi.fn(() => true),
     getOrCreateModel: vi.fn(() => null),
     disposeModel: vi.fn(),
     ...overrides,

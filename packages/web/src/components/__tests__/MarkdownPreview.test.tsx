@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, cleanup, fireEvent, waitFor } from '@testing-library/react';
+import { render, cleanup, fireEvent } from '@testing-library/react';
 import { MarkdownPreview } from '../MarkdownPreview';
 
 // Mock MDXPreview
@@ -19,7 +19,7 @@ const mockParse = vi.hoisted(() => vi.fn((markdown: string) => {
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
-    .replace(/^\- (.*$)/gim, '<li>$1</li>')
+    .replace(/^- (.*$)/gim, '<li>$1</li>')
     .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
   
   // Only wrap in <p> if there's no other block element
@@ -285,7 +285,7 @@ Another paragraph.`;
           .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
           .replace(/\*(.*?)\*/g, '<em>$1</em>')
           .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
-          .replace(/^\- (.*$)/gim, '<li>$1</li>')
+          .replace(/^- (.*$)/gim, '<li>$1</li>')
           .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
         if (!html.includes('<h') && !html.includes('<ul') && !html.includes('<li')) {
           html = `<p>${html}</p>`;
@@ -305,4 +305,3 @@ Another paragraph.`;
     });
   });
 });
-

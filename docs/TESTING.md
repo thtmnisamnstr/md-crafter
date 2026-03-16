@@ -40,6 +40,7 @@ E2E tests are located in `e2e/` directory, using the naming pattern `*.spec.ts`.
 - `e2e/conflict.spec.ts` - Sync conflict detection and resolution
 - `e2e/editor.spec.ts` - Editor functionality, preview, keyboard shortcuts, themes, split editor, open recent
 - `e2e/paste.spec.ts` - Paste functionality (plain text, rich text, Word/Docs)
+- `e2e/remediation.spec.ts` - Regression tests for paste undo, tab reorder/rename, diff typing stability, and grammar checks
 - `e2e/statusbar.spec.ts` - Status bar word/character counts and selection stats
 - `e2e/sync.spec.ts` - Document synchronization with server
 
@@ -176,11 +177,12 @@ test.describe('Feature Name', () => {
 
 ### Unit Tests
 
-The test environment is configured in `packages/web/vitest.config.ts`:
+The root test environment is configured in `vitest.config.ts` as a workspace:
 
-- **Environment**: `happy-dom` (lightweight DOM implementation)
-- **Globals**: Enabled (no need to import `describe`, `it`, `expect`)
-- **Setup File**: `packages/web/src/__tests__/setup.ts` (mocks browser APIs)
+- **Node project**: `packages/shared` and `packages/server` run in `node`
+- **Web project**: `packages/web` runs in `happy-dom`
+- **Globals**: Enabled
+- **Web setup file**: `packages/web/src/__tests__/setup.ts` (mocks browser APIs)
 
 The setup file (`setup.ts`) provides:
 - Jest-dom matchers (`toBeInTheDocument`, etc.)
@@ -569,20 +571,13 @@ Menu generators (`getFileMenuItems`, etc.) are functions, not components:
 - Mock `useStore.getState()` directly
 - Verify menu item structure and actions
 
-### Excluded Test Files
+### Critical Test Files
 
-The following test files are temporarily excluded due to Vite import resolution issues with `@cspell` dictionary packages:
-
+Critical web tests such as:
 - `packages/web/src/services/__tests__/spellcheck.test.ts`
 - `packages/web/src/components/__tests__/Editor.test.tsx`
 
-**Root Cause**: Vite's `vite:import-analysis` plugin fails to resolve the `@cspell/dict-*` package exports before `vi.mock()` can intercept them. The actual spellcheck functionality works correctly in the build.
-
-**Workaround**: These tests are excluded in `vitest.config.ts`. The spellcheck service is tested indirectly through E2E tests and manual testing.
-
-**Tracking**: This will be resolved in a future update by either:
-1. Upgrading to a Vitest version with better ESM mock support
-2. Restructuring the dictionary imports to be more test-friendly
+are included in normal `npm test` runs and should remain part of the standard reliability gate.
 
 ## Best Practices
 
@@ -609,4 +604,3 @@ When adding new functionality:
 - **Keep tests in sync with code** - Update tests when refactoring
 - **Monitor test performance** - Keep test suite fast and responsive
 - **Document complex tests** - Add comments explaining why tests are structured a certain way
-

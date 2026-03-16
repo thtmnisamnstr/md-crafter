@@ -21,7 +21,7 @@ type ElectronAPI = NonNullable<typeof window.api>;
  * all event listeners on unmount.
  */
 export function useElectronMenu() {
-  const { getActiveEditor } = useEditorContext();
+  const { getActiveEditor, executeEditorCommand, primaryMonaco, secondaryMonaco, diffMonaco, grammarService } = useEditorContext();
 
   useEffect(() => {
     if (!isElectron()) return;
@@ -103,17 +103,15 @@ export function useElectronMenu() {
         if (api.writeFile) {
           api.writeFile(savePath, tab.content).then((result: { success: boolean; error?: string }) => {
             if (result.success && activeTabId) {
-              // Update tab with new path and mark as saved
-              useStore.getState().updateTabContent(activeTabId, tab.content);
+              // Update tab with new path/filename and mark as saved
               updateTabPath(activeTabId, savePath);
-
-              // Mark as saved
-              const updatedTabs = tabs.map(t =>
-                t.id === activeTabId
-                  ? { ...t, path: savePath, isDirty: false, savedContent: t.content }
-                  : t
-              );
-              useStore.setState({ tabs: updatedTabs });
+              useStore.setState((state) => ({
+                tabs: state.tabs.map((t) =>
+                  t.id === activeTabId
+                    ? { ...t, isDirty: false, savedContent: t.content, hasSavedVersion: true }
+                    : t
+                ),
+              }));
 
               // Watch the new file
               if (api.watchFile) {
@@ -157,13 +155,13 @@ export function useElectronMenu() {
             cancelLabel: 'Keep Mine',
             onConfirm: () => {
               // Reset cursor since external content may have different structure
-              useStore.getState().updateTabContent(tab.id, content, { resetCursor: true });
+              useStore.getState().updateTabContent(tab.id, content, { source: 'external-replace' });
               useStore.getState().clearConfirmation();
             },
           });
         } else {
           // Just update the content - reset cursor since external content may have different structure
-          useStore.getState().updateTabContent(tab.id, content, { resetCursor: true });
+          useStore.getState().updateTabContent(tab.id, content, { source: 'external-replace' });
         }
       }));
     }
@@ -224,6 +222,16 @@ export function useElectronMenu() {
     }
 
     // Edit menu - Copy/Paste for Word
+    if (api.onMenuUndo) {
+      cleanups.push(api.onMenuUndo(() => {
+        executeEditorCommand('undo');
+      }));
+    }
+    if (api.onMenuRedo) {
+      cleanups.push(api.onMenuRedo(() => {
+        executeEditorCommand('redo');
+      }));
+    }
     if (api.onMenuCopyForWord) {
       cleanups.push(api.onMenuCopyForWord(() => useStore.getState().copyForWordDocs()));
     }
@@ -275,8 +283,9 @@ export function useElectronMenu() {
     if (api.onMenuGrammar) {
       cleanups.push(api.onMenuGrammar(() => {
         const editor = getActiveEditor();
-        if (editor && window.monaco) {
-          useStore.getState().checkGrammar({ editor, monaco: window.monaco });
+        const monaco = primaryMonaco || secondaryMonaco || diffMonaco;
+        if (editor && monaco) {
+          useStore.getState().checkGrammar({ editor, monaco, grammarService: grammarService || undefined });
         }
       }));
     }
@@ -330,5 +339,5 @@ export function useElectronMenu() {
     return () => {
       cleanups.forEach(cleanup => cleanup());
     };
-  }, [getActiveEditor]);
+  }, [getActiveEditor, executeEditorCommand, primaryMonaco, secondaryMonaco, diffMonaco, grammarService]);
 }

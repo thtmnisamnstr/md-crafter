@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { getPlainTextFromClipboard, convertHtmlToMarkdown, extractTablesFromHtml, convertTableToMarkdown } from '../services/clipboard';
+import { getPlainTextFromClipboard, convertHtmlToMarkdown } from '../services/clipboard';
 
 describe('getPlainTextFromClipboard', () => {
   beforeEach(() => {
@@ -350,4 +350,3 @@ describe('convertHtmlToMarkdown', () => {
 
 
 });
-

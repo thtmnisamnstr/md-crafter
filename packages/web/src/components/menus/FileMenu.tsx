@@ -2,6 +2,7 @@ import { useStore } from '../../store';
 import { MAX_RECENT_FILES } from '../../constants';
 import { FileWithWebkitPath } from '../../types/file';
 import { isElectron } from '../../utils/platform';
+import { getLanguageFromExtension } from '../../utils/language';
 import {
   FileText,
   FolderOpen,
@@ -124,7 +125,6 @@ export function getFileMenuItems(): MenuItem[] {
                   const result = await window.api.readFile(file.path);
                   if (result.success && result.content !== undefined) {
                     const ext = file.title.split('.').pop();
-                    const { getLanguageFromExtension } = await import('../../utils/language');
                     useStore.getState().openTab({
                       title: file.title,
                       content: result.content,
@@ -283,4 +283,3 @@ export function getFileMenuItems(): MenuItem[] {
 
   return menuItems;
 }
-

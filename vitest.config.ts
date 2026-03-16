@@ -4,29 +4,17 @@ import path from 'path';
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'happy-dom',
-    setupFiles: ['./packages/web/src/__tests__/setup.ts'],
+    environment: 'node',
     include: [
       'packages/shared/src/**/*.test.ts',
       'packages/server/src/**/*.test.ts',
-      'packages/web/src/**/*.test.ts',
-      'packages/web/src/**/*.test.tsx',
     ],
-    // Exclude tests that have import resolution issues with @cspell packages
-    // These tests work with vi.mock but Vite's import-analysis fails before mocking
-    // The actual spellcheck functionality works correctly in the build
-    exclude: [
-      '**/node_modules/**',
-      '**/dist/**',
-      '**/spellcheck.test.ts',
-      '**/Editor.test.tsx',
-    ],
+    exclude: ['**/node_modules/**', '**/dist/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
       exclude: ['**/node_modules/**', '**/dist/**', '**/*.test.*', '**/*.spec.*'],
       thresholds: {
-        // Updated thresholds after expanding test coverage
         statements: 70,
         branches: 60,
         functions: 65,
@@ -37,7 +25,16 @@ export default defineConfig({
   resolve: {
     alias: {
       'monaco-editor': path.resolve(__dirname, 'packages/web/src/__mocks__/monaco-editor.ts'),
+      '@': path.resolve(__dirname, 'packages/web/src'),
+      '@cspell/dict-software-terms': path.resolve(__dirname, 'node_modules/@cspell/dict-software-terms'),
+      '@cspell/dict-fullstack': path.resolve(__dirname, 'node_modules/@cspell/dict-fullstack'),
+      '@cspell/dict-aws': path.resolve(__dirname, 'node_modules/@cspell/dict-aws'),
+      '@cspell/dict-google': path.resolve(__dirname, 'node_modules/@cspell/dict-google'),
+      '@cspell/dict-k8s': path.resolve(__dirname, 'node_modules/@cspell/dict-k8s'),
+      '@cspell/dict-companies': path.resolve(__dirname, 'node_modules/@cspell/dict-companies'),
+      '@cspell/dict-gaming-terms': path.resolve(__dirname, 'node_modules/@cspell/dict-gaming-terms'),
+      '@cspell/dict-filetypes': path.resolve(__dirname, 'node_modules/@cspell/dict-filetypes'),
+      '@cspell/dict-markdown': path.resolve(__dirname, 'node_modules/@cspell/dict-markdown'),
     },
   },
 });
-

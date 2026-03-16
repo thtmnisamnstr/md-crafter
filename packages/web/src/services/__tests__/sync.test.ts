@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { syncService } from '../sync';
 import { io, Socket } from 'socket.io-client';
-import { useStore } from '../../store';
 import { logger } from '@md-crafter/shared';
 
 // Mock socket.io-client
@@ -19,7 +18,12 @@ vi.mock('socket.io-client', () => ({
 
 // Mock store
 const mockStore = {
-  tabs: [],
+  tabs: [] as Array<{
+    id: string;
+    documentId: string;
+    content: string;
+    savedContent: string;
+  }>,
   setConflict: vi.fn(),
   openCloudDocument: vi.fn(),
   closeTab: vi.fn(),
@@ -221,13 +225,16 @@ describe('SyncService', () => {
           userId: 'user-1',
         });
         
-        expect(mockStore.setConflict).toHaveBeenCalledWith({
-          documentId: 'doc-1',
-          localContent: 'Modified content',
-          remoteContent: '',
-          localTimestamp: expect.any(Number),
-          remoteTimestamp: expect.any(Number),
-        });
+        expect(mockStore.setConflict).toHaveBeenCalledWith(
+          expect.objectContaining({
+            documentId: 'doc-1',
+            localContent: 'Modified content',
+            remoteContent: '',
+            localTimestamp: expect.any(Number),
+            remoteTimestamp: expect.any(Number),
+            remoteEtag: 'etag-123',
+          })
+        );
       }
     });
 
@@ -348,4 +355,3 @@ describe('SyncService', () => {
     });
   });
 });
-

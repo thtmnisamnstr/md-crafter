@@ -3,11 +3,18 @@ import TurndownService from 'turndown';
 import { gfm } from 'turndown-plugin-gfm';
 import { logger } from '@md-crafter/shared';
 import { getDOMParser } from '../utils/dom';
-import { formatHtml, formatMarkdown, formatMdx, isLikelyMdx } from '../utils/markdownFormatter';
 
 // --- Configuration & Singletons ---
 
 let turndownServiceInstance: TurndownService | null = null;
+let markdownFormatterPromise: Promise<typeof import('../utils/markdownFormatter')> | null = null;
+
+function loadMarkdownFormatter(): Promise<typeof import('../utils/markdownFormatter')> {
+  if (!markdownFormatterPromise) {
+    markdownFormatterPromise = import('../utils/markdownFormatter');
+  }
+  return markdownFormatterPromise;
+}
 
 function getTurndownService(): TurndownService {
   if (!turndownServiceInstance) {
@@ -121,6 +128,7 @@ export async function copyAsHtml(markdown: string): Promise<void> {
   let html = await marked.parse(markdown);
 
   // Format HTML with Prettier for cleaner output
+  const { formatHtml } = await loadMarkdownFormatter();
   html = await formatHtml(html);
 
   try {
@@ -365,6 +373,7 @@ export function convertHtmlToMarkdownClean(html: string): string {
 async function formatMarkdownContent(markdown: string): Promise<string> {
   if (!markdown || markdown.trim() === '') return '';
   try {
+    const { isLikelyMdx, formatMdx, formatMarkdown } = await loadMarkdownFormatter();
     const treatAsMdx = isLikelyMdx(markdown);
     return treatAsMdx
       ? await formatMdx(markdown)

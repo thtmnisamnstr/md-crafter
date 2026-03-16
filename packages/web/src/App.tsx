@@ -147,16 +147,16 @@ function AppContent() {
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
   
-  // Check if running in Electron - only show web menu bar in browser
+  // Check if running in Electron
   const inElectron = isElectron();
-  const showMenuBar = !zenMode && !inElectron;
+  const showMenuBar = !zenMode;
 
   return (
     <div className="h-full w-full flex flex-col" style={{ background: 'var(--editor-bg)' }}>
       {/* Desktop title bar for Electron - provides draggable region and window controls */}
       {inElectron && <DesktopTitleBar />}
       
-      {/* Show web menu bar only when not in Electron (Electron uses native menu) */}
+      {/* Show web menu bar in both browser and Electron (hidden in zen mode) */}
       {showMenuBar && <MenuBar />}
       
       {/* Main content */}

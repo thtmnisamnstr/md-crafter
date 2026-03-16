@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, cleanup } from '@testing-library/react';
 import { MenuBar } from '../MenuBar';
-import { useStore } from '../../store';
 import { MockEditorContextProvider, createMockEditor, createMockMonaco } from '../../__tests__/mocks/editor-context';
 
 // Mock platform utilities
@@ -164,4 +163,3 @@ describe('MenuBar', () => {
     vi.mocked(isElectron).mockReturnValue(false);
   });
 });
-

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getFileMenuItems, MenuItem } from '../FileMenu';
+import { getFileMenuItems } from '../FileMenu';
 
 // Mock the store
 vi.mock('../../../store', () => ({
@@ -187,7 +187,7 @@ describe('FileMenu', () => {
         ...vi.mocked(useStore.getState)(),
         closeTab: mockClose,
         activeTabId: 'tab-123',
-        tabs: [{ id: 'tab-123' }],
+        tabs: [{ id: 'tab-123' } as any],
       });
       
       const items = getFileMenuItems();
@@ -203,7 +203,7 @@ describe('FileMenu', () => {
         ...vi.mocked(useStore.getState)(),
         revertToSaved: mockRevert,
         activeTabId: 'tab-123',
-        tabs: [{ id: 'tab-123', hasSavedVersion: true, isDirty: true }],
+        tabs: [{ id: 'tab-123', hasSavedVersion: true, isDirty: true } as any],
       });
       
       const items = getFileMenuItems();
@@ -232,7 +232,7 @@ describe('FileMenu', () => {
         ...vi.mocked(useStore.getState)(),
         isAuthenticated: false,
         activeTabId: 'tab-1',
-        tabs: [{ id: 'tab-1' }],
+        tabs: [{ id: 'tab-1' } as any],
       });
       
       const items = getFileMenuItems();
@@ -285,7 +285,7 @@ describe('FileMenu', () => {
       vi.mocked(useStore.getState).mockReturnValue({
         ...vi.mocked(useStore.getState)(),
         activeTabId: 'tab-1',
-        tabs: [{ id: 'tab-1', hasSavedVersion: false, isDirty: true }],
+        tabs: [{ id: 'tab-1', hasSavedVersion: false, isDirty: true } as any],
       });
       
       const items = getFileMenuItems();
@@ -297,7 +297,7 @@ describe('FileMenu', () => {
       vi.mocked(useStore.getState).mockReturnValue({
         ...vi.mocked(useStore.getState)(),
         activeTabId: 'tab-1',
-        tabs: [{ id: 'tab-1', hasSavedVersion: true, isDirty: false }],
+        tabs: [{ id: 'tab-1', hasSavedVersion: true, isDirty: false } as any],
       });
       
       const items = getFileMenuItems();
@@ -309,7 +309,7 @@ describe('FileMenu', () => {
       vi.mocked(useStore.getState).mockReturnValue({
         ...vi.mocked(useStore.getState)(),
         activeTabId: 'tab-1',
-        tabs: [{ id: 'tab-1', hasSavedVersion: true, isDirty: true }],
+        tabs: [{ id: 'tab-1', hasSavedVersion: true, isDirty: true } as any],
       });
       
       const items = getFileMenuItems();

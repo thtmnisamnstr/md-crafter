@@ -54,6 +54,8 @@ declare global {
       onMenuExportHtml: (callback: () => void) => () => void;
 
       // Menu events - Edit menu
+      onMenuUndo: (callback: () => void) => () => void;
+      onMenuRedo: (callback: () => void) => () => void;
       onMenuFind: (callback: () => void) => () => void;
       onMenuReplace: (callback: () => void) => () => void;
       onMenuSearch: (callback: () => void) => () => void;
@@ -87,4 +89,3 @@ declare global {
 }
 
 export { };
-

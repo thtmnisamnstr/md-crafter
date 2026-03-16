@@ -32,6 +32,7 @@ const MockEditorProvider = ({ children }: { children: React.ReactNode }) => {
     unregisterGrammarService: vi.fn(),
     unregisterSpellcheckService: vi.fn(),
     getActiveEditor: () => null,
+    executeEditorCommand: vi.fn(() => true),
     getOrCreateModel: vi.fn(),
     disposeModel: vi.fn(),
     hydrateModelHistory: vi.fn(),
@@ -45,10 +46,10 @@ const renderWithProviders = (ui: React.ReactElement) => {
 };
 
 // Mock Monaco DiffEditor
-vi.mock('@monaco-editor/react', () => {
-  const React = require('react');
+vi.mock('@monaco-editor/react', async () => {
+  const React = await import('react');
   return {
-    DiffEditor: React.forwardRef(({ original, modified, language, theme, options }: any, ref: any) => {
+    DiffEditor: React.forwardRef(({ original, modified, language, theme, options }: any) => {
       return React.createElement('div', {
         'data-testid': 'diff-editor',
         'data-original': original,
@@ -477,6 +478,7 @@ describe('DiffViewer', () => {
           unregisterGrammarService: vi.fn(),
           unregisterSpellcheckService: vi.fn(),
           getActiveEditor: () => null,
+    executeEditorCommand: vi.fn(() => true),
           getOrCreateModel: vi.fn(),
           disposeModel: vi.fn(),
           hydrateModelHistory: vi.fn(),
@@ -497,4 +499,3 @@ describe('DiffViewer', () => {
     });
   });
 });
-

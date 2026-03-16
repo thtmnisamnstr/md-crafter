@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, cleanup, fireEvent, waitFor } from '@testing-library/react';
+import { render, cleanup, fireEvent } from '@testing-library/react';
 import { Toast } from '../Toast';
 import { useStore } from '../../store';
 
@@ -243,4 +243,3 @@ describe('Toast', () => {
     });
   });
 });
-

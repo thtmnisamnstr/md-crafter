@@ -250,7 +250,7 @@ describe('ApiService', () => {
         json: async () => mockResult,
       });
 
-      const result = await api.syncDocument('doc-1', 'Content');
+      const result = await api.syncDocument('doc-1', 'Content', 'etag-1');
       
       expect(result).toEqual(mockResult);
       expect(mockFetch).toHaveBeenCalledWith(
@@ -260,6 +260,7 @@ describe('ApiService', () => {
           body: expect.stringContaining('"content":"Content"'),
         })
       );
+      expect(mockFetch.mock.calls[0][1].body).toContain('"etag":"etag-1"');
     });
 
     it('should detect conflict on sync', async () => {
@@ -276,7 +277,7 @@ describe('ApiService', () => {
         json: async () => mockResult,
       });
 
-      const result = await api.syncDocument('doc-1', 'Local content');
+      const result = await api.syncDocument('doc-1', 'Local content', 'etag-local');
       
       expect(result).toEqual(mockResult);
       expect(result.conflict).toBeDefined();
@@ -457,4 +458,3 @@ describe('ApiService', () => {
     });
   });
 });
-

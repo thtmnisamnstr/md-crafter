@@ -73,33 +73,52 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
     const tab = tabs.find((t) => t.documentId === conflict.documentId);
     if (!tab) return;
     
-    let content: string;
-    switch (resolution) {
-      case 'keep_local':
-        content = conflict.localContent;
-        break;
-      case 'keep_remote':
-        content = conflict.remoteContent;
-        break;
-      case 'merge':
-        content = mergedContent || conflict.localContent;
-        break;
+    if (resolution === 'keep_remote') {
+      set((state) => ({
+        tabs: state.tabs.map((t) =>
+          t.id === tab.id
+            ? {
+              ...t,
+              content: conflict.remoteContent,
+              savedContent: conflict.remoteContent,
+              isDirty: false,
+              syncStatus: 'synced',
+              etag: conflict.remoteEtag ?? t.etag ?? null,
+              lastContentSource: 'external-replace',
+              cursor: { line: 1, column: 1 },
+              selection: null,
+            }
+            : t
+        ),
+        conflict: null,
+      }));
+      return;
     }
-    
-    // Reset cursor/selection since conflict resolution may change content structure
+
+    const content = resolution === 'merge'
+      ? (mergedContent || conflict.localContent)
+      : conflict.localContent;
+
+    // Reset cursor/selection since conflict resolution may change content structure.
     set((state) => ({
       tabs: state.tabs.map((t) =>
-        t.id === tab.id ? { 
-          ...t, 
-          content, 
-          isDirty: true,
-          cursor: { line: 1, column: 1 },
-          selection: null,
-        } : t
+        t.id === tab.id
+          ? {
+            ...t,
+            content,
+            isDirty: true,
+            syncStatus: 'pending',
+            // Adopt latest remote etag as the save base when provided.
+            etag: conflict.remoteEtag ?? t.etag ?? null,
+            lastContentSource: 'external-replace',
+            cursor: { line: 1, column: 1 },
+            selection: null,
+          }
+          : t
       ),
       conflict: null,
     }));
-    
+
     await get().saveDocumentToCloud(tab.id);
   },
   
@@ -121,35 +140,86 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
     const tab = tabs.find((t) => t.id === tabId);
     
     if (!tab || !tab.documentId || !isOnline || !isAuthenticated) return;
+
+    set((state) => ({
+      tabs: state.tabs.map((t) =>
+        t.id === tabId ? { ...t, syncStatus: 'syncing' } : t
+      ),
+    }));
     
     // Get or create debounced sync function for this document
     if (!syncDebouncers.has(tab.documentId)) {
       syncDebouncers.set(
         tab.documentId,
-        debounce(async (documentId: string, content: string, currentTabId: string) => {
+        debounce(async (documentId: string, content: string, currentTabId: string, etag?: string | null) => {
           try {
-            await api.syncDocument(documentId, content);
+            const result = await api.syncDocument(documentId, content, etag);
+            if (result.success && result.document) {
+              set((state) => ({
+                tabs: state.tabs.map((t) =>
+                  t.id === currentTabId
+                    ? {
+                      ...t,
+                      syncStatus: 'synced',
+                      content: result.document!.content,
+                      savedContent: result.document!.content,
+                      etag: result.document!.etag,
+                      isDirty: false,
+                      hasSavedVersion: true,
+                    }
+                    : t
+                ),
+              }));
+              return;
+            }
+
+            if (!result.success && result.conflict) {
+              const currentTab = get().tabs.find((t) => t.id === currentTabId);
+              if (currentTab && currentTab.documentId) {
+                const documentId = currentTab.documentId;
+                const conflict = result.conflict;
+                set((state) => ({
+                  tabs: state.tabs.map((t) =>
+                    t.id === currentTabId ? { ...t, syncStatus: 'conflict' } : t
+                  ),
+                  conflict: {
+                    documentId,
+                    localContent: currentTab.content,
+                    remoteContent: conflict.serverContent,
+                    localTimestamp: Date.now(),
+                    remoteTimestamp: conflict.serverTimestamp,
+                    remoteEtag: conflict.serverEtag,
+                  },
+                }));
+              }
+              return;
+            }
+
             set((state) => ({
               tabs: state.tabs.map((t) =>
-                t.id === currentTabId
-                  ? { ...t, syncStatus: 'synced', savedContent: t.content, hasSavedVersion: true }
-                  : t
+                t.id === currentTabId ? { ...t, syncStatus: 'pending' } : t
               ),
             }));
           } catch (error: unknown) {
             const syncError = error as SyncError;
-            if (syncError.conflict) {
+            const conflict = syncError.conflict;
+            if (conflict) {
               const currentTab = get().tabs.find((t) => t.id === currentTabId);
-              if (currentTab) {
-                set({
+              if (currentTab && currentTab.documentId) {
+                const documentId = currentTab.documentId;
+                set((state) => ({
+                  tabs: state.tabs.map((t) =>
+                    t.id === currentTabId ? { ...t, syncStatus: 'conflict' } : t
+                  ),
                   conflict: {
-                    documentId: currentTab.documentId!,
+                    documentId,
                     localContent: currentTab.content,
-                    remoteContent: syncError.conflict.serverContent,
+                    remoteContent: conflict.serverContent,
                     localTimestamp: Date.now(),
-                    remoteTimestamp: syncError.conflict.serverTimestamp,
+                    remoteTimestamp: conflict.serverTimestamp,
+                    remoteEtag: conflict.serverEtag,
                   },
-                });
+                }));
               }
             } else {
               set((state) => ({
@@ -164,7 +234,7 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
     }
     
     const debouncedSync = syncDebouncers.get(tab.documentId)!;
-    debouncedSync(tab.documentId, tab.content, tabId);
+    debouncedSync(tab.documentId, tab.content, tabId, tab.etag ?? null);
   },
   
   /**
@@ -180,4 +250,3 @@ export const createSyncSlice: StateCreator<AppState, [], [], SyncSlice> = (set, 
   },
   };
 };
-

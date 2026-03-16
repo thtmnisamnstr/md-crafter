@@ -18,15 +18,25 @@ const localStorageMock = {
   clear: vi.fn(),
 };
 
-Object.defineProperty(window, 'localStorage', {
-  value: localStorageMock,
-});
+const bindLocalStorageMock = () => {
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: localStorageMock,
+  });
+  if (typeof window !== 'undefined') {
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      value: localStorageMock,
+    });
+  }
+};
 
 describe('DictionaryService', () => {
   let storage: Record<string, string>;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    bindLocalStorageMock();
     
     // Reset singleton for testing
     (DictionaryService as any).instance = null;
@@ -336,4 +346,3 @@ describe('DictionaryService', () => {
     });
   });
 });
-

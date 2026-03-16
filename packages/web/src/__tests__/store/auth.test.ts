@@ -47,7 +47,7 @@ describe('Auth Slice', () => {
     mockState = createMockState();
     mockSet = vi.fn();
     mockGet = vi.fn(() => mockState);
-    slice = createAuthSlice(mockSet, mockGet, {} as any);
+    slice = createAuthSlice(mockSet as any, mockGet as any, {} as any);
   });
 
   describe('Initial State', () => {
@@ -146,7 +146,7 @@ describe('Auth Slice', () => {
         cloudDocuments: [{ id: 'doc-1' }] as any,
       });
       mockGet.mockReturnValue(mockState);
-      slice = createAuthSlice(mockSet, mockGet, {} as any);
+      slice = createAuthSlice(mockSet as any, mockGet as any, {} as any);
     });
 
     it('should clear auth state on logout', () => {

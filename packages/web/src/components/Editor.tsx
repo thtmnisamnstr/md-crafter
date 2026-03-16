@@ -8,7 +8,6 @@ import { defineMonacoThemes } from '../utils/monacoThemes';
 import { ErrorBoundary } from './ErrorBoundary';
 import { SpellcheckService } from '../services/spellcheck';
 import { GrammarService } from '../services/grammar';
-import { getPlainTextFromClipboard } from '../services/clipboard';
 import { EDITOR_DEBOUNCE_DELAY_MS } from '../constants';
 
 /**
@@ -55,6 +54,7 @@ export function Editor({
     registerGrammarService,
     registerSpellcheckService,
     unregisterGrammarService,
+    executeEditorCommand,
     getOrCreateModel,
   } = useEditorContext();
 
@@ -71,8 +71,8 @@ export function Editor({
   const prevTabIdRef = useRef<string | null>(null);
   const cursorIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastAppliedTabIdRef = useRef<string | null>(null);
-  // Track when undo/redo is in progress to avoid corrupting history stacks
-  const isUndoRedoRef = useRef(false);
+  // Skip one native paste event when Ctrl/Cmd+Shift+V is handled explicitly.
+  const skipNextNativePasteRef = useRef(false);
 
   // Use provided tabId or fall back to activeTabId
   const displayTabId = tabId || activeTabId;
@@ -276,23 +276,71 @@ export function Editor({
     // NOTE: Content change listener is set up in the useEffect after setModel,
     // because setModel disposes listeners attached before it.
 
-    // Route undo/redo through Monaco (per-model history)
-    // Set isUndoRedoRef BEFORE triggering so handleChange knows to skip history updates
+    // Editor-level keydown handling for custom paste-from-word shortcut.
     const undoRedoDisposable = editor.onKeyDown((e) => {
       const isMod = e.metaKey || e.ctrlKey;
       if (!isMod) return;
-      if (e.keyCode === monaco.KeyCode.KeyZ && !e.shiftKey) {
+      if (e.keyCode === monaco.KeyCode.KeyV && e.shiftKey && !e.altKey) {
         e.preventDefault();
         e.stopPropagation();
-        isUndoRedoRef.current = true;
-        editor.trigger('keyboard', 'undo', null);
+        skipNextNativePasteRef.current = true;
+        setTimeout(() => {
+          skipNextNativePasteRef.current = false;
+        }, 250);
+        useStore.getState().pasteFromWordDocs(editor);
         return;
       }
-      if (e.keyCode === monaco.KeyCode.KeyZ && e.shiftKey) {
+      if (e.keyCode === monaco.KeyCode.KeyV && !e.shiftKey && !e.altKey) {
         e.preventDefault();
         e.stopPropagation();
-        isUndoRedoRef.current = true;
-        editor.trigger('keyboard', 'redo', null);
+        skipNextNativePasteRef.current = true;
+        setTimeout(() => {
+          skipNextNativePasteRef.current = false;
+        }, 250);
+
+        void (async () => {
+          try {
+            const { getPlainTextFromClipboard } = await import('../services/clipboard');
+            const plainText = (await getPlainTextFromClipboard()) ?? '';
+            if (!plainText) return;
+
+            const selection = editor.getSelection();
+            if (!selection) return;
+
+            const range = {
+              startLineNumber: selection.startLineNumber,
+              startColumn: selection.startColumn,
+              endLineNumber: selection.endLineNumber,
+              endColumn: selection.endColumn,
+            };
+
+            editor.executeEdits('paste', [{
+              range,
+              text: plainText,
+              forceMoveMarkers: true,
+            }]);
+          } catch (error) {
+            logger.warn('Failed to handle keyboard paste', {
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+        })();
+        return;
+      }
+      if (e.keyCode === monaco.KeyCode.KeyZ && !e.altKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.shiftKey) {
+          executeEditorCommand('redo');
+        } else {
+          executeEditorCommand('undo');
+        }
+        return;
+      }
+      if (e.keyCode === monaco.KeyCode.KeyY && !e.shiftKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        executeEditorCommand('redo');
       }
     });
     disposablesRef.current.push(undoRedoDisposable);
@@ -411,9 +459,15 @@ export function Editor({
     if (!editor) return;
 
     const handlePaste = async (e: ClipboardEvent) => {
-      // Check if editor is focused
-      const editorDomNode = editor.getDomNode();
-      if (!editorDomNode || document.activeElement !== editorDomNode) return;
+      // Check if Monaco text area is focused
+      if (!editor.hasTextFocus()) return;
+
+      if (skipNextNativePasteRef.current) {
+        skipNextNativePasteRef.current = false;
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
 
       // Skip paste interception if Ctrl+Shift+V (or Cmd+Shift+V) is pressed
       // This allows the special "Paste from Word/Docs" functionality to work
@@ -424,46 +478,55 @@ export function Editor({
         return;
       }
 
-      // Check if clipboard contains rich text
-      if (e.clipboardData?.types.includes('text/html')) {
-        try {
-          const plainText = await getPlainTextFromClipboard();
-          
-          if (plainText) {
-            e.preventDefault();
-            e.stopPropagation();
+      const hasHtml = e.clipboardData?.types.includes('text/html') ?? false;
+      const hasPlainText = e.clipboardData?.types.includes('text/plain') ?? false;
 
-            const selection = editor.getSelection();
-            if (selection) {
-              const range = {
-                startLineNumber: selection.startLineNumber,
-                startColumn: selection.startColumn,
-                endLineNumber: selection.endLineNumber,
-                endColumn: selection.endColumn,
-              };
-              editor.executeEdits('paste', [{
-                range,
-                text: plainText,
-                forceMoveMarkers: true,
-              }]);
-            }
+      // Intercept clipboard text insertion so paste is always a single Monaco undo step.
+      e.preventDefault();
+      e.stopPropagation();
+
+      try {
+        let plainText = '';
+        const { getPlainTextFromClipboard } = await import('../services/clipboard');
+
+        if (hasHtml || !e.clipboardData) {
+          plainText = (await getPlainTextFromClipboard()) ?? '';
+        } else if (hasPlainText) {
+          plainText = e.clipboardData?.getData('text/plain') || '';
+          if (!plainText) {
+            plainText = (await getPlainTextFromClipboard()) ?? '';
           }
-        } catch (error) {
-          logger.warn('Failed to intercept paste', {
-            error: error instanceof Error ? error.message : String(error),
-          });
-          // Allow default paste behavior
+        } else {
+          plainText = (await getPlainTextFromClipboard()) ?? '';
         }
+
+        if (!plainText) return;
+
+        const selection = editor.getSelection();
+        if (selection) {
+          const range = {
+            startLineNumber: selection.startLineNumber,
+            startColumn: selection.startColumn,
+            endLineNumber: selection.endLineNumber,
+            endColumn: selection.endColumn,
+          };
+          editor.executeEdits('paste', [{
+            range,
+            text: plainText,
+            forceMoveMarkers: true,
+          }]);
+        }
+      } catch (error) {
+        logger.warn('Failed to intercept paste', {
+          error: error instanceof Error ? error.message : String(error),
+        });
       }
     };
 
-    const editorDomNode = editor.getDomNode();
-    if (editorDomNode) {
-      editorDomNode.addEventListener('paste', handlePaste, true);
-      return () => {
-        editorDomNode.removeEventListener('paste', handlePaste, true);
-      };
-    }
+    document.addEventListener('paste', handlePaste, true);
+    return () => {
+      document.removeEventListener('paste', handlePaste, true);
+    };
   }, []); // Empty deps - effect runs once on mount, cleanup on unmount
 
   // Ensure model/content stays in sync when tab changes (belt-and-suspenders)
@@ -522,8 +585,9 @@ export function Editor({
         // Also sync content for the CURRENT tab when store content differs from model
         // This handles "revert to saved" and other external content updates
         // Only do this when there's no pending user edit (to avoid race conditions)
+        const shouldSyncFromStore = activeTab.lastContentSource === 'external-replace';
         const currentValue = model.getValue();
-        if (currentValue !== activeTab.content && !pendingUpdateRef.current) {
+        if (shouldSyncFromStore && currentValue !== activeTab.content && !pendingUpdateRef.current) {
           ignoreChangeRef.current = true;
           const fullRange = model.getFullModelRange();
           model.pushEditOperations(
@@ -556,15 +620,12 @@ export function Editor({
     }
     
     // Attach content change listener to the editor
-    contentListenerRef.current = editorInstance.onDidChangeModelContent(() => {
+    contentListenerRef.current = editorInstance.onDidChangeModelContent((event) => {
       if (ignoreChangeRef.current) return;
       const currentTabId = useStore.getState().activeTabId || displayTabId;
       const value = editorInstance.getModel()?.getValue();
       if (currentTabId && value !== undefined) {
-        const skipHistory = isUndoRedoRef.current;
-        if (isUndoRedoRef.current) {
-          isUndoRedoRef.current = false;
-        }
+        const skipHistory = event.isUndoing || event.isRedoing;
         
         // Immediately mark tab as dirty for responsive UI feedback
         // The full content update is debounced for performance
