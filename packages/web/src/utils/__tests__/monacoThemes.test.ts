@@ -14,7 +14,7 @@ describe('monacoThemes', () => {
 
   describe('defineMonacoThemes', () => {
     it('should define all 5 custom themes', () => {
-      const result = defineMonacoThemes(mockMonaco);
+      defineMonacoThemes(mockMonaco);
       
       expect(mockMonaco.editor.defineTheme).toHaveBeenCalledTimes(5);
       expect(mockMonaco.editor.defineTheme).toHaveBeenCalledWith(
@@ -102,4 +102,3 @@ describe('monacoThemes', () => {
     });
   });
 });
-

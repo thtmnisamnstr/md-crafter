@@ -160,7 +160,7 @@ describe('ShortcutsModal', () => {
     });
 
     it('should have correct number of shortcuts per group', () => {
-      const { container, getAllByText } = render(<ShortcutsModal onClose={mockOnClose} />);
+      const { getAllByText } = render(<ShortcutsModal onClose={mockOnClose} />);
 
       // File group should have 7 shortcuts
       const fileHeaders = getAllByText('File');
@@ -182,4 +182,3 @@ describe('ShortcutsModal', () => {
     });
   });
 });
-

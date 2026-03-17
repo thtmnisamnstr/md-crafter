@@ -59,6 +59,13 @@ const localStorageMock = {
 
 Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
+  writable: true,
+  configurable: true,
+});
+Object.defineProperty(globalThis, 'localStorage', {
+  value: localStorageMock,
+  writable: true,
+  configurable: true,
 });
 
 // Mock Monaco Editor with required properties
@@ -83,6 +90,7 @@ const mockMonaco = {
   editor: {
     setModelMarkers: vi.fn(),
     getModelMarkers: vi.fn(() => []),
+    registerCommand: vi.fn(() => ({ dispose: vi.fn() })),
   },
   languages: {
     registerCodeActionProvider: vi.fn(() => ({ dispose: vi.fn() })),
@@ -104,6 +112,7 @@ const mockEditor = {
   getModel: vi.fn(() => mockModel),
   onDidChangeModelContent: vi.fn(() => ({ dispose: vi.fn() })),
   addCommand: vi.fn(),
+  updateOptions: vi.fn(),
 };
 
 describe('SpellcheckService', () => {
@@ -125,7 +134,7 @@ describe('SpellcheckService', () => {
     });
     
     // Mock fetch for both dictionary files
-    (global.fetch as any).mockImplementation((url: string) => {
+    (global.fetch as any).mockImplementation((_url: string) => {
       return Promise.resolve({
         ok: true,
         text: async () => 'dictionary content',
@@ -327,10 +336,10 @@ describe('SpellcheckService', () => {
       );
     });
 
-    it('should add word to nspell instance immediately', () => {
+    it('should treat added dictionary word as valid immediately', () => {
       spellcheckService.addToDictionary('newword');
       
-      expect(mockNspell.add).toHaveBeenCalledWith('newword');
+      expect(spellcheckService.checkWord('newword')).toBe(true);
     });
 
     it('should not add duplicate words', () => {

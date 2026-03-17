@@ -75,8 +75,7 @@ export function GrammarReviewModal() {
       return;
     }
     const newContent = applyFixToContent(activeTab.content, issue.fix);
-    // Reset cursor since grammar fix may change line positions
-    updateTabContent(activeTab.id, newContent, { resetCursor: true });
+    updateTabContent(activeTab.id, newContent, { source: 'external-replace' });
     goNext();
   };
 

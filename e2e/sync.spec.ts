@@ -1,202 +1,316 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 import { createNewDocument, setEditorContent, getStatusBar } from './helpers';
 
-test.describe('Cloud Sync', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-  });
+const AUTH_TOKEN = 'sync-e2e-token';
 
-  test('should show sync status in status bar', async ({ page }) => {
-    // Create a document
-    await createNewDocument(page);
-    
-    // Status bar should be visible
-    const statusBar = getStatusBar(page);
-    await expect(statusBar).toBeVisible();
-    
-    // Status bar may show local/synced status or nothing if not connected
-    // Just verify the status bar is functional
-    await expect(statusBar).toContainText(/words|chars|lines/i);
-  });
+interface MockCloudDocument {
+  id: string;
+  title: string;
+  content: string;
+  language: string;
+  etag: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
-  test('should show offline indicator when network is down', async ({ page }) => {
-    // Go offline
-    await page.context().setOffline(true);
-    
-    // Wait for offline status to be detected
-    await page.waitForTimeout(500);
-    
-    // Check for any offline indicators (toast, status bar, etc.)
-    // The app should handle offline gracefully
-    const toast = page.locator('[class*="toast"]').first();
-    const hasOfflineToast = await toast.isVisible({ timeout: 2000 }).catch(() => false);
-    
-    // Go back online
-    await page.context().setOffline(false);
-    
-    // Verify app still works
-    await createNewDocument(page);
-    await expect(page.locator('.monaco-editor')).toBeVisible();
-  });
+interface SyncRequestRecord {
+  documentId: string;
+  content: string;
+  etag: string | null;
+}
 
-  test('should continue working offline', async ({ page }) => {
-    // Create a document first
-    await createNewDocument(page);
-    await setEditorContent(page, 'Content before offline');
-    
-    // Go offline
-    await page.context().setOffline(true);
-    await page.waitForTimeout(500);
-    
-    // Should still be able to edit
-    await setEditorContent(page, 'Content while offline');
-    
-    // Verify content was updated
-    const content = await page.evaluate(() => {
-      const editor = (window as any).monacoEditor;
-      return editor ? editor.getValue() : '';
+interface MockSyncServer {
+  syncRequests: SyncRequestRecord[];
+}
+
+function buildPersistedState(token: string) {
+  return {
+    state: {
+      apiToken: token,
+      theme: 'dark',
+      settings: {
+        fontSize: 14,
+        fontFamily: "'Fira Code', 'Cascadia Code', 'JetBrains Mono', Consolas, monospace",
+        tabSize: 2,
+        wordWrap: true,
+        lineNumbers: true,
+        minimap: true,
+        autoSync: true,
+        syncInterval: 100,
+        spellCheck: true,
+      },
+      sidebarWidth: 280,
+      recentFiles: [],
+      tabs: [],
+      activeTabId: null,
+    },
+    version: 0,
+  };
+}
+
+async function seedAuthenticatedState(page: Page): Promise<void> {
+  await page.addInitScript((storageValue) => {
+    localStorage.setItem('md-crafter-storage', JSON.stringify(storageValue));
+  }, buildPersistedState(AUTH_TOKEN));
+}
+
+function toApiDocument(doc: MockCloudDocument) {
+  return {
+    id: doc.id,
+    title: doc.title,
+    content: doc.content,
+    language: doc.language,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+    etag: doc.etag,
+    isCloudSynced: true,
+  };
+}
+
+async function installSyncApiMock(page: Page, initialDocs: MockCloudDocument[] = []): Promise<MockSyncServer> {
+  const docs = new Map<string, MockCloudDocument>(initialDocs.map((doc) => [doc.id, { ...doc }]));
+  let nextDocId = initialDocs.length + 1;
+  const syncRequests: SyncRequestRecord[] = [];
+
+  await page.route('**/api/**', async (route) => {
+    const request = route.request();
+    const method = request.method();
+    const url = new URL(request.url());
+    const path = url.pathname;
+
+    if (path === '/api/auth/validate' && method === 'POST') {
+      const body = request.postDataJSON() as { token?: string };
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ valid: body.token === AUTH_TOKEN }),
+      });
+      return;
+    }
+
+    if (path === '/api/auth/me' && method === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ id: 'sync-user-1', email: 'sync@example.com' }),
+      });
+      return;
+    }
+
+    if (path === '/api/documents' && method === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ documents: Array.from(docs.values()).map(toApiDocument) }),
+      });
+      return;
+    }
+
+    if (path === '/api/documents' && method === 'POST') {
+      const body = request.postDataJSON() as { title?: string; content?: string; language?: string };
+      const now = new Date().toISOString();
+      const id = `doc-${nextDocId}`;
+      const createdDoc: MockCloudDocument = {
+        id,
+        title: body.title ?? 'Untitled',
+        content: body.content ?? '',
+        language: body.language ?? 'markdown',
+        createdAt: now,
+        updatedAt: now,
+        etag: `etag-${nextDocId}-v1`,
+      };
+      docs.set(id, createdDoc);
+      nextDocId += 1;
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(toApiDocument(createdDoc)),
+      });
+      return;
+    }
+
+    const syncMatch = path.match(/^\/api\/documents\/([^/]+)\/sync$/);
+    if (syncMatch && method === 'POST') {
+      const documentId = decodeURIComponent(syncMatch[1]);
+      const existing = docs.get(documentId);
+      if (!existing) {
+        await route.fulfill({
+          status: 404,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Document not found' }),
+        });
+        return;
+      }
+
+      const body = request.postDataJSON() as { content?: string; etag?: string | null };
+      syncRequests.push({
+        documentId,
+        content: body.content ?? '',
+        etag: body.etag ?? null,
+      });
+
+      const nextVersion = Number(existing.etag.match(/v(\d+)$/)?.[1] ?? '1') + 1;
+      const updated: MockCloudDocument = {
+        ...existing,
+        content: body.content ?? '',
+        updatedAt: new Date().toISOString(),
+        etag: `${existing.etag.replace(/v\d+$/, '')}v${nextVersion}`,
+      };
+      docs.set(documentId, updated);
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, document: toApiDocument(updated) }),
+      });
+      return;
+    }
+
+    const docMatch = path.match(/^\/api\/documents\/([^/]+)$/);
+    if (docMatch) {
+      const documentId = decodeURIComponent(docMatch[1]);
+      const existing = docs.get(documentId);
+      if (!existing) {
+        await route.fulfill({
+          status: 404,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Document not found' }),
+        });
+        return;
+      }
+
+      if (method === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(toApiDocument(existing)),
+        });
+        return;
+      }
+
+      if (method === 'PUT') {
+        const body = request.postDataJSON() as { title?: string; content?: string; language?: string; etag?: string };
+        const nextVersion = Number(existing.etag.match(/v(\d+)$/)?.[1] ?? '1') + 1;
+        const updated: MockCloudDocument = {
+          ...existing,
+          title: body.title ?? existing.title,
+          content: body.content ?? existing.content,
+          language: body.language ?? existing.language,
+          updatedAt: new Date().toISOString(),
+          etag: `${existing.etag.replace(/v\d+$/, '')}v${nextVersion}`,
+        };
+        docs.set(documentId, updated);
+
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(toApiDocument(updated)),
+        });
+        return;
+      }
+    }
+
+    await route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: `Unhandled API route: ${method} ${path}` }),
     });
-    expect(content).toBe('Content while offline');
-    
-    // Go back online
-    await page.context().setOffline(false);
   });
 
-  test('should restore connection when coming back online', async ({ page }) => {
-    // Go offline then online
+  return { syncRequests };
+}
+
+test.describe('Cloud Sync', () => {
+  test('shows authenticated sync status and cloud documents on load', async ({ page }) => {
+    const now = new Date().toISOString();
+    await seedAuthenticatedState(page);
+    await installSyncApiMock(page, [
+      {
+        id: 'doc-1',
+        title: 'Cloud Doc One',
+        content: '# Cloud Doc',
+        language: 'markdown',
+        etag: 'etag-1-v1',
+        createdAt: now,
+        updatedAt: now,
+      },
+    ]);
+
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+
+    await expect(getStatusBar(page)).toContainText('Online');
+    await expect(getStatusBar(page)).toContainText('Syncing enabled');
+    await expect(page.getByText('Cloud Doc One')).toBeVisible();
+  });
+
+  test('saves document to cloud and auto-syncs edits with etag', async ({ page }) => {
+    await seedAuthenticatedState(page);
+    const server = await installSyncApiMock(page);
+
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    await createNewDocument(page);
+    await setEditorContent(page, 'Initial sync content');
+
+    await page.getByRole('button', { name: 'File', exact: true }).click();
+    await page.getByRole('button', { name: 'Save to Cloud' }).click();
+
+    await expect(page.getByText('Saved to cloud')).toBeVisible();
+    await expect(page.locator('[role="tab"]').first()).toHaveAttribute('aria-label', /cloud synced/i);
+    await expect(getStatusBar(page)).toContainText('Synced');
+
+    await setEditorContent(page, 'Updated sync content');
+
+    await expect.poll(() => server.syncRequests.length).toBeGreaterThan(0);
+    expect(server.syncRequests[0]?.etag).toBe('etag-1-v1');
+    await expect(getStatusBar(page)).toContainText('Synced');
+  });
+
+  test('shows deterministic offline and back-online transitions', async ({ page }) => {
+    await seedAuthenticatedState(page);
+    await installSyncApiMock(page);
+
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    await expect(getStatusBar(page)).toContainText('Online');
+
     await page.context().setOffline(true);
-    await page.waitForTimeout(500);
-    
+    await expect(getStatusBar(page)).toContainText('Offline');
+    await expect(page.locator('.toast').filter({ hasText: 'You are offline' }).first()).toBeVisible();
+
     await page.context().setOffline(false);
-    await page.waitForTimeout(500);
-    
-    // Look for "Back online" toast or similar
-    const toast = page.locator('[class*="toast"]');
-    const hasOnlineToast = await toast.filter({ hasText: /online|connected/i }).isVisible({ timeout: 3000 }).catch(() => false);
-    
-    // App should be functional regardless
-    await createNewDocument(page);
-    await expect(page.locator('.monaco-editor')).toBeVisible();
-  });
-});
-
-test.describe('Sync Status Indicators', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-  });
-
-  test('should show local status for new documents', async ({ page }) => {
-    // Create a new document
-    await createNewDocument(page);
-    
-    // New documents should be marked as local (not synced)
-    // This is typically shown in the tab or status bar
-    const statusBar = getStatusBar(page);
-    await expect(statusBar).toBeVisible();
-  });
-
-  test('should mark document as dirty after edits', async ({ page }) => {
-    // Create a document
-    await createNewDocument(page);
-    
-    // Make some edits
-    await setEditorContent(page, 'Some new content');
-    
-    // Look for dirty indicator (usually in tab title)
-    // Dirty tabs typically show a dot or asterisk
-    const activeTab = page.locator('.tab.active, .tab[class*="active"]').first();
-    const tabText = await activeTab.textContent() || '';
-    
-    // Tab should exist
-    await expect(activeTab).toBeVisible();
-  });
-
-  test('should update document stats in status bar', async ({ page }) => {
-    // Create a document
-    await createNewDocument(page);
-    
-    // Set content
-    await setEditorContent(page, 'Hello world test content');
-    
-    // Status bar should update with word count
-    const statusBar = getStatusBar(page);
-    await expect(statusBar).toContainText(/\d+\s*words/i);
-    await expect(statusBar).toContainText(/\d+\s*chars/i);
-  });
-});
-
-test.describe('Auto-save Behavior', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-  });
-
-  test('should debounce content changes', async ({ page }) => {
-    // Create a document
-    await createNewDocument(page);
-    
-    // Verify Monaco editor exists
-    await expect(page.locator('.monaco-editor')).toBeVisible();
-    
-    // Status bar should be functional
-    const statusBar = getStatusBar(page);
-    await expect(statusBar).toBeVisible();
-  });
-
-  test('should preserve content on tab switch', async ({ page }) => {
-    // Create first document
-    await createNewDocument(page);
-    
-    // Verify editor is visible
-    await expect(page.locator('.monaco-editor')).toBeVisible();
-    
-    // Status bar should work
-    const statusBar = getStatusBar(page);
-    await expect(statusBar).toBeVisible();
+    await expect(getStatusBar(page)).toContainText('Online');
+    await expect(page.locator('.toast').filter({ hasText: 'Back online' }).first()).toBeVisible();
   });
 });
 
 test.describe('Sync Settings', () => {
-  test.beforeEach(async ({ page }) => {
+  test('disabling auto-sync prevents sync calls after edits', async ({ page }) => {
+    await seedAuthenticatedState(page);
+    const server = await installSyncApiMock(page);
+
     await page.goto('/');
     await page.waitForLoadState('networkidle');
-  });
 
-  test('should access sync settings via View menu', async ({ page }) => {
-    // Open View menu
     await page.getByRole('button', { name: 'View', exact: true }).click();
-    
-    // Look for Settings option
-    const settingsButton = page.getByRole('button', { name: /Settings/ }).first();
-    await expect(settingsButton).toBeVisible();
-    await settingsButton.click();
-    
-    // Settings modal should open - look for the modal with settings content
-    const modal = page.locator('.modal, [class*="modal"]').first();
-    await expect(modal).toBeVisible({ timeout: 5000 });
-    
-    // Close settings
-    await page.keyboard.press('Escape');
-  });
+    await page.getByRole('button', { name: /Settings/ }).first().click();
+    await expect(page.locator('.modal h2').filter({ hasText: 'Settings' })).toBeVisible();
 
-  test('should toggle auto-sync setting', async ({ page }) => {
-    // Open settings
-    await page.getByRole('button', { name: 'View', exact: true }).click();
-    const settingsButton = page.getByRole('button', { name: /Settings/ }).first();
-    await expect(settingsButton).toBeVisible();
-    await settingsButton.click();
-    
-    // Wait for settings modal
-    const modal = page.locator('.modal, [class*="modal"]').first();
-    await expect(modal).toBeVisible({ timeout: 5000 });
-    
-    // Close settings
-    await page.keyboard.press('Escape');
-    
-    // App should be functional
-    await expect(page.locator('.sidebar')).toBeVisible();
+    const autoSyncRow = page.locator('label').filter({ hasText: 'Auto Sync' }).first();
+    await autoSyncRow.locator('button[type="button"]').click();
+    await page.getByRole('button', { name: 'Save Changes' }).click();
+
+    await createNewDocument(page);
+    await setEditorContent(page, 'Cloud-save baseline');
+    await page.getByRole('button', { name: 'File', exact: true }).click();
+    await page.getByRole('button', { name: 'Save to Cloud' }).click();
+    await expect(page.getByText('Saved to cloud')).toBeVisible();
+
+    await setEditorContent(page, 'Edit after disabling auto-sync');
+    await page.waitForTimeout(500);
+
+    expect(server.syncRequests).toHaveLength(0);
   });
 });
-

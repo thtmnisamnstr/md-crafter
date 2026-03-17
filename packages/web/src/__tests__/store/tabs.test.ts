@@ -35,7 +35,7 @@ describe('Tabs Slice', () => {
     mockState = createMockState();
     mockSet = vi.fn();
     mockGet = vi.fn(() => mockState);
-    slice = createTabsSlice(mockSet, mockGet, {} as any);
+    slice = createTabsSlice(mockSet as any, mockGet as any, {} as any);
   });
 
   describe('Initial State', () => {
@@ -88,7 +88,7 @@ describe('Tabs Slice', () => {
 
       mockState = createMockState({ tabs: [existingTab] });
       mockGet.mockReturnValue(mockState);
-      slice = createTabsSlice(mockSet, mockGet, {} as any);
+      slice = createTabsSlice(mockSet as any, mockGet as any, {} as any);
 
       slice.openTab({ id: 'doc-123', title: 'Test', content: '' });
 
@@ -119,12 +119,12 @@ describe('Tabs Slice', () => {
   describe('closeTab', () => {
     it('should close a tab', () => {
       const tabs: Tab[] = [
-        { id: 'tab-1', title: 'Tab 1', isDirty: false } as Tab,
-        { id: 'tab-2', title: 'Tab 2', isDirty: false } as Tab,
+        { id: 'tab-1', title: 'Tab 1', isDirty: false } as unknown as Tab,
+        { id: 'tab-2', title: 'Tab 2', isDirty: false } as unknown as Tab,
       ];
       mockState = createMockState({ tabs, activeTabId: 'tab-1' });
       mockGet.mockReturnValue(mockState);
-      slice = createTabsSlice(mockSet, mockGet, {} as any);
+      slice = createTabsSlice(mockSet as any, mockGet as any, {} as any);
 
       slice.closeTab('tab-1');
 
@@ -133,11 +133,11 @@ describe('Tabs Slice', () => {
 
     it('should show confirmation for dirty tabs', () => {
       const tabs: Tab[] = [
-        { id: 'tab-1', title: 'Tab 1', isDirty: true } as Tab,
+        { id: 'tab-1', title: 'Tab 1', isDirty: true } as unknown as Tab,
       ];
       mockState = createMockState({ tabs, activeTabId: 'tab-1' });
       mockGet.mockReturnValue(mockState);
-      slice = createTabsSlice(mockSet, mockGet, {} as any);
+      slice = createTabsSlice(mockSet as any, mockGet as any, {} as any);
 
       slice.closeTab('tab-1');
 
@@ -148,11 +148,11 @@ describe('Tabs Slice', () => {
   describe('setActiveTab', () => {
     it('should set active tab', () => {
       const tabs: Tab[] = [
-        { id: 'tab-1', title: 'Tab 1', showPreview: true, cursor: { line: 5, column: 10 } } as Tab,
+        { id: 'tab-1', title: 'Tab 1', showPreview: true, cursor: { line: 5, column: 10 } } as unknown as Tab,
       ];
       mockState = createMockState({ tabs });
       mockGet.mockReturnValue(mockState);
-      slice = createTabsSlice(mockSet, mockGet, {} as any);
+      slice = createTabsSlice(mockSet as any, mockGet as any, {} as any);
 
       slice.setActiveTab('tab-1');
 
@@ -163,11 +163,11 @@ describe('Tabs Slice', () => {
   describe('updateTabContent', () => {
     it('should update tab content and mark as dirty', () => {
       const tabs: Tab[] = [
-        { id: 'tab-1', title: 'Tab 1', content: 'Original', isDirty: false, undoStack: [] } as Tab,
+        { id: 'tab-1', title: 'Tab 1', content: 'Original', isDirty: false, undoStack: [] } as unknown as Tab,
       ];
       mockState = createMockState({ tabs });
       mockGet.mockReturnValue(mockState);
-      slice = createTabsSlice(mockSet, mockGet, {} as any);
+      slice = createTabsSlice(mockSet as any, mockGet as any, {} as any);
 
       slice.updateTabContent('tab-1', 'Updated content');
 
@@ -181,11 +181,11 @@ describe('Tabs Slice', () => {
 
     it('should skip history when skipHistory option is true', () => {
       const tabs: Tab[] = [
-        { id: 'tab-1', title: 'Tab 1', content: 'Original', undoStack: ['prev'] } as Tab,
+        { id: 'tab-1', title: 'Tab 1', content: 'Original', undoStack: ['prev'] } as unknown as Tab,
       ];
       mockState = createMockState({ tabs });
       mockGet.mockReturnValue(mockState);
-      slice = createTabsSlice(mockSet, mockGet, {} as any);
+      slice = createTabsSlice(mockSet as any, mockGet as any, {} as any);
 
       slice.updateTabContent('tab-1', 'Updated', { skipHistory: true });
 
@@ -196,7 +196,7 @@ describe('Tabs Slice', () => {
       expect(result.tabs[0].undoStack).toEqual(['prev']);
     });
 
-    it('should reset cursor and selection when resetCursor option is true', () => {
+    it('should reset cursor and selection when source is external-replace', () => {
       const tabs: Tab[] = [
         {
           id: 'tab-1',
@@ -204,13 +204,13 @@ describe('Tabs Slice', () => {
           content: 'Original',
           cursor: { line: 10, column: 5 },
           selection: { startLine: 10, startColumn: 1, endLine: 10, endColumn: 10 },
-        } as Tab,
+        } as unknown as Tab,
       ];
       mockState = createMockState({ tabs });
       mockGet.mockReturnValue(mockState);
-      slice = createTabsSlice(mockSet, mockGet, {} as any);
+      slice = createTabsSlice(mockSet as any, mockGet as any, {} as any);
 
-      slice.updateTabContent('tab-1', 'Updated content', { resetCursor: true });
+      slice.updateTabContent('tab-1', 'Updated content', { source: 'external-replace' });
 
       const setFn = mockSet.mock.calls[0][0];
       const result = setFn({ tabs });
@@ -220,7 +220,7 @@ describe('Tabs Slice', () => {
       expect(result.tabs[0].selection).toBeNull();
     });
 
-    it('should preserve cursor and selection when resetCursor is not set', () => {
+    it('should preserve cursor and selection for user edits', () => {
       const tabs: Tab[] = [
         {
           id: 'tab-1',
@@ -228,13 +228,13 @@ describe('Tabs Slice', () => {
           content: 'Original',
           cursor: { line: 10, column: 5 },
           selection: { startLine: 10, startColumn: 1, endLine: 10, endColumn: 10 },
-        } as Tab,
+        } as unknown as Tab,
       ];
       mockState = createMockState({ tabs });
       mockGet.mockReturnValue(mockState);
-      slice = createTabsSlice(mockSet, mockGet, {} as any);
+      slice = createTabsSlice(mockSet as any, mockGet as any, {} as any);
 
-      slice.updateTabContent('tab-1', 'Updated content');
+      slice.updateTabContent('tab-1', 'Updated content', { source: 'user-edit' });
 
       const setFn = mockSet.mock.calls[0][0];
       const result = setFn({ tabs });
@@ -248,11 +248,11 @@ describe('Tabs Slice', () => {
   describe('updateTabLanguage', () => {
     it('should update tab language', () => {
       const tabs: Tab[] = [
-        { id: 'tab-1', language: 'markdown' } as Tab,
+        { id: 'tab-1', language: 'markdown' } as unknown as Tab,
       ];
       mockState = createMockState({ tabs });
       mockGet.mockReturnValue(mockState);
-      slice = createTabsSlice(mockSet, mockGet, {} as any);
+      slice = createTabsSlice(mockSet as any, mockGet as any, {} as any);
 
       slice.updateTabLanguage('tab-1', 'javascript');
 
@@ -267,13 +267,13 @@ describe('Tabs Slice', () => {
   describe('reorderTabs', () => {
     it('should reorder tabs by moving from one index to another', () => {
       const tabs: Tab[] = [
-        { id: 'tab-1' } as Tab,
-        { id: 'tab-2' } as Tab,
-        { id: 'tab-3' } as Tab,
+        { id: 'tab-1' } as unknown as Tab,
+        { id: 'tab-2' } as unknown as Tab,
+        { id: 'tab-3' } as unknown as Tab,
       ];
       mockState = createMockState({ tabs });
       mockGet.mockReturnValue(mockState);
-      slice = createTabsSlice(mockSet, mockGet, {} as any);
+      slice = createTabsSlice(mockSet as any, mockGet as any, {} as any);
 
       // Move tab from index 0 to index 2
       slice.reorderTabs(0, 2);
@@ -290,14 +290,64 @@ describe('Tabs Slice', () => {
     });
   });
 
-  describe('setTabPreviewRatio', () => {
-    it('should set preview pane ratio', () => {
+  describe('renameTab', () => {
+    it('renames unsaved tabs', () => {
       const tabs: Tab[] = [
-        { id: 'tab-1', previewPaneRatio: undefined } as Tab,
+        { id: 'tab-1', title: 'Untitled', documentId: null, path: undefined } as unknown as Tab,
       ];
       mockState = createMockState({ tabs });
       mockGet.mockReturnValue(mockState);
-      slice = createTabsSlice(mockSet, mockGet, {} as any);
+      slice = createTabsSlice(mockSet as any, mockGet as any, {} as any);
+
+      slice.renameTab('tab-1', '  Notes  ');
+
+      const setFn = mockSet.mock.calls[0][0];
+      const result = setFn({ tabs });
+      expect(result.tabs[0].title).toBe('Notes');
+      expect(result.tabs[0].customTitle).toBe('Notes');
+    });
+
+    it('falls back to Untitled for empty names', () => {
+      const tabs: Tab[] = [
+        { id: 'tab-1', title: 'Untitled', documentId: null, path: undefined } as unknown as Tab,
+      ];
+      mockState = createMockState({ tabs });
+      mockGet.mockReturnValue(mockState);
+      slice = createTabsSlice(mockSet as any, mockGet as any, {} as any);
+
+      slice.renameTab('tab-1', '   ');
+
+      const setFn = mockSet.mock.calls[0][0];
+      const result = setFn({ tabs });
+      expect(result.tabs[0].title).toBe('Untitled');
+      expect(result.tabs[0].customTitle).toBe('Untitled');
+    });
+
+    it('does not rename saved tabs', () => {
+      const tabs: Tab[] = [
+        { id: 'tab-1', title: 'saved.md', documentId: 'doc-1' } as unknown as Tab,
+      ];
+      mockState = createMockState({ tabs });
+      mockGet.mockReturnValue(mockState);
+      slice = createTabsSlice(mockSet as any, mockGet as any, {} as any);
+
+      slice.renameTab('tab-1', 'New Name');
+
+      const setFn = mockSet.mock.calls[0][0];
+      const result = setFn({ tabs });
+      expect(result.tabs[0].title).toBe('saved.md');
+      expect(result.tabs[0].customTitle).toBeUndefined();
+    });
+  });
+
+  describe('setTabPreviewRatio', () => {
+    it('should set preview pane ratio', () => {
+      const tabs: Tab[] = [
+        { id: 'tab-1', previewPaneRatio: undefined } as unknown as Tab,
+      ];
+      mockState = createMockState({ tabs });
+      mockGet.mockReturnValue(mockState);
+      slice = createTabsSlice(mockSet as any, mockGet as any, {} as any);
 
       slice.setTabPreviewRatio('tab-1', 0.4);
 
@@ -312,11 +362,11 @@ describe('Tabs Slice', () => {
   describe('setTabCursor', () => {
     it('should set tab cursor position', () => {
       const tabs: Tab[] = [
-        { id: 'tab-1', cursor: null } as Tab,
+        { id: 'tab-1', cursor: null } as unknown as Tab,
       ];
       mockState = createMockState({ tabs });
       mockGet.mockReturnValue(mockState);
-      slice = createTabsSlice(mockSet, mockGet, {} as any);
+      slice = createTabsSlice(mockSet as any, mockGet as any, {} as any);
 
       slice.setTabCursor('tab-1', { line: 10, column: 5 });
 
@@ -331,11 +381,11 @@ describe('Tabs Slice', () => {
   describe('markTabSaved', () => {
     it('should mark tab as having a saved version', () => {
       const tabs: Tab[] = [
-        { id: 'tab-1', content: 'Current', isDirty: true, savedContent: 'Old', hasSavedVersion: false } as Tab,
+        { id: 'tab-1', content: 'Current', isDirty: true, savedContent: 'Old', hasSavedVersion: false } as unknown as Tab,
       ];
       mockState = createMockState({ tabs });
       mockGet.mockReturnValue(mockState);
-      slice = createTabsSlice(mockSet, mockGet, {} as any);
+      slice = createTabsSlice(mockSet as any, mockGet as any, {} as any);
 
       slice.markTabSaved('tab-1');
 
@@ -359,11 +409,11 @@ describe('Tabs Slice', () => {
           hasSavedVersion: true,
           undoStack: ['old1', 'old2'],
           redoStack: ['redo1'],
-        } as Tab,
+        } as unknown as Tab,
       ];
       mockState = createMockState({ tabs });
       mockGet.mockReturnValue(mockState);
-      slice = createTabsSlice(mockSet, mockGet, {} as any);
+      slice = createTabsSlice(mockSet as any, mockGet as any, {} as any);
 
       slice.revertToSaved('tab-1');
 
@@ -385,11 +435,11 @@ describe('Tabs Slice', () => {
           savedContent: '',
           isDirty: true,
           hasSavedVersion: false,
-        } as Tab,
+        } as unknown as Tab,
       ];
       mockState = createMockState({ tabs });
       mockGet.mockReturnValue(mockState);
-      slice = createTabsSlice(mockSet, mockGet, {} as any);
+      slice = createTabsSlice(mockSet as any, mockGet as any, {} as any);
 
       slice.revertToSaved('tab-1');
 
@@ -405,11 +455,11 @@ describe('Tabs Slice', () => {
           savedContent: 'Clean content',
           isDirty: false,
           hasSavedVersion: true,
-        } as Tab,
+        } as unknown as Tab,
       ];
       mockState = createMockState({ tabs });
       mockGet.mockReturnValue(mockState);
-      slice = createTabsSlice(mockSet, mockGet, {} as any);
+      slice = createTabsSlice(mockSet as any, mockGet as any, {} as any);
 
       slice.revertToSaved('tab-1');
 
@@ -418,4 +468,3 @@ describe('Tabs Slice', () => {
     });
   });
 });
-

@@ -3,8 +3,6 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { logger } from '@md-crafter/shared';
 import { api as apiService } from '../services/api';
 import { syncService } from '../services/sync';
-import { copyAsRichText, pasteAsMarkdown } from '../services/clipboard';
-import { importDocx } from '../services/docx';
 import { MAX_RECENT_FILES } from '../constants';
 import { AppState, Tab } from './types';
 import { createTabsSlice } from './tabs';
@@ -14,6 +12,8 @@ import { createDocumentsSlice } from './documents';
 import { createAuthSlice } from './auth';
 import { createSyncSlice } from './sync';
 import { createSettingsSlice } from './settings';
+import { isElectron } from '../utils/platform';
+import { GrammarService } from '../services/grammar';
 
 // Create a storage adapter that safely accesses localStorage
 // This prevents errors when localStorage is not available (e.g., in tests with jsdom)
@@ -110,7 +110,6 @@ export const useStore = create<AppState>()(
         
         // Restore persisted tabs
         if (persistedTabs && persistedTabs.length > 0) {
-          const { isElectron } = await import('../utils/platform');
           const restoredTabs: Tab[] = [];
           let restoredActiveTabId: string | null = persistedActiveTabId;
           
@@ -128,6 +127,8 @@ export const useStore = create<AppState>()(
                       ...persistedTab,
                       content: persistedTab.isDirty ? persistedTab.content : result.content,
                       savedContent: persistedTab.isDirty ? persistedTab.savedContent : result.content,
+                      etag: persistedTab.etag ?? null,
+                      customTitle: persistedTab.customTitle,
                       showPreview: persistedTab.showPreview ?? false,
                       undoStack: persistedTab.undoStack || [],
                       redoStack: persistedTab.redoStack || [],
@@ -160,6 +161,8 @@ export const useStore = create<AppState>()(
                   // Use persisted content if dirty (unsaved changes), otherwise use cloud content
                   content: persistedTab.isDirty ? persistedTab.content : doc.content,
                   savedContent: persistedTab.isDirty ? persistedTab.savedContent : doc.content,
+                  etag: persistedTab.isDirty ? (persistedTab.etag ?? doc.etag) : doc.etag,
+                  customTitle: persistedTab.customTitle,
                   showPreview: persistedTab.showPreview ?? false,
                   splitMode: persistedTab.splitMode ?? 'none',
                   diffMode: persistedTab.diffMode ?? { enabled: false, compareWithSaved: false },
@@ -185,6 +188,8 @@ export const useStore = create<AppState>()(
               // Local file without path (web) - restore from persisted content
               restoredTabs.push({
                 ...(persistedTab as Tab),
+                etag: persistedTab.etag ?? null,
+                customTitle: persistedTab.customTitle,
                 showPreview: persistedTab.showPreview ?? false,
                 splitMode: persistedTab.splitMode ?? 'none',
                 diffMode: persistedTab.diffMode ?? { enabled: false, compareWithSaved: false },
@@ -231,6 +236,7 @@ export const useStore = create<AppState>()(
         if (!activeTab) return;
         
         try {
+          const { copyAsRichText } = await import('../services/clipboard');
           await copyAsRichText(activeTab.content);
           addToast({ type: 'success', message: 'Copied for Word/Docs' });
         } catch (error) {
@@ -280,6 +286,7 @@ export const useStore = create<AppState>()(
         }
 
         try {
+          const { pasteAsMarkdown } = await import('../services/clipboard');
           const markdown = await pasteAsMarkdown();
           if (markdown) {
             // Insert at cursor position or append
@@ -329,21 +336,41 @@ export const useStore = create<AppState>()(
                 }
               }
 
+              if (!rangeToUse) {
+                const model = editor.getModel();
+                if (model) {
+                  const lastLine = model.getLineCount();
+                  const lastColumn = model.getLineMaxColumn(lastLine);
+                  rangeToUse = {
+                    startLineNumber: lastLine,
+                    startColumn: lastColumn,
+                    endLineNumber: lastLine,
+                    endColumn: lastColumn,
+                  };
+                }
+              }
+
               if (rangeToUse) {
                 editor.executeEdits('paste', [{
                   range: rangeToUse,
                   text: markdown,
                   forceMoveMarkers: true,
                 }]);
-                editor.pushUndoStop();
-              } else {
-                // Append to content
-                updateTabContent(activeTabId, activeTab.content + '\n' + markdown);
               }
             } else {
               updateTabContent(activeTabId, activeTab.content + '\n' + markdown);
             }
             addToast({ type: 'success', message: 'Pasted from Word/Docs' });
+            // Keep editor focus so undo works immediately after paste.
+            if (editor) {
+              setTimeout(() => {
+                try {
+                  editor.focus();
+                } catch {
+                  // Ignore focus failures for disposed editors.
+                }
+              }, 0);
+            }
           }
         } catch (error) {
           addToast({ type: 'error', message: 'Failed to paste' });
@@ -357,6 +384,7 @@ export const useStore = create<AppState>()(
       importDocxFile: async (file: File) => {
         const { openTab, addToast } = get();
         try {
+          const { importDocx } = await import('../services/docx');
           const markdown = await importDocx(file);
           const title = file.name.replace(/\.docx$/i, '.md');
           openTab({
@@ -427,11 +455,11 @@ export const useStore = create<AppState>()(
       },
       
       /**
-       * Checks grammar of the active document using textlint
-       * 
+       * Checks grammar of the active document using a browser-safe worker analyzer.
+       *
        * Shows grammar issues as Monaco markers and code actions.
        * Grammar checking runs in a web worker to avoid blocking the UI.
-       * 
+       *
        * @param options - Optional editor, monaco, and grammarService instances. If not provided, operation will fail.
        * @returns Promise that resolves when grammar check is complete
        */
@@ -473,8 +501,7 @@ export const useStore = create<AppState>()(
           }
           
           if (!grammarService) {
-            // Create and initialize if not exists
-            const { GrammarService } = await import('../services/grammar');
+            // Create and initialize if not provided
             grammarService = new GrammarService();
           }
           await grammarService.initialize(monaco, editor);
@@ -537,6 +564,7 @@ export const useStore = create<AppState>()(
             id: tab.id,
             documentId: tab.documentId,
             title: tab.title,
+            customTitle: tab.customTitle,
             content: tab.content, // Persist content for unsaved changes
             splitMode: tab.splitMode,
             diffMode: tab.diffMode,
@@ -549,6 +577,7 @@ export const useStore = create<AppState>()(
             isDirty: tab.isDirty,
             syncStatus: tab.syncStatus,
             isCloudSynced: tab.isCloudSynced,
+            etag: tab.etag ?? null,
             savedContent: tab.savedContent,
             hasSavedVersion: tab.hasSavedVersion ?? false,
             path: tab.path, // Persist file path for desktop

@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef } from 'react';
+import { useMemo, useEffect, useRef, useState } from 'react';
 import { DiffEditor, type DiffOnMount } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
 import { useStore } from '../store';
@@ -37,12 +37,17 @@ export function SimpleDiffEditor({
   const { registerDiffEditor, unregisterDiffEditor } = useEditorContext();
   const editorRef = useRef<monaco.editor.IDiffEditor | null>(null);
   const modelListenersCleanupRef = useRef<(() => void) | null>(null);
+  const lastContentSessionKeyRef = useRef<string | null>(null);
+  const [stableEditableContent, setStableEditableContent] = useState(() => ({
+    original: originalContent,
+    modified: modifiedContent,
+  }));
   
-  // Debounced content update function - resets cursor since edits in diff view
-  // may invalidate stored cursor position when the document is viewed normally
+  // Debounced content update from active typing in diff panes.
+  // This is always a user edit; do not reset cursor/selection state.
   const debouncedUpdate = useMemo(
     () => debounce((tabId: string, content: string) => {
-      updateTabContent(tabId, content, { resetCursor: true });
+      updateTabContent(tabId, content, { source: 'user-edit' });
     }, EDITOR_DEBOUNCE_DELAY_MS),
     [updateTabContent]
   );
@@ -80,6 +85,24 @@ export function SimpleDiffEditor({
       renderOverviewRuler: true,
     };
   }, [settings.fontSize, settings.fontFamily, settings.lineNumbers, settings.wordWrap, editable, originalEditable, viewMode]);
+
+  const contentSessionKey = useMemo(() => {
+    if (diffMode.compareWithSaved) {
+      return `saved:${activeTabId || ''}`;
+    }
+    return `files:${diffMode.leftTabId || ''}:${diffMode.rightTabId || ''}`;
+  }, [diffMode.compareWithSaved, diffMode.leftTabId, diffMode.rightTabId, activeTabId]);
+
+  useEffect(() => {
+    if (lastContentSessionKeyRef.current === contentSessionKey) {
+      return;
+    }
+    lastContentSessionKeyRef.current = contentSessionKey;
+    setStableEditableContent({
+      original: originalContent,
+      modified: modifiedContent,
+    });
+  }, [contentSessionKey, originalContent, modifiedContent]);
 
   // Helper function to set up content change listeners when models are ready
   const setupContentListeners = (diffEditor: monaco.editor.IDiffEditor, retryCount = 0) => {
@@ -211,8 +234,8 @@ export function SimpleDiffEditor({
   return (
     <div className="h-full w-full">
       <DiffEditor
-        original={originalContent}
-        modified={modifiedContent}
+        original={originalEditable ? stableEditableContent.original : originalContent}
+        modified={editable ? stableEditableContent.modified : modifiedContent}
         language={language}
         theme={monacoTheme}
         onMount={handleDiffEditorMount}

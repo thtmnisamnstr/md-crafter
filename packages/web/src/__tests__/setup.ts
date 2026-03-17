@@ -2,6 +2,7 @@
 // Uses standard @testing-library/jest-dom/vitest import which handles everything automatically
 
 import { vi } from 'vitest';
+import { Window } from 'happy-dom';
 
 // Mock supplementary dictionaries - the actual module uses dynamic imports
 // that may fail in test environment, so we provide a simple mock
@@ -32,7 +33,6 @@ vi.mock('../data/supplementary-dictionaries', () => ({
 if (typeof document === 'undefined') {
   // Try to import and initialize happy-dom manually
   try {
-    const { Window } = require('happy-dom');
     const window = new Window();
     (globalThis as any).window = window;
     (globalThis as any).document = window.document;
@@ -159,6 +159,23 @@ if (typeof window !== 'undefined' && window.navigator) {
       write: vi.fn().mockResolvedValue(undefined),
       read: vi.fn().mockResolvedValue([]),
     },
+    writable: true,
+    configurable: true,
+  });
+}
+
+// Mock requestAnimationFrame/cancelAnimationFrame for Monaco and editor effects
+if (typeof globalThis.requestAnimationFrame === 'undefined') {
+  Object.defineProperty(globalThis, 'requestAnimationFrame', {
+    value: (callback: FrameRequestCallback) => setTimeout(() => callback(Date.now()), 0),
+    writable: true,
+    configurable: true,
+  });
+}
+
+if (typeof globalThis.cancelAnimationFrame === 'undefined') {
+  Object.defineProperty(globalThis, 'cancelAnimationFrame', {
+    value: (id: number) => clearTimeout(id),
     writable: true,
     configurable: true,
   });

@@ -1,8 +1,13 @@
 import { StateCreator } from 'zustand';
 import { Document } from '@md-crafter/shared';
-import { Tab, AppState } from './types';
+import { Tab, AppState, UpdateTabContentOptions } from './types';
 import { generateId } from './utils';
 import { isElectron } from '../utils/platform';
+
+const getFilenameFromPath = (path: string): string => {
+  const parts = path.split(/[\\/]/).filter(Boolean);
+  return parts[parts.length - 1] || path;
+};
 
 export interface TabsSlice {
   tabs: Tab[];
@@ -12,9 +17,10 @@ export interface TabsSlice {
   openTab: (doc: Partial<Document> & { id?: string; title: string; content: string; path?: string }) => void;
   closeTab: (tabId: string) => void;
   setActiveTab: (tabId: string) => void;
-  updateTabContent: (tabId: string, content: string, options?: { skipHistory?: boolean; resetCursor?: boolean }) => void;
+  updateTabContent: (tabId: string, content: string, options?: UpdateTabContentOptions) => void;
   updateTabLanguage: (tabId: string, language: string) => void;
   updateTabPath: (tabId: string, path: string) => void;
+  renameTab: (tabId: string, title: string) => void;
   reorderTabs: (fromIndex: number, toIndex: number) => void;
   setTabPreviewRatio: (tabId: string, ratio: number) => void;
   setTabSplitState: (tabId: string, options: { secondaryTabId?: string | null; ratio?: number }) => void;
@@ -118,16 +124,19 @@ export const createTabsSlice: StateCreator<AppState, [], [], TabsSlice> = (set, 
     }
 
     const tabId = generateId();
+    const isSavedTab = Boolean(doc.id || doc.path);
     const newTab: Tab = {
       id: tabId,
       documentId: doc.id || null,
       title: doc.title || 'Untitled',
+      customTitle: !isSavedTab ? (doc.title || 'Untitled') : undefined,
       content: doc.content || '',
       showPreview: false,
       language: doc.language || 'markdown',
       isDirty: false,
       syncStatus: doc.id ? 'synced' : 'local',
       isCloudSynced: !!doc.id,
+      etag: doc.etag ?? null,
       savedContent: doc.content || '',
       hasSavedVersion: !!doc.id || !!doc.path,
       path: doc.path,
@@ -227,8 +236,9 @@ export const createTabsSlice: StateCreator<AppState, [], [], TabsSlice> = (set, 
                 ? tab.undoStack || []
                 : [...(tab.undoStack || []), tab.content].slice(-50),
             redoStack: options?.skipHistory || content === tab.content ? tab.redoStack || [] : [],
-            // Reset cursor/selection when content changes externally (diff view, revert, etc.)
-            ...(options?.resetCursor ? {
+            lastContentSource: options?.source ?? 'user-edit',
+            // Cursor/selection reset is only for external replacements, never active typing
+            ...(options?.source === 'external-replace' ? {
               cursor: { line: 1, column: 1 },
               selection: null
             } : {}),
@@ -254,17 +264,46 @@ export const createTabsSlice: StateCreator<AppState, [], [], TabsSlice> = (set, 
   },
 
   updateTabPath: (tabId, path) => {
+    const filename = getFilenameFromPath(path);
     set((state) => ({
       tabs: state.tabs.map((tab) =>
-        tab.id === tabId ? { ...tab, path } : tab
+        tab.id === tabId
+          ? { ...tab, path, title: filename, customTitle: undefined, hasSavedVersion: true }
+          : tab
       ),
+    }));
+  },
+
+  renameTab: (tabId, title) => {
+    const normalized = title.trim() || 'Untitled';
+    set((state) => ({
+      tabs: state.tabs.map((tab) => {
+        if (tab.id !== tabId) return tab;
+        // Saved tabs are filename/title-driven; only unsaved tabs are renameable.
+        if (tab.documentId || tab.path) return tab;
+        return {
+          ...tab,
+          title: normalized,
+          customTitle: normalized,
+        };
+      }),
     }));
   },
 
   reorderTabs: (fromIndex, toIndex) => {
     set((state) => {
+      if (
+        fromIndex < 0 ||
+        toIndex < 0 ||
+        fromIndex >= state.tabs.length ||
+        toIndex >= state.tabs.length ||
+        fromIndex === toIndex
+      ) {
+        return state;
+      }
       const newTabs = [...state.tabs];
       const [removed] = newTabs.splice(fromIndex, 1);
+      if (!removed) return state;
       newTabs.splice(toIndex, 0, removed);
       return { tabs: newTabs };
     });

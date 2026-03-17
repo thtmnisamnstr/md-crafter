@@ -205,7 +205,7 @@ describe('useEditorSelection', () => {
       
       const selectionDisposable = editorWithListeners.onDidChangeCursorSelection();
       const model = editorWithListeners.getModel();
-      const contentDisposable = model?.onDidChangeContent();
+      const contentDisposable = model?.onDidChangeContent(() => {});
       
       selectionDisposable.dispose();
       contentDisposable?.dispose();

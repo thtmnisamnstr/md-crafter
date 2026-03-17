@@ -43,7 +43,7 @@ describe('UI Slice', () => {
   beforeEach(() => {
     mockSet = vi.fn();
     mockGet = vi.fn(() => createMockState());
-    slice = createUISlice(mockSet, mockGet, {} as any);
+    slice = createUISlice(mockSet as any, mockGet as any, {} as any);
   });
 
   describe('Initial State', () => {
@@ -247,7 +247,7 @@ describe('UI Slice', () => {
         activeTabId: 'tab-1',
       }));
       
-      slice = createUISlice(mockSet, mockGet, {} as any);
+      slice = createUISlice(mockSet as any, mockGet as any, {} as any);
       slice.setDiffMode(true, 'tab-1', 'tab-2', false, 'side-by-side');
       
       expect(mockSet).toHaveBeenCalledWith(expect.any(Function));

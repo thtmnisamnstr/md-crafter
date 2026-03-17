@@ -567,11 +567,11 @@ Services use consistent error handling patterns:
 - Fallback handling for browser compatibility
 
 ### Grammar Service (`services/grammar.ts`)
-- Textlint integration via dedicated web worker (`workers/textlint.worker.ts`)
+- Browser-safe grammar analysis via dedicated web worker (`workers/grammar.worker.ts`)
 - Runs in background thread to avoid blocking UI
 - Monaco marker creation for grammar issues
 - Code action provider for fixes
-- Uses `vitePluginTextlint()` for browser bundling with Node.js polyfills
+- No Node.js polyfills required in the web bundle
 
 ### Spellcheck Service (`services/spellcheck.ts`)
 - Monaco spellchecker integration using nspell (Hunspell-compatible)
@@ -874,7 +874,7 @@ sequenceDiagram
 
 - **Unit Tests**: Vitest for store actions, utilities, services
 - **Component Tests**: React Testing Library for UI components
-- **Test Environment**: happy-dom (faster than jsdom for DOM simulation)
+- **Test Environment**: package-split Vitest workspace (`node` for shared/server, `happy-dom` for web)
 - **E2E Tests**: Playwright for critical user flows across browsers
 - **Test Coverage**: Focus on business logic, state management, and critical paths
 
@@ -886,6 +886,7 @@ sequenceDiagram
 | `conflict.spec.ts` | Sync conflict detection and resolution |
 | `editor.spec.ts` | Core editor functionality (typing, saving, tabs) |
 | `paste.spec.ts` | Clipboard paste handling (rich text, plain text) |
+| `remediation.spec.ts` | Regression coverage for paste undo, tab reorder/rename, diff typing stability, grammar checks |
 | `statusbar.spec.ts` | Status bar display (cursor position, word count) |
 | `sync.spec.ts` | Document synchronization with server |
 | `helpers.ts` | Shared test utilities and fixtures |
@@ -904,4 +905,3 @@ sequenceDiagram
 - **Plugin System**: Extensible editor features via plugin API
 - **Collaboration**: Enhanced real-time collaboration features
 - **Mobile Support**: React Native wrapper for mobile apps
-

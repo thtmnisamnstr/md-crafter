@@ -11,6 +11,7 @@ import { useStore } from '../store';
 class SyncService {
   private socket: Socket | null = null;
   private subscribedDocuments: Set<string> = new Set();
+  private wsDisabled = import.meta.env.VITE_DISABLE_SYNC_WS === '1';
 
   /**
    * Connects to the WebSocket server and sets up event handlers
@@ -22,6 +23,10 @@ class SyncService {
    * @param token - API token for authentication
    */
   connect(token: string) {
+    if (this.wsDisabled) {
+      return;
+    }
+
     if (this.socket?.connected) {
       return;
     }
@@ -63,6 +68,7 @@ class SyncService {
           remoteContent: '', // Will be fetched
           localTimestamp: Date.now(),
           remoteTimestamp: new Date(data.updatedAt).getTime(),
+          remoteEtag: data.etag,
         });
       } else if (tab) {
         // No local changes, auto-update
@@ -177,4 +183,3 @@ class SyncService {
 }
 
 export const syncService = new SyncService();
-

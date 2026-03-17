@@ -190,11 +190,11 @@ export function MenuBar() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const { getActiveEditor, primaryMonaco, grammarService } = useEditorContext();
+  const { getActiveEditor, executeEditorCommand, primaryMonaco, grammarService } = useEditorContext();
 
   // Get menu items from sub-components
   const fileMenuItems = getFileMenuItems();
-  const editMenuItems = getEditMenuItems({ getActiveEditor, primaryMonaco, grammarService });
+  const editMenuItems = getEditMenuItems({ getActiveEditor, executeEditorCommand, primaryMonaco, grammarService });
   const viewMenuItems = getViewMenuItems();
   const helpMenuItems = getHelpMenuItems();
 
@@ -235,4 +235,3 @@ export function MenuBar() {
     </div>
   );
 }
-

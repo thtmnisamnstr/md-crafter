@@ -126,6 +126,8 @@ describe('useElectronMenu', () => {
       onMenuDiffExit: vi.fn(() => mockCleanup),
       onMenuCopyForWord: vi.fn(() => mockCleanup),
       onMenuPasteFromWord: vi.fn(() => mockCleanup),
+      onMenuUndo: vi.fn(() => mockCleanup),
+      onMenuRedo: vi.fn(() => mockCleanup),
       onMenuExportPdf: vi.fn(() => mockCleanup),
       onMenuExportWord: vi.fn(() => mockCleanup),
       onMenuExportHtml: vi.fn(() => mockCleanup),
@@ -152,6 +154,8 @@ describe('useElectronMenu', () => {
     expect(mockApi.onMenuNewFile).toHaveBeenCalled();
     expect(mockApi.onMenuSave).toHaveBeenCalled();
     expect(mockApi.onMenuSaveToCloud).toHaveBeenCalled();
+    expect(mockApi.onMenuUndo).toHaveBeenCalled();
+    expect(mockApi.onMenuRedo).toHaveBeenCalled();
 
     // Unmount should clean up
     unmount();
@@ -190,5 +194,40 @@ describe('useElectronMenu', () => {
       }, 10);
     });
   });
-});
 
+  it('should route menu undo/redo through executeEditorCommand', () => {
+    vi.mocked(platformUtils.isElectron).mockReturnValue(true);
+
+    let undoHandler: (() => void) | undefined;
+    let redoHandler: (() => void) | undefined;
+    const executeEditorCommand = vi.fn(() => true);
+
+    const mockApi = {
+      onMenuUndo: vi.fn((callback) => {
+        undoHandler = callback;
+        return vi.fn();
+      }),
+      onMenuRedo: vi.fn((callback) => {
+        redoHandler = callback;
+        return vi.fn();
+      }),
+    };
+
+    global.window.api = mockApi as any;
+
+    const mockEditor = createMockEditor();
+    renderHook(() => useElectronMenu(), {
+      wrapper: ({ children }) => (
+        <MockEditorContextProvider primaryEditor={mockEditor} executeEditorCommand={executeEditorCommand}>
+          {children}
+        </MockEditorContextProvider>
+      ),
+    });
+
+    undoHandler?.();
+    redoHandler?.();
+
+    expect(executeEditorCommand).toHaveBeenCalledWith('undo');
+    expect(executeEditorCommand).toHaveBeenCalledWith('redo');
+  });
+});

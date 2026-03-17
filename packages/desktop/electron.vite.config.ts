@@ -1,8 +1,6 @@
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
-import { nodePolyfills } from 'vite-plugin-node-polyfills';
-import { vitePluginTextlint } from '../web/vite-plugin-textlint';
 
 const webPackagePath = resolve(__dirname, '../web');
 
@@ -36,16 +34,6 @@ export default defineConfig({
     assetsInclude: ['**/*.txt', '**/*.txt.gz'],
     plugins: [
       react(),
-      vitePluginTextlint(),
-      nodePolyfills({
-        // Polyfills needed for textlint in browser
-        include: ['path', 'util', 'buffer', 'process', 'url'],
-        globals: {
-          Buffer: true,
-          global: true,
-          process: true,
-        },
-      }),
     ],
     build: {
       outDir: resolve(__dirname, 'dist/renderer'),
@@ -89,24 +77,10 @@ export default defineConfig({
         },
       },
     },
-    define: {
-      // Define __dirname for textlint and its dependencies which might expect it
-      __dirname: JSON.stringify('/'),
-    },
     worker: {
       format: 'es',
       plugins: () => [
         react(),
-        vitePluginTextlint(),
-        nodePolyfills({
-          // Polyfills for web workers (textlint needs these)
-          include: ['path', 'util', 'buffer', 'process', 'url'],
-          globals: {
-            Buffer: true,
-            global: true,
-            process: true,
-          },
-        }),
       ],
     },
   },

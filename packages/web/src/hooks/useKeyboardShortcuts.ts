@@ -82,33 +82,62 @@ function insertLink(editor: Monaco.editor.IStandaloneCodeEditor): void {
  */
 export function useKeyboardShortcuts(): void {
   const zenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { getActiveEditor, primaryMonaco, grammarService } = useEditorContext();
+  const { getActiveEditor, executeEditorCommand, primaryMonaco, grammarService } = useEditorContext();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      const editor = getActiveEditor();
+      const target = e.target as HTMLElement | null;
+      const isTextInputTarget = Boolean(
+        target &&
+        (
+          target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable
+        )
+      );
+
+      // Fallback undo/redo routing when Monaco is not text-focused.
+      // Focused-editor undo/redo is handled by Monaco editor keydown listeners.
+      if ((e.ctrlKey || e.metaKey) && key === 'z' && editor && !editor.hasTextFocus() && !isTextInputTarget) {
+        e.preventDefault();
+        if (e.shiftKey) {
+          executeEditorCommand('redo');
+        } else {
+          executeEditorCommand('undo');
+        }
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && key === 'y' && editor && !editor.hasTextFocus() && !isTextInputTarget) {
+        e.preventDefault();
+        executeEditorCommand('redo');
+        return;
+      }
+
       // Command palette: Ctrl/Cmd + Shift + P
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'p') {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && key === 'p') {
         e.preventDefault();
         useStore.getState().setShowCommandPalette(true);
         return;
       }
 
       // Print/PDF Export: Ctrl/Cmd + P
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'p') {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && key === 'p') {
         e.preventDefault();
         useStore.getState().setShowExportPdf(true);
         return;
       }
 
       // Save: Ctrl/Cmd + S
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 's') {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && key === 's') {
         e.preventDefault();
         useStore.getState().saveCurrentDocument();
         return;
       }
 
       // Save As: Ctrl/Cmd + Shift + S
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 's') {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && key === 's') {
         e.preventDefault();
 
         if (isElectron() && window.api?.saveAs) {
@@ -132,14 +161,14 @@ export function useKeyboardShortcuts(): void {
       }
 
       // New document: Ctrl/Cmd + N
-      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+      if ((e.ctrlKey || e.metaKey) && key === 'n') {
         e.preventDefault();
         useStore.getState().createNewDocument();
         return;
       }
 
       // Open file(s): Ctrl/Cmd + O
-      if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+      if ((e.ctrlKey || e.metaKey) && key === 'o') {
         e.preventDefault();
         const input = document.createElement('input');
         input.type = 'file';
@@ -168,7 +197,7 @@ export function useKeyboardShortcuts(): void {
       }
 
       // Close tab: Ctrl/Cmd + W
-      if ((e.ctrlKey || e.metaKey) && e.key === 'w') {
+      if ((e.ctrlKey || e.metaKey) && key === 'w') {
         e.preventDefault();
         const activeTab = useStore.getState().activeTabId;
         if (activeTab) {
@@ -178,7 +207,7 @@ export function useKeyboardShortcuts(): void {
       }
 
       // Bold (when editor focused) or Toggle sidebar: Ctrl/Cmd + B
-      if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+      if ((e.ctrlKey || e.metaKey) && key === 'b') {
         const editor = getActiveEditor();
         if (editor && editor.hasTextFocus()) {
           // Editor is focused - insert Bold markdown
@@ -193,7 +222,7 @@ export function useKeyboardShortcuts(): void {
       }
 
       // Italic: Ctrl/Cmd + I (only when editor focused)
-      if ((e.ctrlKey || e.metaKey) && e.key === 'i') {
+      if ((e.ctrlKey || e.metaKey) && key === 'i') {
         const editor = getActiveEditor();
         if (editor && editor.hasTextFocus()) {
           e.preventDefault();
@@ -210,29 +239,32 @@ export function useKeyboardShortcuts(): void {
       }
 
       // Export HTML: Ctrl/Cmd + E
-      if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+      if ((e.ctrlKey || e.metaKey) && key === 'e') {
         e.preventDefault();
         useStore.getState().setShowExport(true);
         return;
       }
 
       // Copy to Word/Docs: Ctrl/Cmd + Shift + C
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'C') {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && key === 'c') {
         e.preventDefault();
         useStore.getState().copyForWordDocs();
         return;
       }
 
       // Paste from Word/Docs: Ctrl/Cmd + Shift + V
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'V') {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && key === 'v') {
+        if (editor && editor.hasTextFocus()) {
+          // Editor-level handler owns this shortcut while Monaco has focus.
+          return;
+        }
         e.preventDefault();
-        const editor = getActiveEditor();
         useStore.getState().pasteFromWordDocs(editor || undefined);
         return;
       }
 
       // Copy to HTML: Ctrl/Cmd + Shift + Alt + C
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.altKey && (e.key === 'c' || e.key === 'C')) {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.altKey && key === 'c') {
         e.preventDefault();
         const editor = getActiveEditor();
         const model = editor?.getModel();
@@ -250,7 +282,7 @@ export function useKeyboardShortcuts(): void {
       }
 
       // Paste from HTML: Ctrl/Cmd + Shift + Alt + V
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.altKey && (e.key === 'v' || e.key === 'V')) {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.altKey && key === 'v') {
         e.preventDefault();
         const editor = getActiveEditor();
         import('../services/clipboard').then(async ({ pasteFromHtml }) => {
@@ -269,24 +301,8 @@ export function useKeyboardShortcuts(): void {
         return;
       }
 
-      // Undo: Ctrl/Cmd + Z
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') {
-        e.preventDefault();
-        const editor = getActiveEditor();
-        editor?.trigger('keyboard', 'undo', null);
-        return;
-      }
-
-      // Redo: Ctrl/Cmd + Shift + Z
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z') {
-        e.preventDefault();
-        const editor = getActiveEditor();
-        editor?.trigger('keyboard', 'redo', null);
-        return;
-      }
-
       // Find in active document: Ctrl/Cmd + F
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'f') {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && key === 'f') {
         e.preventDefault();
         const editor = getActiveEditor();
         if (editor) {
@@ -296,7 +312,7 @@ export function useKeyboardShortcuts(): void {
       }
 
       // Replace in active document: Ctrl/Cmd + H
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'h') {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && key === 'h') {
         e.preventDefault();
         const editor = getActiveEditor();
         if (editor) {
@@ -306,21 +322,21 @@ export function useKeyboardShortcuts(): void {
       }
 
       // Format document: Ctrl/Cmd + Shift + F
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.key === 'f') {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && key === 'f') {
         e.preventDefault();
         useStore.getState().formatDocument();
         return;
       }
 
       // Global search: Ctrl/Cmd + Shift + Alt + F
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.altKey && e.key === 'f') {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.altKey && key === 'f') {
         e.preventDefault();
         useStore.getState().setShowSearch(true);
         return;
       }
 
       // Check grammar: Ctrl/Cmd + Shift + G
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'g') {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && key === 'g') {
         e.preventDefault();
         const editor = getActiveEditor();
         if (editor && primaryMonaco) {
@@ -330,7 +346,7 @@ export function useKeyboardShortcuts(): void {
       }
 
       // Split editor vertical: Ctrl/Cmd + \
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === '\\') {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && key === '\\') {
         e.preventDefault();
         const { splitMode, setSplitMode } = useStore.getState();
         setSplitMode(splitMode === 'vertical' ? 'none' : 'vertical');
@@ -338,7 +354,7 @@ export function useKeyboardShortcuts(): void {
       }
 
       // Split editor horizontal: Ctrl/Cmd + Shift + \
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === '|') {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && key === '|') {
         e.preventDefault();
         const { splitMode, setSplitMode } = useStore.getState();
         setSplitMode(splitMode === 'horizontal' ? 'none' : 'horizontal');
@@ -346,7 +362,7 @@ export function useKeyboardShortcuts(): void {
       }
 
       // Link (when editor focused) or Zen mode chord: Ctrl/Cmd + K
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      if ((e.ctrlKey || e.metaKey) && key === 'k') {
         const editor = getActiveEditor();
         if (editor && editor.hasTextFocus()) {
           // Editor is focused - insert Link markdown
@@ -358,7 +374,7 @@ export function useKeyboardShortcuts(): void {
         // Editor not focused - Zen mode chord (Ctrl/Cmd + K, Z)
         // Wait for next key
         const handleZenKey = (e2: KeyboardEvent) => {
-          if (e2.key === 'z') {
+          if (e2.key.toLowerCase() === 'z') {
             e2.preventDefault();
             useStore.getState().toggleZenMode();
           }
@@ -391,5 +407,5 @@ export function useKeyboardShortcuts(): void {
         zenTimeoutRef.current = null;
       }
     };
-  }, [getActiveEditor, primaryMonaco, grammarService]);
+  }, [getActiveEditor, executeEditorCommand, primaryMonaco, grammarService]);
 }

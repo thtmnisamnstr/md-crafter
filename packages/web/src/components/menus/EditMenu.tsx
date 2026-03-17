@@ -17,6 +17,7 @@ import type { GrammarService } from '../../services/grammar';
 
 interface EditorContext {
   getActiveEditor: () => monaco.editor.IStandaloneCodeEditor | null;
+  executeEditorCommand: (command: 'undo' | 'redo') => boolean;
   primaryMonaco: typeof monaco | null;
   grammarService: GrammarService | null;
 }
@@ -37,7 +38,7 @@ export function getEditMenuItems(editorContext: EditorContext): MenuItem[] {
     checkGrammar,
     setShowDictionaryModal,
   } = useStore.getState();
-  const { getActiveEditor, primaryMonaco, grammarService } = editorContext;
+  const { getActiveEditor, executeEditorCommand, primaryMonaco, grammarService } = editorContext;
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
 
@@ -48,8 +49,7 @@ export function getEditMenuItems(editorContext: EditorContext): MenuItem[] {
       shortcut: '⌘Z',
       icon: <Undo size={14} />,
       action: () => {
-        const editor = getActiveEditor();
-        editor?.trigger('keyboard', 'undo', null);
+        executeEditorCommand('undo');
       },
     },
     {
@@ -58,8 +58,7 @@ export function getEditMenuItems(editorContext: EditorContext): MenuItem[] {
       shortcut: '⌘⇧Z',
       icon: <Redo size={14} />,
       action: () => {
-        const editor = getActiveEditor();
-        editor?.trigger('keyboard', 'redo', null);
+        executeEditorCommand('redo');
       },
     },
     { id: 'sep1', label: '', separator: true },

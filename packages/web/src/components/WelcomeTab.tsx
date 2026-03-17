@@ -99,7 +99,7 @@ export const WelcomeTab = () => {
 
   const createNewDocument = () => {
     openTab({
-      title: 'Untitled.md',
+      title: 'Untitled',
       content: '',
       language: 'markdown',
     });
@@ -240,4 +240,3 @@ export const WelcomeTab = () => {
     </div>
   );
 };
-

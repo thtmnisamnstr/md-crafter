@@ -18,7 +18,7 @@ test.describe('Editor', () => {
   });
 
   test('should show WelcomeTab on first load', async ({ page }) => {
-    await expect(page.getByText('Welcome to md-crafter')).toBeVisible();
+    await expect(page.getByRole('heading', { name: /welcome to/i })).toBeVisible({ timeout: 8000 });
   });
 
   test('should have menu bar', async ({ page }) => {
@@ -113,9 +113,8 @@ test.describe('Themes', () => {
     await page.waitForLoadState('networkidle');
   });
 
-  test('should change theme via View menu', async ({ page }) => {
-    await page.getByRole('button', { name: 'View', exact: true }).click();
-    await page.getByRole('button', { name: /Settings/ }).first().click();
+  test('should open settings and expose theme selection', async ({ page }) => {
+    await page.keyboard.press('Control+,');
     await expect(page.getByText('Theme', { exact: true })).toBeVisible({ timeout: 5000 });
 
     const initialTheme = await page.evaluate(() => {

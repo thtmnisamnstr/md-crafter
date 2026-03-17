@@ -4,17 +4,20 @@ export interface Tab {
   id: string;
   documentId: string | null; // null for new unsaved documents
   title: string;
+  customTitle?: string;
   content: string;
   showPreview?: boolean;
   language: string;
   isDirty: boolean;
   syncStatus: SyncStatusType;
   isCloudSynced: boolean;
+  etag?: string | null;
   savedContent: string; // Last saved content for diff
   path?: string; // File path for local files (desktop)
   hasSavedVersion?: boolean; // True once the tab has been saved at least once
   undoStack?: string[]; // Persistent undo history
   redoStack?: string[]; // Persistent redo history
+  lastContentSource?: 'user-edit' | 'external-replace';
   splitMode?: 'none' | 'horizontal' | 'vertical' | 'diff';
   diffMode?: {
     enabled: boolean;
@@ -30,6 +33,11 @@ export interface Tab {
   diffPaneRatio?: number; // 0..1 for side-by-side; also reused for over-under height
   cursor?: { line: number; column: number } | null;
   selection?: { startLine: number; startColumn: number; endLine: number; endColumn: number } | null;
+}
+
+export interface UpdateTabContentOptions {
+  skipHistory?: boolean;
+  source?: 'user-edit' | 'external-replace';
 }
 
 export interface RecentFile {
@@ -175,9 +183,10 @@ export interface AppState {
   openTab: (doc: Partial<Document> & { id?: string; title: string; content: string; path?: string }) => void;
   closeTab: (tabId: string) => void;
   setActiveTab: (tabId: string) => void;
-  updateTabContent: (tabId: string, content: string, options?: { skipHistory?: boolean; resetCursor?: boolean }) => void;
+  updateTabContent: (tabId: string, content: string, options?: UpdateTabContentOptions) => void;
   updateTabLanguage: (tabId: string, language: string) => void;
   updateTabPath: (tabId: string, path: string) => void;
+  renameTab: (tabId: string, title: string) => void;
   reorderTabs: (fromIndex: number, toIndex: number) => void;
   revertToSaved: (tabId: string) => void;
 

@@ -87,6 +87,14 @@ const api = {
   },
 
   // Menu events - Edit menu
+  onMenuUndo: (callback: () => void) => {
+    ipcRenderer.on('menu:undo', callback);
+    return () => ipcRenderer.removeAllListeners('menu:undo');
+  },
+  onMenuRedo: (callback: () => void) => {
+    ipcRenderer.on('menu:redo', callback);
+    return () => ipcRenderer.removeAllListeners('menu:redo');
+  },
   onMenuFind: (callback: () => void) => {
     ipcRenderer.on('menu:find', callback);
     return () => ipcRenderer.removeAllListeners('menu:find');

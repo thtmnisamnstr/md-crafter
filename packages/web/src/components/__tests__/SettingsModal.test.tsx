@@ -100,7 +100,7 @@ describe('SettingsModal', () => {
     });
 
     it('should save theme when save is clicked', () => {
-      const { getByText, container } = render(<SettingsModal />);
+      const { getByText } = render(<SettingsModal />);
       
       // Change theme
       const lightThemeButton = getByText('Light+').closest('button');
@@ -196,7 +196,7 @@ describe('SettingsModal', () => {
     });
 
     it('should toggle word wrap setting', () => {
-      const { getByText, container } = render(<SettingsModal />);
+      const { getByText } = render(<SettingsModal />);
       
       // Find toggle button (it's a button inside the label)
       const wordWrapLabel = getByText('Word Wrap').closest('label');
@@ -215,7 +215,7 @@ describe('SettingsModal', () => {
 
   describe('Settings Persistence', () => {
     it('should save all settings when save button is clicked', () => {
-      const { container, getByText } = render(<SettingsModal />);
+      const { getByText } = render(<SettingsModal />);
       
       // Change multiple settings
       const lightThemeButton = getByText('Light+').closest('button');
@@ -258,4 +258,3 @@ describe('SettingsModal', () => {
     });
   });
 });
-

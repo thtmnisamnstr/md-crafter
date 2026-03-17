@@ -11,6 +11,8 @@ vi.mock('../../store', () => ({
 describe('TabBar', () => {
   const mockSetActiveTab = vi.fn();
   const mockCloseTab = vi.fn();
+  const mockReorderTabs = vi.fn();
+  const mockRenameTab = vi.fn();
 
   const mockStore = {
     tabs: [
@@ -36,6 +38,7 @@ describe('TabBar', () => {
       },
       {
         id: 'tab-3',
+        documentId: 'doc-3',
         title: 'file3.md',
         content: '# Cloud file',
         language: 'markdown',
@@ -48,6 +51,8 @@ describe('TabBar', () => {
     activeTabId: 'tab-1',
     setActiveTab: mockSetActiveTab,
     closeTab: mockCloseTab,
+    reorderTabs: mockReorderTabs,
+    renameTab: mockRenameTab,
   };
 
   beforeEach(() => {
@@ -305,13 +310,99 @@ describe('TabBar', () => {
       const tabs = getAllByRole('tab');
       
       tabs[0].focus();
-      const event = new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true });
-      const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
-      
-      fireEvent.keyDown(tabs[0], event);
+      fireEvent.keyDown(tabs[0], { key: 'ArrowRight' });
       
       // Note: fireEvent.keyDown may not fully simulate preventDefault, but we test the intent
       expect(mockSetActiveTab).toHaveBeenCalled();
+    });
+
+    it('should reorder tab left with Alt+Shift+ArrowLeft', () => {
+      const { getAllByRole } = render(<TabBar />);
+      const tabs = getAllByRole('tab');
+
+      fireEvent.keyDown(tabs[1], { key: 'ArrowLeft', altKey: true, shiftKey: true });
+
+      expect(mockReorderTabs).toHaveBeenCalledWith(1, 0);
+      expect(mockSetActiveTab).toHaveBeenCalledWith('tab-2');
+    });
+
+    it('should reorder tab right with Alt+Shift+ArrowRight', () => {
+      const { getAllByRole } = render(<TabBar />);
+      const tabs = getAllByRole('tab');
+
+      fireEvent.keyDown(tabs[1], { key: 'ArrowRight', altKey: true, shiftKey: true });
+
+      expect(mockReorderTabs).toHaveBeenCalledWith(1, 2);
+      expect(mockSetActiveTab).toHaveBeenCalledWith('tab-2');
+    });
+  });
+
+  describe('Reorder Interactions', () => {
+    it('reorders tabs via drag and drop', () => {
+      const { getAllByRole } = render(<TabBar />);
+      const tabs = getAllByRole('tab');
+
+      const transferStore: Record<string, string> = {};
+      const dataTransfer = {
+        setData: (key: string, value: string) => {
+          transferStore[key] = value;
+        },
+        getData: (key: string) => transferStore[key] || '',
+        effectAllowed: '',
+        dropEffect: '',
+      };
+
+      fireEvent.dragStart(tabs[0], { dataTransfer });
+      fireEvent.dragOver(tabs[2], { dataTransfer });
+      fireEvent.drop(tabs[2], { dataTransfer });
+
+      expect(mockReorderTabs).toHaveBeenCalledWith(0, 2);
+      expect(mockSetActiveTab).toHaveBeenCalledWith('tab-1');
+    });
+  });
+
+  describe('Inline Rename', () => {
+    it('renames unsaved tab on double-click and Enter', () => {
+      const { getAllByRole, getByLabelText } = render(<TabBar />);
+      const tabs = getAllByRole('tab');
+
+      fireEvent.doubleClick(tabs[0]);
+      const input = getByLabelText('Rename file1.md') as HTMLInputElement;
+      fireEvent.change(input, { target: { value: 'Scratch' } });
+      fireEvent.keyDown(input, { key: 'Enter' });
+
+      expect(mockRenameTab).toHaveBeenCalledWith('tab-1', 'Scratch');
+    });
+
+    it('starts rename with F2 for unsaved tab', () => {
+      const { getAllByRole, getByLabelText } = render(<TabBar />);
+      const tabs = getAllByRole('tab');
+
+      fireEvent.keyDown(tabs[0], { key: 'F2' });
+
+      expect(getByLabelText('Rename file1.md')).toBeTruthy();
+    });
+
+    it('does not rename saved cloud tab', () => {
+      const { getAllByRole, queryByLabelText } = render(<TabBar />);
+      const tabs = getAllByRole('tab');
+
+      fireEvent.doubleClick(tabs[2]);
+
+      expect(queryByLabelText('Rename file3.md')).toBeNull();
+    });
+
+    it('does not close tab when pressing Backspace/Delete while renaming', () => {
+      const { getAllByRole, getByLabelText } = render(<TabBar />);
+      const tabs = getAllByRole('tab');
+
+      fireEvent.doubleClick(tabs[0]);
+      const input = getByLabelText('Rename file1.md');
+
+      fireEvent.keyDown(input, { key: 'Backspace' });
+      fireEvent.keyDown(input, { key: 'Delete' });
+
+      expect(mockCloseTab).not.toHaveBeenCalled();
     });
   });
 
@@ -337,4 +428,3 @@ describe('TabBar', () => {
     });
   });
 });
-

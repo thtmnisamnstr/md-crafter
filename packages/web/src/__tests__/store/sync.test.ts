@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createSyncSlice, SyncSlice } from '../../store/sync';
 import { AppState, Tab } from '../../store/types';
 import { ConflictInfo } from '@md-crafter/shared';
@@ -38,7 +38,7 @@ describe('Sync Slice', () => {
     mockState = createMockState();
     mockSet = vi.fn();
     mockGet = vi.fn(() => mockState);
-    slice = createSyncSlice(mockSet, mockGet, {} as any);
+    slice = createSyncSlice(mockSet as any, mockGet as any, {} as any);
   });
 
   afterEach(() => {
@@ -109,7 +109,7 @@ describe('Sync Slice', () => {
         tabs: [dirtyCloudTab, cleanTab, localTab],
       });
       mockGet.mockReturnValue(mockState);
-      slice = createSyncSlice(mockSet, mockGet, {} as any);
+      slice = createSyncSlice(mockSet as any, mockGet as any, {} as any);
 
       slice.setOnline(true);
 
@@ -128,7 +128,7 @@ describe('Sync Slice', () => {
 
       mockState = createMockState({ tabs: [dirtyCloudTab] });
       mockGet.mockReturnValue(mockState);
-      slice = createSyncSlice(mockSet, mockGet, {} as any);
+      slice = createSyncSlice(mockSet as any, mockGet as any, {} as any);
 
       slice.setOnline(false);
 
@@ -179,13 +179,13 @@ describe('Sync Slice', () => {
         tabs: [tab],
       });
       mockGet.mockReturnValue(mockState);
-      slice = createSyncSlice(mockSet, mockGet, {} as any);
+      slice = createSyncSlice(mockSet as any, mockGet as any, {} as any);
     });
 
     it('should do nothing if no conflict', async () => {
       mockState = createMockState({ conflict: null });
       mockGet.mockReturnValue(mockState);
-      slice = createSyncSlice(mockSet, mockGet, {} as any);
+      slice = createSyncSlice(mockSet as any, mockGet as any, {} as any);
 
       await slice.resolveConflict('keep_local');
 
@@ -198,7 +198,7 @@ describe('Sync Slice', () => {
         tabs: [], // No matching tab
       });
       mockGet.mockReturnValue(mockState);
-      slice = createSyncSlice(mockSet, mockGet, {} as any);
+      slice = createSyncSlice(mockSet as any, mockGet as any, {} as any);
 
       await slice.resolveConflict('keep_local');
 
@@ -227,6 +227,8 @@ describe('Sync Slice', () => {
       });
 
       expect(result.tabs[0].content).toBe('remote content');
+      expect(result.tabs[0].isDirty).toBe(false);
+      expect(mockState.saveDocumentToCloud).not.toHaveBeenCalled();
     });
 
     it('should use merged content when resolving with merge', async () => {
@@ -284,7 +286,7 @@ describe('Sync Slice', () => {
     it('should not sync if tab not found', async () => {
       mockState = createMockState({ tabs: [] });
       mockGet.mockReturnValue(mockState);
-      slice = createSyncSlice(mockSet, mockGet, {} as any);
+      slice = createSyncSlice(mockSet as any, mockGet as any, {} as any);
 
       await slice.syncDocument('non-existent');
 
@@ -299,7 +301,7 @@ describe('Sync Slice', () => {
       } as Tab;
       mockState = createMockState({ tabs: [tab] });
       mockGet.mockReturnValue(mockState);
-      slice = createSyncSlice(mockSet, mockGet, {} as any);
+      slice = createSyncSlice(mockSet as any, mockGet as any, {} as any);
 
       await slice.syncDocument('tab-1');
 
@@ -317,7 +319,7 @@ describe('Sync Slice', () => {
         isOnline: false,
       });
       mockGet.mockReturnValue(mockState);
-      slice = createSyncSlice(mockSet, mockGet, {} as any);
+      slice = createSyncSlice(mockSet as any, mockGet as any, {} as any);
 
       await slice.syncDocument('tab-1');
 
@@ -335,7 +337,7 @@ describe('Sync Slice', () => {
         isAuthenticated: false,
       });
       mockGet.mockReturnValue(mockState);
-      slice = createSyncSlice(mockSet, mockGet, {} as any);
+      slice = createSyncSlice(mockSet as any, mockGet as any, {} as any);
 
       await slice.syncDocument('tab-1');
 
@@ -347,6 +349,7 @@ describe('Sync Slice', () => {
         id: 'tab-1',
         documentId: 'debounce-doc',
         content: 'content',
+        etag: 'etag-1',
       } as Tab;
       mockState = createMockState({
         tabs: [tab],
@@ -354,9 +357,21 @@ describe('Sync Slice', () => {
         isAuthenticated: true,
       });
       mockGet.mockReturnValue(mockState);
-      slice = createSyncSlice(mockSet, mockGet, {} as any);
+      slice = createSyncSlice(mockSet as any, mockGet as any, {} as any);
 
-      vi.mocked(api.syncDocument).mockResolvedValue(undefined);
+      vi.mocked(api.syncDocument).mockResolvedValue({
+        success: true,
+        document: {
+          id: 'debounce-doc',
+          title: 'Debounce',
+          content: 'content',
+          language: 'markdown',
+          etag: 'etag-2',
+          isCloudSynced: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        } as any,
+      });
 
       // Call multiple times rapidly
       await slice.syncDocument('tab-1');
@@ -371,7 +386,45 @@ describe('Sync Slice', () => {
 
       // Now it should have been called once
       expect(api.syncDocument).toHaveBeenCalledTimes(1);
-      expect(api.syncDocument).toHaveBeenCalledWith('debounce-doc', 'content');
+      expect(api.syncDocument).toHaveBeenCalledWith('debounce-doc', 'content', 'etag-1');
+    });
+
+    it('sets conflict state when server returns conflict payload', async () => {
+      const tab: Tab = {
+        id: 'tab-1',
+        documentId: 'doc-1',
+        content: 'local content',
+        etag: 'etag-local',
+      } as Tab;
+      mockState = createMockState({
+        tabs: [tab],
+        isOnline: true,
+        isAuthenticated: true,
+      });
+      mockGet.mockReturnValue(mockState);
+      slice = createSyncSlice(mockSet as any, mockGet as any, {} as any);
+
+      vi.mocked(api.syncDocument).mockResolvedValue({
+        success: false,
+        conflict: {
+          serverContent: 'remote content',
+          serverEtag: 'etag-remote',
+          serverTimestamp: 12345,
+        },
+      });
+
+      await slice.syncDocument('tab-1');
+      await vi.advanceTimersByTimeAsync(150);
+
+      const setFn = mockSet.mock.calls[mockSet.mock.calls.length - 1][0];
+      const result = setFn({ tabs: [tab], conflict: null });
+      expect(result.tabs[0].syncStatus).toBe('conflict');
+      expect(result.conflict).toMatchObject({
+        documentId: 'doc-1',
+        localContent: 'local content',
+        remoteContent: 'remote content',
+        remoteEtag: 'etag-remote',
+      });
     });
   });
 
@@ -389,7 +442,7 @@ describe('Sync Slice', () => {
         isAuthenticated: true,
       });
       mockGet.mockReturnValue(mockState);
-      slice = createSyncSlice(mockSet, mockGet, {} as any);
+      slice = createSyncSlice(mockSet as any, mockGet as any, {} as any);
 
       // Trigger sync to create debouncer
       slice.syncDocument('tab-1');
@@ -409,4 +462,3 @@ describe('Sync Slice', () => {
     });
   });
 });
-

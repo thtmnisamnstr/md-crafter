@@ -93,7 +93,7 @@ describe('WelcomeTab', () => {
       fireEvent.click(createButton);
 
       expect(mockOpenTab).toHaveBeenCalledWith({
-        title: 'Untitled.md',
+        title: 'Untitled',
         content: '',
         language: 'markdown',
       });
@@ -238,7 +238,7 @@ describe('WelcomeTab', () => {
 
       expect(mockOpenTab).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: 'Untitled.md',
+          title: 'Untitled',
           content: '',
           language: 'markdown',
         })
@@ -246,4 +246,3 @@ describe('WelcomeTab', () => {
     });
   });
 });
-

@@ -31,13 +31,18 @@ export function DiffViewer({
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
   const editorRef = useRef<monaco.editor.IDiffEditor | null>(null);
   const modelListenersCleanupRef = useRef<(() => void) | null>(null);
+  const lastContentSessionKeyRef = useRef<string | null>(null);
+  const [stableEditableContent, setStableEditableContent] = useState(() => ({
+    original: propOriginal ?? '',
+    modified: propModified ?? '',
+  }));
   const { registerDiffEditor, unregisterDiffEditor } = useEditorContext();
   
-  // Debounced content update function - resets cursor since edits in diff view
-  // may invalidate stored cursor position when the document is viewed normally
+  // Debounced content update from active typing in diff panes.
+  // This is always a user edit; do not reset cursor/selection state.
   const debouncedUpdate = useMemo(
     () => debounce((tabId: string, content: string) => {
-      updateTabContent(tabId, content, { resetCursor: true });
+      updateTabContent(tabId, content, { source: 'user-edit' });
     }, EDITOR_DEBOUNCE_DELAY_MS),
     [updateTabContent]
   );
@@ -101,6 +106,30 @@ export function DiffViewer({
       modifiedTitle: activeTab?.title || 'Current',
     };
   }, [mode, activeTab, selectedFileId, tabs, propOriginal, propModified, propOriginalTitle, propModifiedTitle]);
+
+  const contentSessionKey = useMemo(() => {
+    if (propOriginal !== undefined && propModified !== undefined) {
+      return `props:${mode}:${propOriginalTitle || ''}:${propModifiedTitle || ''}:${propOriginal}:${propModified}`;
+    }
+    if (mode === 'files') {
+      return `files:${activeTabId || ''}:${selectedFileId || ''}`;
+    }
+    if (mode === 'saved') {
+      return `saved:${activeTabId || ''}`;
+    }
+    return `${mode}:${activeTabId || ''}:${selectedFileId || ''}`;
+  }, [mode, activeTabId, selectedFileId, propOriginal, propModified, propOriginalTitle, propModifiedTitle]);
+
+  useEffect(() => {
+    if (lastContentSessionKeyRef.current === contentSessionKey) {
+      return;
+    }
+    lastContentSessionKeyRef.current = contentSessionKey;
+    setStableEditableContent({
+      original: originalContent,
+      modified: modifiedContent,
+    });
+  }, [contentSessionKey, originalContent, modifiedContent]);
 
   // Determine editability:
   // - Saved diffs: modified (unsaved) is editable, original (saved) is read-only
@@ -494,8 +523,8 @@ export function DiffViewer({
         {/* Diff editor */}
         <div className="flex-1 overflow-hidden">
           <DiffEditor
-            original={originalContent}
-            modified={modifiedContent}
+            original={originalEditable ? stableEditableContent.original : originalContent}
+            modified={editable ? stableEditableContent.modified : modifiedContent}
             language={activeTab?.language || 'markdown'}
             theme={monacoTheme}
             onMount={handleDiffEditorMount}

@@ -3,22 +3,24 @@ import { getDOMParser } from '../dom';
 
 describe('dom', () => {
   describe('getDOMParser', () => {
+    const parserCtor = globalThis.DOMParser || (typeof window !== 'undefined' ? window.DOMParser : undefined);
+
     it('should return DOMParser when available in globalThis', () => {
       const parser = getDOMParser();
-      expect(parser).toBe(DOMParser);
+      expect(parser).toBe(parserCtor);
       expect(typeof parser).toBe('function');
     });
 
     it('should return DOMParser constructor', () => {
       const parser = getDOMParser();
       expect(parser).toBeDefined();
-      expect(parser).toBe(DOMParser);
+      expect(parser).toBe(parserCtor);
     });
 
     it('should work in test environment', () => {
       const parser = getDOMParser();
       const instance = new parser();
-      expect(instance).toBeInstanceOf(DOMParser);
+      expect(instance).toBeInstanceOf(parser);
     });
 
     it('should be able to parse HTML', () => {
@@ -29,4 +31,3 @@ describe('dom', () => {
     });
   });
 });
-

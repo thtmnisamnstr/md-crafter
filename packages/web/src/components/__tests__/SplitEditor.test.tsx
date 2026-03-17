@@ -131,7 +131,7 @@ describe('SplitEditor', () => {
     });
 
     it('should not have a dropdown for changing primary tab', () => {
-      const { container, getByText } = render(
+      const { getByText } = render(
         <MockEditorContextProvider primaryEditor={mockEditor} primaryMonaco={mockMonaco}>
           <SplitEditor mode="vertical" />
         </MockEditorContextProvider>

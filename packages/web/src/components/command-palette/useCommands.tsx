@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import { useStore } from '../../store';
 import { MAX_RECENT_FILES } from '../../constants';
+import { isElectron } from '../../utils/platform';
+import { getLanguageFromExtension } from '../../utils/language';
 import {
   Plus,
   Save,
@@ -225,14 +227,12 @@ export function useCommands(setShowCommandPalette: (show: boolean) => void): Com
             openCloudDocument(file.documentId);
           } else if (file.path) {
             // Local file with path
-            const { isElectron } = await import('../../utils/platform');
             if (isElectron() && window.api?.readFile) {
               // Desktop: Read file from disk
               try {
                 const result = await window.api.readFile(file.path);
                 if (result.success && result.content !== undefined) {
                   const ext = file.title.split('.').pop();
-                  const { getLanguageFromExtension } = await import('../../utils/language');
                   useStore.getState().openTab({
                     title: file.title,
                     content: result.content,

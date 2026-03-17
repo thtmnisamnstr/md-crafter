@@ -33,6 +33,7 @@ export interface ConflictInfo {
   remoteContent: string;
   localTimestamp: number;
   remoteTimestamp: number;
+  remoteEtag?: string;
   baseContent?: string;
 }
 
