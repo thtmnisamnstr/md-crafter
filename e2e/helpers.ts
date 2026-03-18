@@ -57,31 +57,67 @@ export async function createNewDocument(page: Page): Promise<void> {
  * Set editor content using Monaco API
  */
 export async function setEditorContent(page: Page, content: string): Promise<void> {
+  const normalizeEol = (value: string): string => value.replace(/\r\n/g, '\n');
+  const expectedNormalized = normalizeEol(content);
   // Wait for Monaco editor to be available AND have a model
   await page.waitForFunction(
     () => {
       const editor = (window as any).monacoEditor;
-      return editor && typeof editor.setValue === 'function' && editor.getModel();
+      const model = editor?.getModel?.();
+      return !!editor && !!model && typeof model.getValue === 'function';
     },
     { timeout: MONACO_TIMEOUT }
   );
 
-  // Set content
-  await page.evaluate((text) => {
-    const editor = (window as any).monacoEditor;
-    if (editor) {
-      editor.setValue(text);
-    }
-  }, content);
-
-  // Verify content was applied
-  await page.waitForFunction(
-    (expected) => {
+  const applyContent = async () => {
+    return await page.evaluate((text) => {
       const editor = (window as any).monacoEditor;
-      return editor && editor.getValue() === expected;
-    },
-    content,
-    { timeout: 10000 }
+      const model = editor?.getModel?.();
+      if (!editor || !model) return false;
+
+      const range = model.getFullModelRange?.();
+      if (!range) return false;
+
+      // pushEditOperations triggers model change events used by the app/store synchronization.
+      model.pushEditOperations([], [{ range, text }], () => null);
+      if (typeof editor.pushUndoStop === 'function') {
+        editor.pushUndoStop();
+      }
+      return true;
+    }, content);
+  };
+
+  const isExpectedApplied = async () => {
+    return await page.evaluate((expected) => {
+      const normalize = (value: string): string => value.replace(/\r\n/g, '\n');
+      const editor = (window as any).monacoEditor;
+      const model = editor?.getModel?.();
+      const value = typeof editor?.getValue === 'function'
+        ? editor.getValue()
+        : (typeof model?.getValue === 'function' ? model.getValue() : null);
+      if (typeof value !== 'string') return false;
+      return normalize(value) === expected;
+    }, expectedNormalized);
+  };
+
+  // Retry because the editor can briefly be in an "ignore external changes" phase
+  // right after save/sync state transitions.
+  const deadline = Date.now() + 15000;
+  while (Date.now() < deadline) {
+    const applied = await applyContent();
+    if (!applied) {
+      await page.waitForTimeout(50);
+      continue;
+    }
+    await page.waitForTimeout(120);
+    if (await isExpectedApplied()) {
+      return;
+    }
+  }
+
+  const actual = await getEditorContent(page);
+  throw new Error(
+    `Failed to set editor content within timeout. Expected: ${JSON.stringify(expectedNormalized)} Actual: ${JSON.stringify(normalizeEol(actual))}`
   );
 }
 

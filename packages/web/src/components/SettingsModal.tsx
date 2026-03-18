@@ -209,4 +209,3 @@ function ToggleSetting({ label, description, checked, onChange }: ToggleSettingP
     </label>
   );
 }
-

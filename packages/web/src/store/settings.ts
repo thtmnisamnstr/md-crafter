@@ -11,6 +11,7 @@ const DEFAULT_SETTINGS: Settings = {
   autoSync: true,
   syncInterval: 2000,
   spellCheck: true,
+  embedImagesAsBase64: true,
 };
 
 export interface SettingsSlice {
@@ -24,9 +25,8 @@ export const createSettingsSlice: StateCreator<AppState, [], [], SettingsSlice> 
   
   updateSettings: (newSettings) => {
     set((state) => ({
-      settings: { ...state.settings, ...newSettings },
+      settings: { ...state.settings, ...newSettings, embedImagesAsBase64: true },
     }));
   },
   };
 };
-

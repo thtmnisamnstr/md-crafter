@@ -253,8 +253,13 @@ export function useElectronMenu() {
           : model?.getValue();
 
         if (text) {
+          const { materializeClipboardMarkdownImages } = await import('../services/imageAssets');
           const { copyAsHtml } = await import('../services/clipboard');
-          await copyAsHtml(text);
+          const prepared = materializeClipboardMarkdownImages(text, {
+            resolveAssetDataUrl: useStore.getState().getImageAssetDataUrl,
+            referenceContext: model?.getValue() || text,
+          });
+          await copyAsHtml(prepared);
         }
       }));
     }
@@ -287,6 +292,12 @@ export function useElectronMenu() {
         if (editor && monaco) {
           useStore.getState().checkGrammar({ editor, monaco, grammarService: grammarService || undefined });
         }
+      }));
+    }
+    if (api.onMenuGrammarClear) {
+      cleanups.push(api.onMenuGrammarClear(() => {
+        grammarService?.clearMarkers();
+        useStore.getState().closeGrammarReview();
       }));
     }
     if (api.onMenuDictionary) {

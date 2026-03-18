@@ -17,7 +17,7 @@ export interface Tab {
   hasSavedVersion?: boolean; // True once the tab has been saved at least once
   undoStack?: string[]; // Persistent undo history
   redoStack?: string[]; // Persistent redo history
-  lastContentSource?: 'user-edit' | 'external-replace';
+  lastContentSource?: 'user-edit' | 'external-replace' | 'preview-edit';
   splitMode?: 'none' | 'horizontal' | 'vertical' | 'diff';
   diffMode?: {
     enabled: boolean;
@@ -37,7 +37,7 @@ export interface Tab {
 
 export interface UpdateTabContentOptions {
   skipHistory?: boolean;
-  source?: 'user-edit' | 'external-replace';
+  source?: 'user-edit' | 'external-replace' | 'preview-edit';
 }
 
 export interface RecentFile {
@@ -74,6 +74,16 @@ export interface Settings {
   autoSync: boolean;
   syncInterval: number;
   spellCheck: boolean;
+  embedImagesAsBase64: boolean;
+}
+
+export interface ImageAsset {
+  id: string;
+  dataUrl: string;
+  mimeType: string;
+  fileName: string;
+  createdAt: number;
+  sourceUrl?: string;
 }
 
 export interface AppState {
@@ -116,6 +126,7 @@ export interface AppState {
   activeTabId: string | null;
   cloudDocuments: Document[];
   recentFiles: RecentFile[];
+  imageAssets: Record<string, ImageAsset>;
 
   // Sync
   isOnline: boolean;
@@ -199,6 +210,10 @@ export interface AppState {
   deleteCloudDocument: (documentId: string) => Promise<void>;
   addRecentFile: (file: Omit<RecentFile, 'lastOpened'>) => void;
   removeRecentFile: (fileId: string) => void;
+  upsertImageAsset: (asset: Omit<ImageAsset, 'id' | 'createdAt'> & { id?: string; createdAt?: number }) => string;
+  renameImageAsset: (assetId: string, fileName: string) => void;
+  removeImageAsset: (assetId: string) => void;
+  getImageAssetDataUrl: (assetId: string) => string | null;
 
   // Auth actions
   login: (token: string) => Promise<boolean>;

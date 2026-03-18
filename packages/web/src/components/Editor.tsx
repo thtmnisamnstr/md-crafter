@@ -9,6 +9,7 @@ import { ErrorBoundary } from './ErrorBoundary';
 import { SpellcheckService } from '../services/spellcheck';
 import { GrammarService } from '../services/grammar';
 import { EDITOR_DEBOUNCE_DELAY_MS } from '../constants';
+import { materializeClipboardMarkdownImages } from '../services/imageAssets';
 
 /**
  * Check if a Monaco model has been disposed
@@ -18,6 +19,35 @@ function isModelDisposed(model: monaco.editor.ITextModel | null): boolean {
   if (!model) return true;
   return typeof (model as { isDisposed?: () => boolean }).isDisposed === 'function' 
     && (model as { isDisposed: () => boolean }).isDisposed();
+}
+
+function getImageFilesFromClipboardEvent(event: ClipboardEvent): File[] {
+  const files: File[] = [];
+  const clipboardData = event.clipboardData;
+  if (!clipboardData) return files;
+
+  for (const item of Array.from(clipboardData.items || [])) {
+    if (item.kind !== 'file') continue;
+    const file = item.getAsFile();
+    if (file && file.type.startsWith('image/')) {
+      files.push(file);
+    }
+  }
+
+  if (files.length === 0) {
+    for (const file of Array.from(clipboardData.files || [])) {
+      if (file.type.startsWith('image/')) {
+        files.push(file);
+      }
+    }
+  }
+
+  return files;
+}
+
+function getImageFilesFromDataTransfer(dataTransfer: DataTransfer | null): File[] {
+  if (!dataTransfer) return [];
+  return Array.from(dataTransfer.files || []).filter((file) => file.type.startsWith('image/'));
 }
 
 interface EditorProps {
@@ -39,6 +69,7 @@ export function Editor({
     theme,
     addToast,
     updateSettings,
+    upsertImageAsset,
     setTabCursor,
     setTabSelection,
     splitMode,
@@ -191,6 +222,42 @@ export function Editor({
     }
   }, [updateTabContent]);
 
+  const insertTextAtSelection = useCallback(
+    (editor: monaco.editor.IStandaloneCodeEditor, text: string, source: string) => {
+      const selection = editor.getSelection();
+      if (!selection) return;
+      editor.executeEdits(source, [{
+        range: {
+          startLineNumber: selection.startLineNumber,
+          startColumn: selection.startColumn,
+          endLineNumber: selection.endLineNumber,
+          endColumn: selection.endColumn,
+        },
+        text,
+        forceMoveMarkers: true,
+      }]);
+    },
+    []
+  );
+
+  const normalizeImagesInEditor = useCallback(async (source: string) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const model = editor.getModel();
+    if (!model) return;
+
+    const { normalizeDocumentImageReferences } = await import('../services/imageAssets');
+    const currentContent = model.getValue();
+    const normalizedContent = normalizeDocumentImageReferences(currentContent);
+    if (normalizedContent === currentContent) return;
+
+    editor.executeEdits(source, [{
+      range: model.getFullModelRange(),
+      text: normalizedContent,
+      forceMoveMarkers: true,
+    }]);
+  }, [editorMounted]);
+
   // Get Monaco theme name based on app theme
   const monacoTheme = useMemo(() => {
     switch (theme) {
@@ -300,25 +367,46 @@ export function Editor({
 
         void (async () => {
           try {
+            const imageFiles: File[] = [];
+            if (navigator.clipboard?.read) {
+              try {
+                const clipboardItems = await navigator.clipboard.read();
+                let imageCounter = 1;
+                for (const item of clipboardItems) {
+                  const imageType = item.types.find((type) => type.startsWith('image/'));
+                  if (!imageType) continue;
+                  const blob = await item.getType(imageType);
+                  const extension = imageType.split('/')[1]?.split(';')[0] || 'png';
+                  const fileName = `pasted-image-${Date.now()}-${imageCounter}.${extension}`;
+                  imageCounter += 1;
+                  if (typeof File !== 'undefined') {
+                    imageFiles.push(new File([blob], fileName, { type: blob.type || imageType }));
+                  } else {
+                    imageFiles.push(Object.assign(blob, { name: fileName, lastModified: Date.now() }) as File);
+                  }
+                }
+              } catch {
+                // Ignore and fall back to plain text clipboard handling.
+              }
+            }
+
+            if (imageFiles.length > 0) {
+              const { createImageMarkdownFromFiles } = await import('../services/imageAssets');
+              const snippets = await createImageMarkdownFromFiles(imageFiles, {
+                embedImagesAsBase64: true,
+                upsertImageAsset: useStore.getState().upsertImageAsset,
+              });
+              if (snippets.length > 0) {
+                insertTextAtSelection(editor, snippets.join('\n'), 'paste-image');
+                await normalizeImagesInEditor('paste-image-normalize');
+                return;
+              }
+            }
+
             const { getPlainTextFromClipboard } = await import('../services/clipboard');
             const plainText = (await getPlainTextFromClipboard()) ?? '';
             if (!plainText) return;
-
-            const selection = editor.getSelection();
-            if (!selection) return;
-
-            const range = {
-              startLineNumber: selection.startLineNumber,
-              startColumn: selection.startColumn,
-              endLineNumber: selection.endLineNumber,
-              endColumn: selection.endColumn,
-            };
-
-            editor.executeEdits('paste', [{
-              range,
-              text: plainText,
-              forceMoveMarkers: true,
-            }]);
+            insertTextAtSelection(editor, plainText, 'paste');
           } catch (error) {
             logger.warn('Failed to handle keyboard paste', {
               error: error instanceof Error ? error.message : String(error),
@@ -452,11 +540,22 @@ export function Editor({
     // Actual cleanup happens on component unmount via the separate cleanup effect (lines 322-362)
   }, [settings.spellCheck, _hasHydrated, editorMounted, registerSpellcheckService]);
 
-  // Handle paste events to convert rich text to plaintext
-  // Uses getPlainTextFromClipboard utility to avoid code duplication
+  // Handle paste events to support both image and plain text insertion.
   useEffect(() => {
     const editor = editorRef.current;
     if (!editor) return;
+
+    const insertImages = async (files: File[]) => {
+      const { createImageMarkdownFromFiles } = await import('../services/imageAssets');
+      const snippets = await createImageMarkdownFromFiles(files, {
+        embedImagesAsBase64: true,
+        upsertImageAsset,
+      });
+      if (snippets.length > 0) {
+        insertTextAtSelection(editor, snippets.join('\n'), 'paste-image');
+        await normalizeImagesInEditor('paste-image-normalize');
+      }
+    };
 
     const handlePaste = async (e: ClipboardEvent) => {
       // Check if Monaco text area is focused
@@ -475,6 +574,20 @@ export function Editor({
       const isCtrlShiftV = (keyboardEvent.ctrlKey || keyboardEvent.metaKey) && keyboardEvent.shiftKey && !keyboardEvent.altKey;
       if (isCtrlShiftV) {
         // Let the keyboard shortcut handler take care of this paste
+        return;
+      }
+
+      const imageFiles = getImageFilesFromClipboardEvent(e);
+      if (imageFiles.length > 0) {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+          await insertImages(imageFiles);
+        } catch (error) {
+          logger.warn('Failed to paste image(s)', {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
         return;
       }
 
@@ -501,21 +614,7 @@ export function Editor({
         }
 
         if (!plainText) return;
-
-        const selection = editor.getSelection();
-        if (selection) {
-          const range = {
-            startLineNumber: selection.startLineNumber,
-            startColumn: selection.startColumn,
-            endLineNumber: selection.endLineNumber,
-            endColumn: selection.endColumn,
-          };
-          editor.executeEdits('paste', [{
-            range,
-            text: plainText,
-            forceMoveMarkers: true,
-          }]);
-        }
+        insertTextAtSelection(editor, plainText, 'paste');
       } catch (error) {
         logger.warn('Failed to intercept paste', {
           error: error instanceof Error ? error.message : String(error),
@@ -527,7 +626,203 @@ export function Editor({
     return () => {
       document.removeEventListener('paste', handlePaste, true);
     };
-  }, []); // Empty deps - effect runs once on mount, cleanup on unmount
+  }, [insertTextAtSelection, normalizeImagesInEditor, upsertImageAsset]);
+
+  // Ensure local asset images are copied as embedded data URLs.
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const handleCopy = (event: ClipboardEvent) => {
+      if (!editor.hasTextFocus()) return;
+      if (!event.clipboardData) return;
+
+      const model = editor.getModel();
+      const selection = editor.getSelection();
+      if (!model || !selection || selection.isEmpty()) return;
+
+      const selectedText = model.getValueInRange(selection);
+      if (!selectedText) return;
+
+      try {
+        const transformed = materializeClipboardMarkdownImages(selectedText, {
+          resolveAssetDataUrl: useStore.getState().getImageAssetDataUrl,
+          referenceContext: model.getValue(),
+        });
+
+        if (transformed === selectedText) return;
+        event.preventDefault();
+        event.stopPropagation();
+        event.clipboardData.setData('text/plain', transformed);
+      } catch (error) {
+        logger.warn('Failed to transform copied markdown image assets', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    };
+
+    document.addEventListener('copy', handleCopy, true);
+    return () => {
+      document.removeEventListener('copy', handleCopy, true);
+    };
+  }, []);
+
+  // Handle drag-and-drop image insertion directly inside Monaco editor.
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const editorNode = editor.getDomNode();
+    if (!editorNode) return;
+
+    const looksLikeImageUrl = (value: string): boolean => {
+      const trimmed = value.trim();
+      if (!trimmed) return false;
+      if (trimmed.startsWith('data:image/')) return true;
+      return /\.(png|jpe?g|gif|webp|bmp|svg|avif)(?:[?#].*)?$/i.test(trimmed);
+    };
+
+    const parseDroppedUrls = (dataTransfer: DataTransfer | null): string[] => {
+      if (!dataTransfer) return [];
+      const uriList = dataTransfer.getData('text/uri-list');
+      const fromUriList = uriList
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line && !line.startsWith('#') && looksLikeImageUrl(line));
+
+      if (fromUriList.length > 0) return fromUriList;
+
+      const plainText = dataTransfer.getData('text/plain').trim();
+      if (looksLikeImageUrl(plainText)) return [plainText];
+
+      return [];
+    };
+
+    const parseDroppedAssetIds = (dataTransfer: DataTransfer | null): string[] => {
+      if (!dataTransfer) return [];
+      const fromCustomType = dataTransfer
+        .getData('application/x-md-crafter-asset-id')
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean);
+      if (fromCustomType.length > 0) {
+        return Array.from(new Set(fromCustomType));
+      }
+
+      const plainText = dataTransfer.getData('text/plain').trim();
+      if (!plainText) return [];
+      const assetIds: string[] = [];
+      const regex = /mdc:\/\/asset\/([a-zA-Z0-9_-]+)/g;
+      let match: RegExpExecArray | null = regex.exec(plainText);
+      while (match) {
+        const id = (match[1] || '').trim();
+        if (id) assetIds.push(id);
+        match = regex.exec(plainText);
+      }
+      return Array.from(new Set(assetIds));
+    };
+
+    const isDropInsideEditor = (event: DragEvent): boolean => {
+      const target = event.target;
+      if (!(target instanceof Node)) return false;
+      return editorNode.contains(target);
+    };
+
+    const insertDroppedImages = async (files: File[], urls: string[], assetIds: string[]) => {
+      let insertedAnyImages = false;
+      if (assetIds.length > 0) {
+        const { ASSET_URL_PREFIX, buildMarkdownImageToken, fileBaseName } = await import('../services/imageAssets');
+        const state = useStore.getState();
+        const snippets = assetIds
+          .map((assetId) => {
+            const asset = state.imageAssets[assetId];
+            if (!asset) return null;
+            const alt = fileBaseName(asset.fileName || 'image', 'image')
+              .replace(/[_-]+/g, ' ')
+              .trim() || 'image';
+            return buildMarkdownImageToken({
+              alt,
+              src: `${ASSET_URL_PREFIX}${assetId}`,
+              title: undefined,
+              width: undefined,
+              attrsRaw: undefined,
+            });
+          })
+          .filter((snippet): snippet is string => Boolean(snippet));
+
+        if (snippets.length > 0) {
+          insertTextAtSelection(editor, snippets.join('\n'), 'drop-image-asset');
+          insertedAnyImages = true;
+        }
+      }
+
+      if (files.length > 0) {
+        const { createImageMarkdownFromFiles } = await import('../services/imageAssets');
+        const snippets = await createImageMarkdownFromFiles(files, {
+          embedImagesAsBase64: true,
+          upsertImageAsset,
+        });
+        if (snippets.length > 0) {
+          insertTextAtSelection(editor, snippets.join('\n'), 'drop-image');
+          insertedAnyImages = true;
+        }
+      }
+
+      if (urls.length > 0) {
+        const { createImageMarkdownFromUrls } = await import('../services/imageAssets');
+        const snippets = await createImageMarkdownFromUrls(urls, {
+          embedImagesAsBase64: true,
+          upsertImageAsset,
+        });
+        if (snippets.length > 0) {
+          insertTextAtSelection(editor, snippets.join('\n'), 'drop-image-url');
+          insertedAnyImages = true;
+        }
+      }
+
+      if (insertedAnyImages) {
+        await normalizeImagesInEditor('drop-image-normalize');
+      }
+    };
+
+    const handleDragOver = (event: DragEvent) => {
+      if (!isDropInsideEditor(event)) return;
+      const files = getImageFilesFromDataTransfer(event.dataTransfer);
+      const urls = parseDroppedUrls(event.dataTransfer);
+      const assetIds = parseDroppedAssetIds(event.dataTransfer);
+      if (files.length === 0 && urls.length === 0 && assetIds.length === 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
+    const handleDrop = async (event: DragEvent) => {
+      if (!isDropInsideEditor(event)) return;
+
+      const files = getImageFilesFromDataTransfer(event.dataTransfer);
+      const urls = parseDroppedUrls(event.dataTransfer);
+      const assetIds = parseDroppedAssetIds(event.dataTransfer);
+      if (files.length === 0 && urls.length === 0 && assetIds.length === 0) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      try {
+        editor.focus();
+        await insertDroppedImages(files, urls, assetIds);
+      } catch (error) {
+        logger.warn('Failed to drop image(s) into editor', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    };
+
+    document.addEventListener('dragover', handleDragOver, true);
+    document.addEventListener('drop', handleDrop, true);
+    return () => {
+      document.removeEventListener('dragover', handleDragOver, true);
+      document.removeEventListener('drop', handleDrop, true);
+    };
+  }, [insertTextAtSelection, normalizeImagesInEditor, upsertImageAsset]);
 
   // Ensure model/content stays in sync when tab changes (belt-and-suspenders)
   useEffect(() => {
@@ -585,7 +880,9 @@ export function Editor({
         // Also sync content for the CURRENT tab when store content differs from model
         // This handles "revert to saved" and other external content updates
         // Only do this when there's no pending user edit (to avoid race conditions)
-        const shouldSyncFromStore = activeTab.lastContentSource === 'external-replace';
+        const shouldSyncFromStore =
+          activeTab.lastContentSource === 'external-replace' ||
+          activeTab.lastContentSource === 'preview-edit';
         const currentValue = model.getValue();
         if (shouldSyncFromStore && currentValue !== activeTab.content && !pendingUpdateRef.current) {
           ignoreChangeRef.current = true;

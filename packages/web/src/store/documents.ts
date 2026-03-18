@@ -35,6 +35,28 @@ export interface DocumentsSlice {
  * @returns DocumentsSlice with document state and actions
  */
 export const createDocumentsSlice: StateCreator<AppState, [], [], DocumentsSlice> = (set, get) => {
+  const prepareContentForSave = async (tab: Tab): Promise<string> => {
+    try {
+      const { cacheDocumentImagesForSave } = await import('../services/imageAssets');
+      const { upsertImageAsset, getImageAssetDataUrl } = get();
+      const safeUpsertImageAsset =
+        upsertImageAsset ||
+        ((asset: { id?: string }) => asset.id || `img-${Date.now()}`);
+      const safeResolveImageAssetDataUrl = getImageAssetDataUrl || (() => null);
+      return await cacheDocumentImagesForSave(tab.content, {
+        embedImagesAsBase64: true,
+        upsertImageAsset: safeUpsertImageAsset as AppState['upsertImageAsset'],
+        resolveAssetDataUrl: safeResolveImageAssetDataUrl,
+      });
+    } catch (error) {
+      logger.warn('Failed to normalize images before save, using original content', {
+        tabId: tab.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return tab.content;
+    }
+  };
+
   return {
     cloudDocuments: [],
     recentFiles: [],
@@ -83,15 +105,22 @@ export const createDocumentsSlice: StateCreator<AppState, [], [], DocumentsSlice
 
       const tab = tabs.find((t) => t.id === activeTabId);
       if (!tab) return;
+      const contentToSave = await prepareContentForSave(tab);
 
       // In Electron, if tab has a path, save to that path
       if (isElectron() && typeof window !== 'undefined' && window.api?.writeFile && tab.path) {
-        const result = await window.api.writeFile(tab.path, tab.content);
+        const result = await window.api.writeFile(tab.path, contentToSave);
         if (result.success) {
           set((state) => ({
             tabs: state.tabs.map((t) =>
               t.id === activeTabId
-                ? { ...t, isDirty: false, savedContent: t.content }
+                ? {
+                  ...t,
+                  content: contentToSave,
+                  isDirty: false,
+                  savedContent: contentToSave,
+                  lastContentSource: 'preview-edit',
+                }
                 : t
             ),
           }));
@@ -111,7 +140,14 @@ export const createDocumentsSlice: StateCreator<AppState, [], [], DocumentsSlice
         set((state) => ({
           tabs: state.tabs.map((t) =>
             t.id === activeTabId
-              ? { ...t, isDirty: false, savedContent: t.content, hasSavedVersion: true }
+              ? {
+                ...t,
+                content: contentToSave,
+                isDirty: false,
+                savedContent: contentToSave,
+                hasSavedVersion: true,
+                lastContentSource: 'preview-edit',
+              }
               : t
           ),
         }));
@@ -134,6 +170,7 @@ export const createDocumentsSlice: StateCreator<AppState, [], [], DocumentsSlice
       const tab = tabs.find((t) => t.id === tabId);
 
       if (!tab || !isAuthenticated) return;
+      const contentToSave = await prepareContentForSave(tab);
 
       try {
         set((state) => ({
@@ -147,7 +184,7 @@ export const createDocumentsSlice: StateCreator<AppState, [], [], DocumentsSlice
           // Update existing document
           doc = await api.updateDocument(tab.documentId, {
             title: tab.title,
-            content: tab.content,
+            content: contentToSave,
             language: tab.language,
             etag: tab.etag ?? undefined,
           });
@@ -155,7 +192,7 @@ export const createDocumentsSlice: StateCreator<AppState, [], [], DocumentsSlice
           // Create new document
           doc = await api.createDocument({
             title: tab.title,
-            content: tab.content,
+            content: contentToSave,
             language: tab.language,
           });
         }
@@ -170,9 +207,11 @@ export const createDocumentsSlice: StateCreator<AppState, [], [], DocumentsSlice
                 syncStatus: 'synced',
                 isCloudSynced: true,
                 etag: doc.etag,
-                savedContent: tab.content,
+                content: contentToSave,
+                savedContent: contentToSave,
                 hasSavedVersion: true,
                 customTitle: undefined,
+                lastContentSource: 'preview-edit',
               }
               : t
           ),

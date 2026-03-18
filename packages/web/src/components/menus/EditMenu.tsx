@@ -36,11 +36,24 @@ export function getEditMenuItems(editorContext: EditorContext): MenuItem[] {
     pasteFromWordDocs,
     formatDocument,
     checkGrammar,
+    closeGrammarReview,
     setShowDictionaryModal,
   } = useStore.getState();
   const { getActiveEditor, executeEditorCommand, primaryMonaco, grammarService } = editorContext;
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
+
+  const runGrammarCheck = () => {
+    const editor = getActiveEditor();
+    if (editor && primaryMonaco) {
+      checkGrammar({ editor, monaco: primaryMonaco, grammarService: grammarService || undefined });
+    }
+  };
+
+  const clearGrammarHighlights = () => {
+    grammarService?.clearMarkers();
+    closeGrammarReview();
+  };
 
   return [
     {
@@ -99,13 +112,13 @@ export function getEditMenuItems(editorContext: EditorContext): MenuItem[] {
           : model?.getValue();
 
         if (text) {
-          // Dynamic import to avoid circular dependency if any, or just import at top if needed.
-          // Since we are in the same package, we can import directly.
-          // But wait, the hook uses useStore, we might need to expose this via store or import service directly.
-          // EditMenu imports from '../../store' which doesn't expose clipboard service directly.
-          // Let's import the service function directly at top of file.
+          const { materializeClipboardMarkdownImages } = await import('../../services/imageAssets');
           const { copyAsHtml } = await import('../../services/clipboard');
-          await copyAsHtml(text);
+          const prepared = materializeClipboardMarkdownImages(text, {
+            resolveAssetDataUrl: useStore.getState().getImageAssetDataUrl,
+            referenceContext: model?.getValue() || text,
+          });
+          await copyAsHtml(prepared);
         }
       },
       disabled: !activeTab,
@@ -192,12 +205,19 @@ export function getEditMenuItems(editorContext: EditorContext): MenuItem[] {
       label: 'Check Grammar',
       shortcut: '⌘⇧G',
       icon: <CheckSquare size={14} />,
-      action: () => {
-        const editor = getActiveEditor();
-        if (editor && primaryMonaco) {
-          checkGrammar({ editor, monaco: primaryMonaco, grammarService: grammarService || undefined });
-        }
-      },
+      submenu: [
+        {
+          id: 'grammar-run',
+          label: 'Run Grammar Check',
+          shortcut: '⌘⇧G',
+          action: runGrammarCheck,
+        },
+        {
+          id: 'grammar-clear',
+          label: 'Clear Highlights',
+          action: clearGrammarHighlights,
+        },
+      ],
       disabled: !activeTab || (
         activeTab.language !== 'markdown' &&
         activeTab.language !== 'mdx' &&

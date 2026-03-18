@@ -14,6 +14,7 @@ const createMockState = (overrides: Partial<AppState> = {}): AppState => ({
     autoSync: true,
     syncInterval: 2000,
     spellCheck: true,
+    embedImagesAsBase64: true,
   },
   ...overrides,
 } as unknown as AppState);
@@ -44,6 +45,7 @@ describe('Settings Slice', () => {
         autoSync: true,
         syncInterval: 2000,
         spellCheck: true,
+        embedImagesAsBase64: true,
       });
     });
 
@@ -173,6 +175,15 @@ describe('Settings Slice', () => {
       expect(result.settings.spellCheck).toBe(false);
     });
 
+    it('should always keep embedImagesAsBase64 enabled', () => {
+      slice.updateSettings({ embedImagesAsBase64: false });
+
+      const setFn = mockSet.mock.calls[0][0];
+      const result = setFn({ settings: mockState.settings });
+
+      expect(result.settings.embedImagesAsBase64).toBe(true);
+    });
+
     it('should handle empty update object', () => {
       slice.updateSettings({});
 
@@ -197,6 +208,7 @@ describe('Settings Slice', () => {
         autoSync: true,
         syncInterval: 3000,
         spellCheck: false,
+        embedImagesAsBase64: false,
       };
 
       slice.updateSettings({ fontSize: 20 });
@@ -209,7 +221,7 @@ describe('Settings Slice', () => {
       expect(result.settings.tabSize).toBe(4);
       expect(result.settings.wordWrap).toBe(false);
       expect(result.settings.spellCheck).toBe(false);
+      expect(result.settings.embedImagesAsBase64).toBe(true);
     });
   });
 });
-

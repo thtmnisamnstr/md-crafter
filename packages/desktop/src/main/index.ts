@@ -238,8 +238,17 @@ function createMenu(): void {
         },
         {
           label: 'Check Grammar',
-          accelerator: 'CmdOrCtrl+Shift+G',
-          click: () => mainWindow?.webContents.send('menu:grammar'),
+          submenu: [
+            {
+              label: 'Run Grammar Check',
+              accelerator: 'CmdOrCtrl+Shift+G',
+              click: () => mainWindow?.webContents.send('menu:grammar'),
+            },
+            {
+              label: 'Clear Highlights',
+              click: () => mainWindow?.webContents.send('menu:grammar-clear'),
+            },
+          ],
         },
         {
           label: 'Manage Dictionary...',
@@ -576,6 +585,52 @@ ipcMain.handle('dialog:select-folder', async () => {
     return result.filePaths[0];
   }
   return null;
+});
+
+ipcMain.handle('image:fetch-data-url', async (_event, rawUrl: string) => {
+  try {
+    const parsed = new URL(rawUrl);
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return {
+        success: false,
+        error: `Unsupported protocol: ${parsed.protocol}`,
+      };
+    }
+
+    const response = await fetch(parsed.toString());
+    if (!response.ok) {
+      return {
+        success: false,
+        error: `Image request failed (${response.status})`,
+      };
+    }
+
+    const contentTypeHeader = response.headers.get('content-type') || '';
+    const mimeType = contentTypeHeader.split(';')[0]?.trim() || '';
+    if (!mimeType.toLowerCase().startsWith('image/')) {
+      return {
+        success: false,
+        error: 'URL did not resolve to an image',
+      };
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString('base64');
+    return {
+      success: true,
+      dataUrl: `data:${mimeType};base64,${base64}`,
+      mimeType,
+    };
+  } catch (error) {
+    logger.warn('Failed to fetch remote image through desktop bridge', {
+      url: rawUrl,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
 });
 
 // Window control handlers (for custom title bar on Windows/Linux)

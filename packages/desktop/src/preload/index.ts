@@ -12,6 +12,7 @@ const api = {
   watchFile: (path: string) => ipcRenderer.invoke('file:watch', path),
   unwatchFile: (path: string) => ipcRenderer.invoke('file:unwatch', path),
   selectFolder: () => ipcRenderer.invoke('dialog:select-folder'),
+  fetchImageDataUrl: (url: string) => ipcRenderer.invoke('image:fetch-data-url', url),
 
   // Store operations
   getStore: (key: string) => ipcRenderer.invoke('store:get', key),
@@ -130,6 +131,10 @@ const api = {
   onMenuGrammar: (callback: () => void) => {
     ipcRenderer.on('menu:grammar', callback);
     return () => ipcRenderer.removeAllListeners('menu:grammar');
+  },
+  onMenuGrammarClear: (callback: () => void) => {
+    ipcRenderer.on('menu:grammar-clear', callback);
+    return () => ipcRenderer.removeAllListeners('menu:grammar-clear');
   },
   onMenuDictionary: (callback: () => void) => {
     ipcRenderer.on('menu:dictionary', callback);

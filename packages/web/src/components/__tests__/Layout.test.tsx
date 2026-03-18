@@ -28,8 +28,33 @@ vi.mock('../StatusBar', () => ({
 }));
 
 vi.mock('../MarkdownPreview', () => ({
-  MarkdownPreview: ({ content }: { content: string }) => (
-    <div data-testid="markdown-preview">{content}</div>
+  MarkdownPreview: ({
+    content,
+    onImageEmbedded,
+  }: {
+    content: string;
+    onImageEmbedded?: (payload: {
+      originalSrc: string;
+      embeddedDataUrl: string;
+      nextContent: string;
+      imageIndex: number;
+    }) => void;
+  }) => (
+    <div>
+      <div data-testid="markdown-preview">{content}</div>
+      <button
+        type="button"
+        data-testid="mock-embed-image"
+        onClick={() => onImageEmbedded?.({
+          originalSrc: 'mdc://asset/img-1',
+          embeddedDataUrl: 'data:image/png;base64,abc123',
+          nextContent: '![asset](data:image/png;base64,abc123)',
+          imageIndex: 0,
+        })}
+      >
+        Embed
+      </button>
+    </div>
   ),
 }));
 
@@ -49,6 +74,7 @@ describe('Layout', () => {
   const mockSetDiffMode = vi.fn();
   const mockExitDiffMode = vi.fn();
   const mockSetSplitMode = vi.fn();
+  const mockRemoveImageAsset = vi.fn();
 
   const mockStore = {
     showSidebar: true,
@@ -75,6 +101,12 @@ describe('Layout', () => {
     exitDiffMode: mockExitDiffMode,
     setSplitMode: mockSetSplitMode,
     setTabPreviewRatio: vi.fn(),
+    updateTabContent: vi.fn(),
+    imageAssets: {},
+    upsertImageAsset: vi.fn(() => 'img-test'),
+    removeImageAsset: mockRemoveImageAsset,
+    setTabCursor: vi.fn(),
+    setTabSelection: vi.fn(),
     updateTab: vi.fn(),
   };
 
@@ -285,6 +317,34 @@ describe('Layout', () => {
       );
 
       expect(getByTestId('markdown-preview')).toBeTruthy();
+    });
+
+    it('should remove image asset when embedding referenced document asset', () => {
+      (useStore as any).mockReturnValue({
+        ...mockStore,
+        showPreview: true,
+        tabs: [
+          {
+            id: 'tab-1',
+            title: 'test.md',
+            content: '![asset](mdc://asset/img-1)',
+            language: 'markdown',
+            isDirty: false,
+            syncStatus: 'local' as const,
+            isCloudSynced: false,
+            savedContent: '![asset](mdc://asset/img-1)',
+          },
+        ],
+      });
+
+      const { getByTestId } = render(
+        <MockEditorContextProvider primaryEditor={mockEditor} primaryMonaco={mockMonaco}>
+          <Layout />
+        </MockEditorContextProvider>
+      );
+
+      fireEvent.click(getByTestId('mock-embed-image'));
+      expect(mockRemoveImageAsset).toHaveBeenCalledWith('img-1');
     });
 
     it('should show preview pane for MDX files', () => {

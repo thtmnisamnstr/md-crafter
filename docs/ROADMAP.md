@@ -36,21 +36,20 @@ This document outlines planned features and improvements for md-crafter. Feature
 ### Image & Media Handling
 > *Native support for images and media in markdown documents*
 
-- [ ] Render image URLs automatically in markdown preview
-- [ ] Support image paste from clipboard
-  - [ ] Save pasted images to document cache/storage
-  - [ ] Auto-insert markdown image syntax
-  - [ ] Display in preview immediately
-- [ ] Support image drag-and-drop insertion
-- [ ] Store all document images in Document Chest when saving
-  - [ ] Handle URL-referenced images (download and store)
-  - [ ] Handle pasted images
-  - [ ] Handle embedded base64 images
-- [ ] Persist images across tab changes and sessions
-- [ ] Add option to embed images directly in markdown (base64)
-- [ ] Render embedded base64 images correctly in preview
-- [ ] Image resize handles in preview
-- [ ] Image alt-text and caption editing
+- [x] Render image URLs automatically in markdown preview
+- [x] Support image paste from clipboard
+  - [x] Save pasted images to document cache/storage
+  - [x] Auto-insert markdown image syntax
+  - [x] Display in preview immediately
+- [x] Support image drag-and-drop insertion
+- [x] Normalize image syntax to reference tags with definitions at document end
+- [x] Handle image sources during save and conversion flows
+  - [x] Handle URL-referenced images
+  - [x] Handle pasted/local asset images
+  - [x] Handle embedded base64 images
+- [x] Persist images across tab changes and sessions
+- [x] Render embedded base64 images correctly in preview
+- [x] Image alt-text and caption editing
 
 ---
 
@@ -147,7 +146,6 @@ This document outlines planned features and improvements for md-crafter. Feature
 
 - [ ] Export MDX to static HTML with embedded styles
 - [ ] Export to Markdown (strip MDX components)
-- [ ] Export to EPUB for e-readers
 - [ ] Batch export multiple documents
 
 ---
@@ -224,4 +222,3 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md) for development setup. Feature request
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for released features.
-

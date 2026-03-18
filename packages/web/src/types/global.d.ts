@@ -18,6 +18,12 @@ declare global {
       watchFile?: (path: string) => Promise<void>;
       unwatchFile?: (path: string) => Promise<void>;
       selectFolder?: () => Promise<string | null>;
+      fetchImageDataUrl?: (url: string) => Promise<{
+        success: boolean;
+        dataUrl?: string;
+        mimeType?: string;
+        error?: string;
+      }>;
 
       // Store operations
       getStore: (key: string) => Promise<unknown>;
@@ -65,6 +71,7 @@ declare global {
       onMenuPasteFromHtml: (callback: () => void) => () => void;
       onMenuFormat: (callback: () => void) => () => void;
       onMenuGrammar: (callback: () => void) => () => void;
+      onMenuGrammarClear: (callback: () => void) => () => void;
       onMenuDictionary: (callback: () => void) => () => void;
 
       // Menu events - View menu

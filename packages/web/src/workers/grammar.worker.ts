@@ -107,6 +107,15 @@ function collectSpacingIssues(text: string): RawIssue[] {
   const regex = / {2,}/g;
   let match: RegExpExecArray | null;
   while ((match = regex.exec(text)) !== null) {
+    const lineStart = text.lastIndexOf('\n', match.index) + 1;
+    const prefix = text.slice(lineStart, match.index);
+    const remainder = text.slice(match.index + match[0].length);
+    const isLeadingIndentation = /^[ \t]*$/.test(prefix);
+    const startsMarkdownListItem = /^([-*+]|\d+\.)\s/.test(remainder);
+    if (isLeadingIndentation && startsMarkdownListItem) {
+      continue;
+    }
+
     issues.push({
       start: match.index,
       end: match.index + match[0].length,

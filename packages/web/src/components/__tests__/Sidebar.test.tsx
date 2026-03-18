@@ -17,8 +17,12 @@ describe('Sidebar', () => {
   const mockSetShowSettings = vi.fn();
   const mockLogout = vi.fn();
   const mockSetActiveTab = vi.fn();
+  const mockRenameImageAsset = vi.fn();
+  const mockRemoveImageAsset = vi.fn();
+  const mockUpdateTabContent = vi.fn();
   const mockSetConfirmation = vi.fn();
   const mockClearConfirmation = vi.fn();
+  const mockAddToast = vi.fn();
 
   const mockStore = {
     isAuthenticated: false,
@@ -46,6 +50,7 @@ describe('Sidebar', () => {
       },
     ],
     activeTabId: 'tab-1',
+    imageAssets: {},
     createNewDocument: mockCreateNewDocument,
     openCloudDocument: mockOpenCloudDocument,
     deleteCloudDocument: mockDeleteCloudDocument,
@@ -54,8 +59,12 @@ describe('Sidebar', () => {
     setShowSettings: mockSetShowSettings,
     logout: mockLogout,
     setActiveTab: mockSetActiveTab,
+    renameImageAsset: mockRenameImageAsset,
+    removeImageAsset: mockRemoveImageAsset,
+    updateTabContent: mockUpdateTabContent,
     setConfirmation: mockSetConfirmation,
     clearConfirmation: mockClearConfirmation,
+    addToast: mockAddToast,
   };
 
   beforeEach(() => {
@@ -153,6 +162,217 @@ describe('Sidebar', () => {
       }
       
       expect(mockSetActiveTab).toHaveBeenCalledWith('tab-2');
+    });
+
+    it('should not show image attachment expander when tab has no assets', () => {
+      const { queryByLabelText } = render(<Sidebar />);
+      expect(queryByLabelText('Expand image attachments')).toBeFalsy();
+    });
+
+    it('should show image attachment expander and attachments when tab has assets', () => {
+      (useStore as any).mockReturnValue({
+        ...mockStore,
+        tabs: [
+          {
+            ...mockStore.tabs[0],
+            content: '![diagram](mdc://asset/img-1)',
+          },
+        ],
+        imageAssets: {
+          'img-1': {
+            id: 'img-1',
+            dataUrl: 'data:image/png;base64,abc123',
+            mimeType: 'image/png',
+            fileName: 'diagram.png',
+            createdAt: Date.now(),
+          },
+        },
+      });
+
+      const { getByLabelText, getByText } = render(<Sidebar />);
+      const expandButton = getByLabelText('Expand image attachments');
+      expect(expandButton).toBeTruthy();
+
+      fireEvent.click(expandButton);
+      expect(getByText('diagram.png')).toBeTruthy();
+    });
+
+    it('should show right-click save menu for image attachments', () => {
+      (useStore as any).mockReturnValue({
+        ...mockStore,
+        tabs: [
+          {
+            ...mockStore.tabs[0],
+            content: '![diagram](mdc://asset/img-1)',
+          },
+        ],
+        imageAssets: {
+          'img-1': {
+            id: 'img-1',
+            dataUrl: 'data:image/png;base64,abc123',
+            mimeType: 'image/png',
+            fileName: 'diagram.png',
+            createdAt: Date.now(),
+          },
+        },
+      });
+
+      const { getByLabelText, getByText } = render(<Sidebar />);
+      fireEvent.click(getByLabelText('Expand image attachments'));
+
+      const imageItem = getByText('diagram.png');
+      fireEvent.contextMenu(imageItem);
+
+      expect(getByText('Save As .png')).toBeTruthy();
+      expect(getByText('Save As .jpg')).toBeTruthy();
+      expect(getByText('Rename Asset...')).toBeTruthy();
+      expect(getByText('Delete Asset')).toBeTruthy();
+    });
+
+    it('should remove asset references from tab when Delete Asset is selected', () => {
+      const initialContent = [
+        '![diagram][image1]',
+        '',
+        '[image1]: mdc://asset/img-1',
+      ].join('\n');
+
+      (useStore as any).mockReturnValue({
+        ...mockStore,
+        tabs: [
+          {
+            ...mockStore.tabs[0],
+            content: initialContent,
+          },
+        ],
+        imageAssets: {
+          'img-1': {
+            id: 'img-1',
+            dataUrl: 'data:image/png;base64,abc123',
+            mimeType: 'image/png',
+            fileName: 'diagram.png',
+            createdAt: Date.now(),
+          },
+        },
+      });
+
+      const { getByLabelText, getByText } = render(<Sidebar />);
+      fireEvent.click(getByLabelText('Expand image attachments'));
+
+      const imageItem = getByText('diagram.png');
+      fireEvent.contextMenu(imageItem);
+      fireEvent.click(getByText('Delete Asset'));
+
+      expect(mockUpdateTabContent).toHaveBeenCalledWith(
+        'tab-1',
+        '',
+        { source: 'preview-edit' }
+      );
+      expect(mockRemoveImageAsset).toHaveBeenCalledWith('img-1');
+    });
+
+    it('should start inline rename from context menu and commit on Enter', () => {
+      (useStore as any).mockReturnValue({
+        ...mockStore,
+        tabs: [
+          {
+            ...mockStore.tabs[0],
+            content: '![diagram](mdc://asset/img-1)',
+          },
+        ],
+        imageAssets: {
+          'img-1': {
+            id: 'img-1',
+            dataUrl: 'data:image/png;base64,abc123',
+            mimeType: 'image/png',
+            fileName: 'diagram.png',
+            createdAt: Date.now(),
+          },
+        },
+      });
+
+      const { getByLabelText, getByText, getByDisplayValue } = render(<Sidebar />);
+      fireEvent.click(getByLabelText('Expand image attachments'));
+
+      const imageItem = getByText('diagram.png');
+      fireEvent.contextMenu(imageItem);
+      fireEvent.click(getByText('Rename Asset...'));
+
+      const renameInput = getByDisplayValue('diagram.png');
+      fireEvent.change(renameInput, { target: { value: 'renamed-diagram.png' } });
+      fireEvent.keyDown(renameInput, { key: 'Enter' });
+
+      expect(mockRenameImageAsset).toHaveBeenCalledWith('img-1', 'renamed-diagram.png');
+    });
+
+    it('should rename image attachment on double-click', () => {
+      (useStore as any).mockReturnValue({
+        ...mockStore,
+        tabs: [
+          {
+            ...mockStore.tabs[0],
+            content: '![diagram](mdc://asset/img-1)',
+          },
+        ],
+        imageAssets: {
+          'img-1': {
+            id: 'img-1',
+            dataUrl: 'data:image/png;base64,abc123',
+            mimeType: 'image/png',
+            fileName: 'diagram.png',
+            createdAt: Date.now(),
+          },
+        },
+      });
+
+      const { getByLabelText, getByText, getByDisplayValue } = render(<Sidebar />);
+      fireEvent.click(getByLabelText('Expand image attachments'));
+
+      const imageItem = getByText('diagram.png');
+      fireEvent.doubleClick(imageItem);
+
+      const renameInput = getByDisplayValue('diagram.png');
+      fireEvent.change(renameInput, { target: { value: 'updated-name.png' } });
+      fireEvent.keyDown(renameInput, { key: 'Enter' });
+
+      expect(mockRenameImageAsset).toHaveBeenCalledWith('img-1', 'updated-name.png');
+    });
+
+    it('should set drag payload when dragging an image attachment', () => {
+      (useStore as any).mockReturnValue({
+        ...mockStore,
+        tabs: [
+          {
+            ...mockStore.tabs[0],
+            content: '![diagram](mdc://asset/img-1)',
+          },
+        ],
+        imageAssets: {
+          'img-1': {
+            id: 'img-1',
+            dataUrl: 'data:image/png;base64,abc123',
+            mimeType: 'image/png',
+            fileName: 'diagram.png',
+            createdAt: Date.now(),
+          },
+        },
+      });
+
+      const { getByLabelText, getByText } = render(<Sidebar />);
+      fireEvent.click(getByLabelText('Expand image attachments'));
+
+      const setData = vi.fn();
+      const imageItem = getByText('diagram.png').closest('.sidebar-asset-item');
+      if (imageItem) {
+        fireEvent.dragStart(imageItem, {
+          dataTransfer: {
+            setData,
+            effectAllowed: '',
+          },
+        });
+      }
+
+      expect(setData).toHaveBeenCalledWith('application/x-md-crafter-asset-id', 'img-1');
+      expect(setData).toHaveBeenCalledWith('text/plain', expect.stringContaining('mdc://asset/img-1'));
     });
   });
 
@@ -373,4 +593,3 @@ describe('Sidebar', () => {
     });
   });
 });
-

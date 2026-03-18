@@ -274,8 +274,16 @@ export function useKeyboardShortcuts(): void {
           : model?.getValue();
 
         if (text) {
-          import('../services/clipboard').then(({ copyAsHtml }) => {
-            copyAsHtml(text);
+          Promise.all([
+            import('../services/clipboard'),
+            import('../services/imageAssets'),
+          ]).then(([{ copyAsHtml }, { materializeClipboardMarkdownImages }]) => {
+            const fullContext = model?.getValue() || text;
+            const prepared = materializeClipboardMarkdownImages(text, {
+              resolveAssetDataUrl: useStore.getState().getImageAssetDataUrl,
+              referenceContext: fullContext,
+            });
+            copyAsHtml(prepared);
           });
         }
         return;

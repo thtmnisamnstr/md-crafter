@@ -10,9 +10,36 @@ import { WelcomeTab } from './WelcomeTab';
 import { DEFAULT_PREVIEW_RATIO, SIDEBAR_MIN_WIDTH, SIDEBAR_MAX_WIDTH } from '../constants';
 import { useResize } from '../hooks/useResize';
 import { useEditorContext } from '../contexts/EditorContext';
+import {
+  ASSET_URL_PREFIX,
+  convertDataUrlToImageFormat,
+  extractAssetIdFromSrc,
+  imageFormatToExtension,
+  imageFormatToMimeType,
+  listAssetIdsInContent,
+} from '../services/imageAssets';
 
 export function Layout() {
-  const { showSidebar, showPreview, sidebarWidth, activeTabId, tabs, setSidebarWidth, zenMode, splitMode, setSplitMode, diffMode, setDiffMode, exitDiffMode, setTabCursor, setTabSelection } = useStore();
+  const {
+    showSidebar,
+    showPreview,
+    sidebarWidth,
+    activeTabId,
+    tabs,
+    imageAssets,
+    upsertImageAsset,
+    removeImageAsset,
+    setSidebarWidth,
+    zenMode,
+    splitMode,
+    setSplitMode,
+    diffMode,
+    setDiffMode,
+    exitDiffMode,
+    setTabCursor,
+    setTabSelection,
+    updateTabContent,
+  } = useStore();
   const { primaryEditor } = useEditorContext();
   const [previewRatio, setPreviewRatio] = useState(DEFAULT_PREVIEW_RATIO);
   const editorContainerRef = useRef<HTMLDivElement>(null);
@@ -210,7 +237,46 @@ export function Layout() {
                       className="min-w-0 h-full overflow-hidden"
                       style={{ flex: `0 0 ${previewRatio * 100}%` }}
                     >
-                      <MarkdownPreview content={activeTab?.content || ''} isMdx={isMdx} />
+                      <MarkdownPreview
+                        content={activeTab?.content || ''}
+                        isMdx={isMdx}
+                        tabId={activeTab?.id}
+                        resolveImageAssetSrc={(assetId) => imageAssets[assetId]?.dataUrl || null}
+                        promoteEmbeddedImageToAsset={async (dataUrl, imageIndex, format) => {
+                          const convertedDataUrl = await convertDataUrlToImageFormat(dataUrl, format);
+                          const mimeType = imageFormatToMimeType(format);
+                          const extension = imageFormatToExtension(format);
+                          const docBaseName = (activeTab?.title || 'document')
+                            .replace(/\.[^.]+$/, '')
+                            .replace(/[^a-z0-9]+/gi, '-')
+                            .replace(/(^-|-$)/g, '')
+                            .toLowerCase() || 'document';
+                          const assetId = upsertImageAsset({
+                            dataUrl: convertedDataUrl,
+                            mimeType,
+                            fileName: `${docBaseName}-embedded-${imageIndex + 1}.${extension}`,
+                          });
+                          return `${ASSET_URL_PREFIX}${assetId}`;
+                        }}
+                        onImageEmbedded={({ originalSrc, nextContent }) => {
+                          const assetId = extractAssetIdFromSrc(originalSrc);
+                          if (!assetId || !activeTab?.id) return;
+
+                          const hasReferenceInProjectedTabs = tabs.some((tab) => {
+                            const contentToCheck = tab.id === activeTab.id ? nextContent : tab.content;
+                            return listAssetIdsInContent(contentToCheck).includes(assetId);
+                          });
+
+                          if (!hasReferenceInProjectedTabs) {
+                            removeImageAsset(assetId);
+                          }
+                        }}
+                        onContentChange={(nextContent) => {
+                          if (activeTab?.id) {
+                            updateTabContent(activeTab.id, nextContent, { source: 'preview-edit' });
+                          }
+                        }}
+                      />
                     </div>
                   </>
                 )}

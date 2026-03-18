@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const reuseExistingServer = process.env.PW_REUSE_EXISTING_SERVER === '1' || process.env.PW_REUSE_EXISTING_SERVER === 'true';
+
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
@@ -53,7 +55,9 @@ export default defineConfig({
   webServer: {
     command: 'VITE_DISABLE_SYNC_WS=1 npm run dev:web',
     url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
+    // Prefer Playwright-managed server lifecycle for stability across browsers.
+    // Set PW_REUSE_EXISTING_SERVER=1 to reuse an already-running dev server.
+    reuseExistingServer,
     timeout: 120000,
   },
 });

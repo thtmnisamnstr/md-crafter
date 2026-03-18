@@ -26,6 +26,7 @@ describe('SettingsModal', () => {
       autoSync: false,
       syncInterval: 1000,
       spellCheck: false,
+      embedImagesAsBase64: false,
     },
     updateSettings: mockUpdateSettings,
     theme: 'dark',

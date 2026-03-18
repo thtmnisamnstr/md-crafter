@@ -58,6 +58,9 @@ npm test
 # Run all E2E tests
 npm run test:e2e
 
+# Reuse an already-running dev server (optional)
+PW_REUSE_EXISTING_SERVER=1 npm run test:e2e
+
 # Run all tests (unit + E2E)
 npm test && npm run test:e2e
 ```

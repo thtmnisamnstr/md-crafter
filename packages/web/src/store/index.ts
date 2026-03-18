@@ -12,6 +12,7 @@ import { createDocumentsSlice } from './documents';
 import { createAuthSlice } from './auth';
 import { createSyncSlice } from './sync';
 import { createSettingsSlice } from './settings';
+import { createImageAssetsSlice } from './imageAssets';
 import { isElectron } from '../utils/platform';
 import { GrammarService } from '../services/grammar';
 
@@ -62,6 +63,7 @@ export const useStore = create<AppState>()(
       ...createAuthSlice(set, get, api),
       ...createSyncSlice(set, get, api),
       ...createSettingsSlice(set, get, api),
+      ...createImageAssetsSlice(set, get, api),
       
       // ============================================================================
       // CRITICAL INITIALIZATION FUNCTION
@@ -231,13 +233,18 @@ export const useStore = create<AppState>()(
        * @returns Promise that resolves when copy operation completes
        */
       copyForWordDocs: async () => {
-        const { tabs, activeTabId, addToast } = get();
+        const { tabs, activeTabId, addToast, getImageAssetDataUrl } = get();
         const activeTab = tabs.find((t) => t.id === activeTabId);
         if (!activeTab) return;
         
         try {
+          const { materializeClipboardMarkdownImages } = await import('../services/imageAssets');
           const { copyAsRichText } = await import('../services/clipboard');
-          await copyAsRichText(activeTab.content);
+          const markdownForClipboard = materializeClipboardMarkdownImages(activeTab.content, {
+            resolveAssetDataUrl: getImageAssetDataUrl,
+            referenceContext: activeTab.content,
+          });
+          await copyAsRichText(markdownForClipboard);
           addToast({ type: 'success', message: 'Copied for Word/Docs' });
         } catch (error) {
           addToast({ type: 'error', message: 'Failed to copy' });
@@ -257,6 +264,7 @@ export const useStore = create<AppState>()(
         const { tabs, activeTabId, addToast, updateTabContent } = get();
         const activeTab = tabs.find((t) => t.id === activeTabId);
         if (!activeTab || !activeTabId) return;
+        const { normalizeDocumentImageReferences } = await import('../services/imageAssets');
         
         // Capture the selection/range immediately (before async clipboard work),
         // so we replace the correct range even if focus/selection changes during await.
@@ -356,9 +364,24 @@ export const useStore = create<AppState>()(
                   text: markdown,
                   forceMoveMarkers: true,
                 }]);
+
+                const model = editor.getModel();
+                if (model) {
+                  const nextContent = normalizeDocumentImageReferences(model.getValue());
+                  if (nextContent !== model.getValue()) {
+                    editor.executeEdits('paste-image-normalize', [{
+                      range: model.getFullModelRange(),
+                      text: nextContent,
+                      forceMoveMarkers: true,
+                    }]);
+                  }
+                }
               }
             } else {
-              updateTabContent(activeTabId, activeTab.content + '\n' + markdown);
+              updateTabContent(
+                activeTabId,
+                normalizeDocumentImageReferences(`${activeTab.content}\n${markdown}`)
+              );
             }
             addToast({ type: 'success', message: 'Pasted from Word/Docs' });
             // Keep editor focus so undo works immediately after paste.
@@ -436,14 +459,25 @@ export const useStore = create<AppState>()(
         try {
           // Import formatter functions
           const { formatMarkdown, formatMdx, isLikelyMdx } = await import('../utils/markdownFormatter');
+          const { normalizeDocumentImageReferences } = await import('../services/imageAssets');
+
+          const editorModel = window.monacoEditor?.getModel?.();
+          const liveEditorContent = editorModel?.getValue?.();
+          const sourceContent = typeof liveEditorContent === 'string'
+            ? liveEditorContent
+            : activeTab.content;
           
           // Use appropriate formatter based on file type
-          const treatAsMdx = isMdx || isLikelyMdx(activeTab.content);
+          const treatAsMdx = isMdx || isLikelyMdx(sourceContent);
           const formatted = treatAsMdx
-            ? await formatMdx(activeTab.content)
-            : await formatMarkdown(activeTab.content);
-          
-          updateTabContent(activeTabId, formatted);
+            ? await formatMdx(sourceContent)
+            : await formatMarkdown(sourceContent);
+
+          updateTabContent(
+            activeTabId,
+            normalizeDocumentImageReferences(formatted),
+            { source: 'preview-edit' }
+          );
           addToast({ type: 'success', message: 'Document formatted' });
         } catch (error) {
           logger.error('Failed to format document', error);
@@ -587,6 +621,7 @@ export const useStore = create<AppState>()(
             selection: tab.selection ?? null,
           })),
         activeTabId: state.activeTabId,
+        imageAssets: state.imageAssets,
       }),
     }
   )

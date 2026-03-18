@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, cleanup, fireEvent } from '@testing-library/react';
+import { render, cleanup, fireEvent, waitFor } from '@testing-library/react';
 import { MarkdownPreview } from '../MarkdownPreview';
+import * as imageAssetsService from '../../services/imageAssets';
 
 // Mock MDXPreview
 vi.mock('../MDXPreview', () => ({
@@ -106,6 +107,25 @@ Another paragraph.`;
       const preview = container.querySelector('.markdown-preview');
       expect(preview?.innerHTML).toContain('Title');
       expect(preview?.innerHTML).toContain('Subtitle');
+    });
+
+    it('should render standalone image URLs as images', () => {
+      const { container } = render(<MarkdownPreview content="https://example.com/cat.png" />);
+      const image = container.querySelector('.markdown-preview img');
+      expect(image?.getAttribute('src')).toBe('https://example.com/cat.png');
+    });
+
+    it('should resolve stored asset image URLs', () => {
+      const { container } = render(
+        <MarkdownPreview
+          content="![cat](mdc://asset/test-asset-id)"
+          resolveImageAssetSrc={(assetId) =>
+            assetId === 'test-asset-id' ? 'data:image/png;base64,abc123' : null
+          }
+        />
+      );
+      const image = container.querySelector('.markdown-preview img');
+      expect(image?.getAttribute('src')).toBe('data:image/png;base64,abc123');
     });
   });
 
@@ -302,6 +322,161 @@ Another paragraph.`;
       const preview = container.querySelector('.markdown-preview');
       // Note: The mock parser doesn't handle code blocks, but we test that it renders
       expect(preview).toBeTruthy();
+    });
+  });
+
+  describe('Image Editing', () => {
+    it('does not render resize handles for images', () => {
+      const { container } = render(<MarkdownPreview content='![photo](https://example.com/photo.png)' />);
+      const image = container.querySelector('.markdown-preview img');
+      expect(image).toBeTruthy();
+      if (image) {
+        fireEvent.click(image);
+      }
+      expect(container.querySelector('.md-image-resize-handle')).toBeFalsy();
+    });
+
+    it('should update alt text and caption from image toolbar', () => {
+      const onContentChange = vi.fn();
+      const { container, getByText, getByPlaceholderText } = render(
+        <MarkdownPreview
+          content='![old alt](https://example.com/photo.png "Old caption")'
+          onContentChange={onContentChange}
+        />
+      );
+
+      const image = container.querySelector('.markdown-preview img');
+      expect(image).toBeTruthy();
+      if (image) {
+        fireEvent.click(image);
+      }
+
+      const altInput = getByPlaceholderText('Describe the image');
+      const captionInput = getByPlaceholderText('Optional caption');
+      fireEvent.input(altInput, { target: { value: 'new alt text' } });
+      fireEvent.input(captionInput, { target: { value: 'New caption' } });
+
+      fireEvent.click(getByText('Apply Image Changes'));
+
+      expect(onContentChange).toHaveBeenCalledWith(
+        '![new alt text][image1]\n\n[image1]: https://example.com/photo.png "New caption"'
+      );
+    });
+
+    it('should save embedded image to document assets without downloading', async () => {
+      const saveSpy = vi
+        .spyOn(imageAssetsService, 'downloadImageSourceAsFormat')
+        .mockResolvedValue();
+      const onContentChange = vi.fn();
+      const promoteEmbeddedImageToAsset = vi.fn(() => 'mdc://asset/new-asset-id');
+      const { container, getByText } = render(
+        <MarkdownPreview
+          content="![embedded](data:image/png;base64,abc123)"
+          onContentChange={onContentChange}
+          promoteEmbeddedImageToAsset={promoteEmbeddedImageToAsset}
+        />
+      );
+
+      const image = container.querySelector('.markdown-preview img');
+      expect(image).toBeTruthy();
+      if (image) {
+        fireEvent.click(image);
+      }
+
+      fireEvent.click(getByText('Save As .png'));
+
+      await waitFor(() => {
+        expect(promoteEmbeddedImageToAsset).toHaveBeenCalledWith('data:image/png;base64,abc123', 0, 'png');
+      });
+
+      expect(saveSpy).not.toHaveBeenCalled();
+      expect(onContentChange).toHaveBeenCalledWith(
+        '![embedded][image1]\n\n[image1]: mdc://asset/new-asset-id'
+      );
+      saveSpy.mockRestore();
+    });
+
+    it('should save remote URL image to document assets without downloading', async () => {
+      const saveSpy = vi
+        .spyOn(imageAssetsService, 'downloadImageSourceAsFormat')
+        .mockResolvedValue();
+      const sourceToDataUrlSpy = vi
+        .spyOn(imageAssetsService, 'imageSourceToDataUrl')
+        .mockResolvedValue('data:image/png;base64,remote123');
+      const onContentChange = vi.fn();
+      const promoteEmbeddedImageToAsset = vi.fn(() => 'mdc://asset/remote-asset-id');
+      const { container, getByText } = render(
+        <MarkdownPreview
+          content="![remote](https://www.pinecone.io/_next/image/?url=https%3A%2F%2Fcdn.sanity.io%2Fimages%2Fvr8gru94%2Fproduction%2F4d106048ca853c0e87dfef9ccd100e4234af1cb3-1916x1038.png&w=3840&q=75)"
+          onContentChange={onContentChange}
+          promoteEmbeddedImageToAsset={promoteEmbeddedImageToAsset}
+        />
+      );
+
+      const image = container.querySelector('.markdown-preview img');
+      expect(image).toBeTruthy();
+      if (image) {
+        fireEvent.click(image);
+      }
+
+      fireEvent.click(getByText('Save As .jpg'));
+
+      await waitFor(() => {
+        expect(sourceToDataUrlSpy).toHaveBeenCalledWith(
+          'https://www.pinecone.io/_next/image/?url=https%3A%2F%2Fcdn.sanity.io%2Fimages%2Fvr8gru94%2Fproduction%2F4d106048ca853c0e87dfef9ccd100e4234af1cb3-1916x1038.png&w=3840&q=75'
+        );
+        expect(promoteEmbeddedImageToAsset).toHaveBeenCalledWith(
+          'data:image/png;base64,remote123',
+          0,
+          'jpg'
+        );
+      });
+
+      expect(saveSpy).not.toHaveBeenCalled();
+      expect(onContentChange).toHaveBeenCalledWith(
+        '![remote][image1]\n\n[image1]: mdc://asset/remote-asset-id'
+      );
+
+      sourceToDataUrlSpy.mockRestore();
+      saveSpy.mockRestore();
+    });
+
+    it('should embed asset-backed image into markdown and emit embed callback', async () => {
+      const embedSpy = vi
+        .spyOn(imageAssetsService, 'imageSourceToDataUrl')
+        .mockResolvedValue('data:image/png;base64,embedded123');
+      const onContentChange = vi.fn();
+      const onImageEmbedded = vi.fn();
+      const { container, getByText } = render(
+        <MarkdownPreview
+          content="![asset](mdc://asset/img-1)"
+          onContentChange={onContentChange}
+          onImageEmbedded={onImageEmbedded}
+          resolveImageAssetSrc={(assetId) => (assetId === 'img-1' ? 'data:image/png;base64,asset123' : null)}
+        />
+      );
+
+      const image = container.querySelector('.markdown-preview img');
+      expect(image).toBeTruthy();
+      if (image) {
+        fireEvent.click(image);
+      }
+
+      fireEvent.click(getByText('Embed Image'));
+
+      await waitFor(() => {
+        expect(onContentChange).toHaveBeenCalledWith(
+          '![asset][image1]\n\n[image1]: <data:image/png;base64,embedded123>'
+        );
+      });
+
+      expect(onImageEmbedded).toHaveBeenCalledWith({
+        originalSrc: 'mdc://asset/img-1',
+        embeddedDataUrl: 'data:image/png;base64,embedded123',
+        nextContent: '![asset][image1]\n\n[image1]: <data:image/png;base64,embedded123>',
+        imageIndex: 0,
+      });
+      embedSpy.mockRestore();
     });
   });
 });

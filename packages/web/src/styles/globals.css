@@ -170,6 +170,15 @@ body {
   background: var(--sidebar-active);
 }
 
+.sidebar-asset-item {
+  @apply flex items-center gap-2 px-3 py-1.5 cursor-pointer text-xs;
+  transition: background-color 0.15s ease;
+}
+
+.sidebar-asset-item:hover {
+  background: var(--sidebar-hover);
+}
+
 /* Markdown preview - uses CSS variables from editor theme */
 .markdown-preview {
   @apply p-6 overflow-auto h-full;
@@ -256,6 +265,34 @@ body {
 
 .markdown-preview img {
   @apply max-w-full h-auto rounded;
+}
+
+.markdown-preview .md-image-figure {
+  position: relative;
+  display: inline-block;
+  margin: 0 0 1rem;
+  max-width: 100%;
+}
+
+.markdown-preview .md-image-figure > img {
+  display: block;
+}
+
+.markdown-preview .md-image-figure.is-selected > img {
+  outline: 2px solid var(--editor-accent);
+  outline-offset: 2px;
+}
+
+.markdown-preview .md-image-figure > figcaption {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  opacity: 0.75;
+  text-align: center;
+}
+
+.md-image-toolbar {
+  background: var(--sidebar-bg);
+  color: var(--editor-fg);
 }
 
 .markdown-preview hr {

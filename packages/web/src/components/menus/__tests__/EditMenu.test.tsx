@@ -19,6 +19,7 @@ describe('EditMenu', () => {
     pasteFromWordDocs: vi.fn(),
     formatDocument: vi.fn(),
     checkGrammar: vi.fn(),
+    closeGrammarReview: vi.fn(),
   };
 
   const mockEditorContext = {
@@ -29,7 +30,9 @@ describe('EditMenu', () => {
     })) as any,
     executeEditorCommand: vi.fn(() => true),
     primaryMonaco: {} as any,
-    grammarService: {} as any,
+    grammarService: {
+      clearMarkers: vi.fn(),
+    } as any,
   } as any;
 
   beforeEach(() => {
@@ -102,7 +105,8 @@ describe('EditMenu', () => {
     it('should use editor context for grammar check', () => {
       const items = getEditMenuItems(mockEditorContext);
       const grammarItem = items.find(item => item.id === 'grammar');
-      grammarItem?.action?.();
+      const runGrammarItem = grammarItem?.submenu?.find(item => item.id === 'grammar-run');
+      runGrammarItem?.action?.();
       expect(mockEditorContext.getActiveEditor).toHaveBeenCalled();
       expect(mockStore.checkGrammar).toHaveBeenCalledWith({
         editor: expect.any(Object),
@@ -183,8 +187,18 @@ describe('EditMenu', () => {
     it('should call checkGrammar when Check Grammar action is executed', () => {
       const items = getEditMenuItems(mockEditorContext);
       const grammarItem = items.find(item => item.id === 'grammar');
-      grammarItem?.action?.();
+      const runGrammarItem = grammarItem?.submenu?.find(item => item.id === 'grammar-run');
+      runGrammarItem?.action?.();
       expect(mockStore.checkGrammar).toHaveBeenCalled();
+    });
+
+    it('should clear grammar highlights from Check Grammar submenu', () => {
+      const items = getEditMenuItems(mockEditorContext);
+      const grammarItem = items.find(item => item.id === 'grammar');
+      const clearGrammarItem = grammarItem?.submenu?.find(item => item.id === 'grammar-clear');
+      clearGrammarItem?.action?.();
+      expect(mockEditorContext.grammarService.clearMarkers).toHaveBeenCalled();
+      expect(mockStore.closeGrammarReview).toHaveBeenCalled();
     });
   });
 });
