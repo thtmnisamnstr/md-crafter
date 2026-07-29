@@ -36,6 +36,12 @@ declare global {
       onMenuRedo: (callback: () => void) => () => void;
       onMenuFind: (callback: () => void) => () => void;
       onMenuReplace: (callback: () => void) => () => void;
+      onMenuExportHtml: (callback: () => void) => () => void;
+      onMenuBatchExport: (callback: () => void) => () => void;
+      onMenuGrammar: (callback: () => void) => () => void;
+      onMenuGrammarClear: (callback: () => void) => () => void;
+      onMenuStripMdx: (callback: () => void) => () => void;
+      onMenuComponentLibrary: (callback: () => void) => () => void;
     };
   }
 }

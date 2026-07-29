@@ -13,6 +13,7 @@ import { createAuthSlice } from './auth';
 import { createSyncSlice } from './sync';
 import { createSettingsSlice } from './settings';
 import { createImageAssetsSlice } from './imageAssets';
+import { createMdxComponentsSlice } from './mdxComponents';
 import { isElectron } from '../utils/platform';
 import { GrammarService } from '../services/grammar';
 
@@ -64,6 +65,7 @@ export const useStore = create<AppState>()(
       ...createSyncSlice(set, get, api),
       ...createSettingsSlice(set, get, api),
       ...createImageAssetsSlice(set, get, api),
+      ...createMdxComponentsSlice(set, get, api),
       
       // ============================================================================
       // CRITICAL INITIALIZATION FUNCTION
@@ -487,6 +489,42 @@ export const useStore = create<AppState>()(
           });
         }
       },
+
+      stripMdxFromCurrentDocument: async () => {
+        const { tabs, activeTabId, updateTabContent, addToast } = get();
+
+        if (!activeTabId) {
+          addToast({ type: 'warning', message: 'No document open' });
+          return;
+        }
+
+        const activeTab = tabs.find((t) => t.id === activeTabId);
+        if (!activeTab) {
+          addToast({ type: 'warning', message: 'No document open' });
+          return;
+        }
+
+        const isMarkdown = activeTab.language === 'markdown' || activeTab.title.endsWith('.md');
+        const isMdx = activeTab.language === 'mdx' || activeTab.title.endsWith('.mdx');
+
+        if (!isMarkdown && !isMdx) {
+          addToast({ type: 'warning', message: 'Strip MDX is only available for markdown and MDX files' });
+          return;
+        }
+
+        try {
+          const { stripMdxToMarkdown } = await import('../services/mdxExport');
+          const stripped = await stripMdxToMarkdown(activeTab.content);
+          updateTabContent(activeTabId, stripped, { source: 'preview-edit' });
+          addToast({ type: 'success', message: 'MDX stripped to markdown' });
+        } catch (error) {
+          logger.error('Failed to strip MDX', error);
+          addToast({
+            type: 'error',
+            message: `Failed to strip MDX: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          });
+        }
+      },
       
       /**
        * Checks grammar of the active document using a browser-safe worker analyzer.
@@ -622,6 +660,9 @@ export const useStore = create<AppState>()(
           })),
         activeTabId: state.activeTabId,
         imageAssets: state.imageAssets,
+        mdxComponentDefinitions: state.mdxComponentDefinitions,
+        workspaceRoots: state.workspaceRoots,
+        activeWorkspaceRootId: state.activeWorkspaceRootId,
       }),
     }
   )

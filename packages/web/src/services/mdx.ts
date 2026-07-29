@@ -1,6 +1,7 @@
-import { compile, run } from '@mdx-js/mdx';
+import { run } from '@mdx-js/mdx';
 import * as runtime from 'react/jsx-runtime';
 import { logger } from '@md-crafter/shared';
+import { compileMdxDocument } from './mdxEngine';
 
 /**
  * Compile MDX content to a React component
@@ -10,13 +11,15 @@ export async function compileMdx(source: string): Promise<{
   error: string | null;
 }> {
   try {
-    const compiled = await compile(source, {
-      outputFormat: 'function-body',
-      development: false,
-    });
-    
+    const compiled = await compileMdxDocument(source);
+    if (compiled.errors.length) {
+      return {
+        code: compiled.code,
+        error: compiled.errors[0] || 'Unknown error',
+      };
+    }
     return {
-      code: String(compiled),
+      code: compiled.code,
       error: null,
     };
   } catch (error) {
@@ -61,6 +64,9 @@ export function isMdxContent(content: string): boolean {
     /import\s+.*\s+from/, // Import statements
     /export\s+(default|const|function)/, // Export statements
     /\{.*\}/, // JSX expressions (simple check)
+    /```mermaid\b/, // Mermaid fences
+    /\$\$[\s\S]+?\$\$/, // Block math
+    /\\\(.+?\\\)/, // Inline math
   ];
   
   return jsxPatterns.some((pattern) => pattern.test(content));
@@ -78,4 +84,3 @@ export function getMdxLanguage(filename: string): string {
   }
   return 'plaintext';
 }
-

@@ -11,6 +11,7 @@ import {
   Replace,
   CheckSquare,
   BookOpen,
+  Eraser,
 } from 'lucide-react';
 import type { MenuItem } from './FileMenu';
 import type { GrammarService } from '../../services/grammar';
@@ -38,6 +39,7 @@ export function getEditMenuItems(editorContext: EditorContext): MenuItem[] {
     checkGrammar,
     closeGrammarReview,
     setShowDictionaryModal,
+    stripMdxFromCurrentDocument,
   } = useStore.getState();
   const { getActiveEditor, executeEditorCommand, primaryMonaco, grammarService } = editorContext;
 
@@ -193,6 +195,20 @@ export function getEditMenuItems(editorContext: EditorContext): MenuItem[] {
       shortcut: '⌘⇧F',
       icon: <CheckSquare size={14} />,
       action: formatDocument,
+      disabled: !activeTab || (
+        activeTab.language !== 'markdown' &&
+        activeTab.language !== 'mdx' &&
+        !activeTab.title.endsWith('.md') &&
+        !activeTab.title.endsWith('.mdx')
+      ),
+    },
+    {
+      id: 'strip-mdx',
+      label: 'Strip MDX to Markdown',
+      icon: <Eraser size={14} />,
+      action: () => {
+        void stripMdxFromCurrentDocument();
+      },
       disabled: !activeTab || (
         activeTab.language !== 'markdown' &&
         activeTab.language !== 'mdx' &&

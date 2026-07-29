@@ -18,6 +18,7 @@ export interface UISlice {
   showAbout: boolean;
   showShortcuts: boolean;
   showSearch: boolean;
+  showMdxComponentLibrary: boolean;
   zenMode: boolean;
   sidebarWidth: number;
   splitMode: 'none' | 'horizontal' | 'vertical' | 'diff';
@@ -49,6 +50,7 @@ export interface UISlice {
   setShowAbout: (show: boolean) => void;
   setShowShortcuts: (show: boolean) => void;
   setShowSearch: (show: boolean) => void;
+  setShowMdxComponentLibrary: (show: boolean) => void;
   setConfirmation: (confirmation: ConfirmationState | null) => void;
   clearConfirmation: () => void;
   toggleZenMode: () => void;
@@ -80,6 +82,7 @@ export const createUISlice: StateCreator<AppState, [], [], UISlice> = (set) => (
   showAbout: false,
   showShortcuts: false,
   showSearch: false,
+  showMdxComponentLibrary: false,
   zenMode: false,
   sidebarWidth: DEFAULT_SIDEBAR_WIDTH,
   splitMode: 'none',
@@ -124,6 +127,7 @@ export const createUISlice: StateCreator<AppState, [], [], UISlice> = (set) => (
   setShowAbout: (show) => set({ showAbout: show }),
   setShowShortcuts: (show) => set({ showShortcuts: show }),
   setShowSearch: (show) => set({ showSearch: show }),
+  setShowMdxComponentLibrary: (show) => set({ showMdxComponentLibrary: show }),
   setConfirmation: (confirmation) => set({ confirmation }),
   clearConfirmation: () => set({ confirmation: null }),
   toggleZenMode: () => set((state) => ({ 

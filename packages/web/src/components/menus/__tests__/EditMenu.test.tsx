@@ -18,8 +18,10 @@ describe('EditMenu', () => {
     copyForWordDocs: vi.fn(),
     pasteFromWordDocs: vi.fn(),
     formatDocument: vi.fn(),
+    stripMdxFromCurrentDocument: vi.fn(),
     checkGrammar: vi.fn(),
     closeGrammarReview: vi.fn(),
+    setShowDictionaryModal: vi.fn(),
   };
 
   const mockEditorContext = {
@@ -182,6 +184,13 @@ describe('EditMenu', () => {
       const formatItem = items.find(item => item.id === 'format');
       formatItem?.action?.();
       expect(mockStore.formatDocument).toHaveBeenCalled();
+    });
+
+    it('should call stripMdxFromCurrentDocument when Strip MDX action is executed', () => {
+      const items = getEditMenuItems(mockEditorContext);
+      const stripItem = items.find(item => item.id === 'strip-mdx');
+      stripItem?.action?.();
+      expect(mockStore.stripMdxFromCurrentDocument).toHaveBeenCalled();
     });
 
     it('should call checkGrammar when Check Grammar action is executed', () => {

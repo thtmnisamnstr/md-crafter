@@ -18,6 +18,8 @@ import {
   Download,
   Maximize,
   FileText,
+  Blocks,
+  Eraser,
 } from 'lucide-react';
 
 export interface Command {
@@ -58,6 +60,8 @@ export function useCommands(setShowCommandPalette: (show: boolean) => void): Com
     tabs,
     setActiveTab,
     removeRecentFile,
+    setShowMdxComponentLibrary,
+    stripMdxFromCurrentDocument,
   } = useStore();
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
@@ -111,6 +115,16 @@ export function useCommands(setShowCommandPalette: (show: boolean) => void): Com
         },
         category: 'file',
       },
+      {
+        id: 'strip-mdx',
+        label: 'Strip MDX to Markdown',
+        icon: <Eraser size={16} />,
+        action: () => {
+          void stripMdxFromCurrentDocument();
+          setShowCommandPalette(false);
+        },
+        category: 'file',
+      },
       // View commands
       {
         id: 'toggle-sidebar',
@@ -139,6 +153,16 @@ export function useCommands(setShowCommandPalette: (show: boolean) => void): Com
         icon: <Palette size={16} />,
         action: () => {
           // This will be handled by the parent component
+        },
+        category: 'view',
+      },
+      {
+        id: 'component-library',
+        label: 'Open MDX Component Library',
+        icon: <Blocks size={16} />,
+        action: () => {
+          setShowMdxComponentLibrary(true);
+          setShowCommandPalette(false);
         },
         category: 'view',
       },
@@ -317,6 +341,8 @@ export function useCommands(setShowCommandPalette: (show: boolean) => void): Com
     tabs,
     setActiveTab,
     removeRecentFile,
+    setShowMdxComponentLibrary,
+    stripMdxFromCurrentDocument,
     tabShowPreview,
   ]);
 }

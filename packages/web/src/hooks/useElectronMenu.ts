@@ -300,6 +300,11 @@ export function useElectronMenu() {
         useStore.getState().closeGrammarReview();
       }));
     }
+    if (api.onMenuStripMdx) {
+      cleanups.push(api.onMenuStripMdx(() => {
+        void useStore.getState().stripMdxFromCurrentDocument();
+      }));
+    }
     if (api.onMenuDictionary) {
       cleanups.push(api.onMenuDictionary(() => useStore.getState().setShowDictionaryModal(true)));
     }
@@ -314,8 +319,15 @@ export function useElectronMenu() {
     if (api.onMenuExportHtml) {
       cleanups.push(api.onMenuExportHtml(() => useStore.getState().setShowExport(true)));
     }
+    if (api.onMenuBatchExport) {
+      cleanups.push(api.onMenuBatchExport(() => useStore.getState().setShowExport(true)));
+    }
     if (api.onMenuImportWord) {
       cleanups.push(api.onMenuImportWord(() => useStore.getState().setShowImportDocx(true)));
+    }
+
+    if (api.onMenuComponentLibrary) {
+      cleanups.push(api.onMenuComponentLibrary(() => useStore.getState().setShowMdxComponentLibrary(true)));
     }
 
     // Search

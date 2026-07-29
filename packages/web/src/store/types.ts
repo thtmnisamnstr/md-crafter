@@ -86,6 +86,40 @@ export interface ImageAsset {
   sourceUrl?: string;
 }
 
+export type MdxComponentSourceType = 'inline' | 'npm' | 'github' | 'local';
+
+export interface MdxComponentPropDoc {
+  name: string;
+  type: string;
+  required?: boolean;
+  defaultValue?: string;
+  description?: string;
+}
+
+export interface MdxComponentDefinition {
+  id: string;
+  name: string;
+  sourceType: MdxComponentSourceType;
+  source: string;
+  exportName?: string;
+  versionOrRef?: string;
+  enabled: boolean;
+  docs?: string;
+  example?: string;
+  propsSchema?: string;
+  propDocs?: MdxComponentPropDoc[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface WorkspaceRoot {
+  id: string;
+  name: string;
+  mode: 'web' | 'desktop';
+  path?: string;
+  createdAt: number;
+}
+
 export interface AppState {
   // Hydration tracking
   _hasHydrated: boolean;
@@ -110,6 +144,7 @@ export interface AppState {
   showAbout: boolean;
   showShortcuts: boolean;
   showSearch: boolean;
+  showMdxComponentLibrary: boolean;
   zenMode: boolean;
   sidebarWidth: number;
   splitMode: 'none' | 'horizontal' | 'vertical' | 'diff';
@@ -127,6 +162,9 @@ export interface AppState {
   cloudDocuments: Document[];
   recentFiles: RecentFile[];
   imageAssets: Record<string, ImageAsset>;
+  mdxComponentDefinitions: MdxComponentDefinition[];
+  workspaceRoots: WorkspaceRoot[];
+  activeWorkspaceRootId: string | null;
 
   // Sync
   isOnline: boolean;
@@ -156,6 +194,7 @@ export interface AppState {
   setShowAbout: (show: boolean) => void;
   setShowShortcuts: (show: boolean) => void;
   setShowSearch: (show: boolean) => void;
+  setShowMdxComponentLibrary: (show: boolean) => void;
   setConfirmation: (confirmation: ConfirmationState | null) => void;
   clearConfirmation: () => void;
   toggleZenMode: () => void;
@@ -214,6 +253,14 @@ export interface AppState {
   renameImageAsset: (assetId: string, fileName: string) => void;
   removeImageAsset: (assetId: string) => void;
   getImageAssetDataUrl: (assetId: string) => string | null;
+  addMdxComponentDefinition: (definition: Omit<MdxComponentDefinition, 'id' | 'createdAt' | 'updatedAt'>) => string;
+  updateMdxComponentDefinition: (id: string, updates: Partial<Omit<MdxComponentDefinition, 'id' | 'createdAt'>>) => void;
+  removeMdxComponentDefinition: (id: string) => void;
+  duplicateMdxComponentDefinition: (id: string) => void;
+  toggleMdxComponentDefinitionEnabled: (id: string, enabled?: boolean) => void;
+  addWorkspaceRoot: (root: Omit<WorkspaceRoot, 'id' | 'createdAt'>) => string;
+  removeWorkspaceRoot: (id: string) => void;
+  setActiveWorkspaceRootId: (id: string | null) => void;
 
   // Auth actions
   login: (token: string) => Promise<boolean>;
@@ -236,6 +283,7 @@ export interface AppState {
 
   // Format actions
   formatDocument: () => Promise<void>;
+  stripMdxFromCurrentDocument: () => Promise<void>;
 
   // Grammar check actions
   checkGrammar: (options?: {

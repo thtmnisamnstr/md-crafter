@@ -1,286 +1,331 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useStore } from '../store';
-import { X, FileText, Globe, Download } from 'lucide-react';
-import { marked } from 'marked';
+import { X, FileText, Globe, Download, Layers } from 'lucide-react';
+import {
+  batchExport,
+  exportMdxToStaticHtml,
+  stripMdxToMarkdown,
+  type BatchExportDocument,
+  type BatchExportFormat,
+} from '../services/mdxExport';
 
 interface ExportModalProps {
   onClose: () => void;
 }
 
+type ExportScope = 'current' | 'batch';
+
+function triggerDownload(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function normalizeBaseName(name: string): string {
+  return (name || 'document')
+    .replace(/\.[^.]+$/, '')
+    .replace(/[<>:"/\\|?*]+/g, '-')
+    .trim() || 'document';
+}
+
 export function ExportModal({ onClose }: ExportModalProps) {
-  const { tabs, activeTabId, addToast } = useStore();
-  const [format, setFormat] = useState<'html' | 'md'>('html');
-  
-  const activeTab = tabs.find((t) => t.id === activeTabId);
-  
-  if (!activeTab) {
+  const {
+    tabs,
+    activeTabId,
+    cloudDocuments,
+    addToast,
+    workspaceRoots,
+    activeWorkspaceRootId,
+    mdxComponentDefinitions,
+  } = useStore();
+
+  const [format, setFormat] = useState<BatchExportFormat>('html');
+  const [scope, setScope] = useState<ExportScope>('current');
+  const [isExporting, setIsExporting] = useState(false);
+  const [selectedTabIds, setSelectedTabIds] = useState<string[]>(() => tabs.map((tab) => tab.id));
+  const [selectedCloudIds, setSelectedCloudIds] = useState<string[]>([]);
+
+  const activeTab = tabs.find((tab) => tab.id === activeTabId) || null;
+
+  const availableCloudDocs = useMemo(() => {
+    const openCloudIds = new Set(tabs.map((tab) => tab.documentId).filter(Boolean) as string[]);
+    return cloudDocuments.filter((doc) => !openCloudIds.has(doc.id));
+  }, [cloudDocuments, tabs]);
+
+  const currentFileLabel = activeTab ? `"${activeTab.title}"` : 'current document';
+
+  if (!activeTab && scope === 'current') {
     onClose();
     return null;
   }
 
-  const handleExport = () => {
+  const handleCurrentExport = async () => {
+    if (!activeTab) return;
+    const base = normalizeBaseName(activeTab.title);
+
+    if (format === 'markdown') {
+      const filename = activeTab.title.match(/\.(md|mdx|markdown)$/i) ? activeTab.title : `${base}.md`;
+      triggerDownload(new Blob([activeTab.content], { type: 'text/markdown' }), filename);
+      return;
+    }
+
+    if (format === 'markdown-strip') {
+      const stripped = await stripMdxToMarkdown(activeTab.content, { normalizeWhitespace: true });
+      triggerDownload(new Blob([stripped], { type: 'text/markdown' }), `${base}.md`);
+      return;
+    }
+
+    const html = await exportMdxToStaticHtml(activeTab.content, {
+      title: base,
+      documentPath: activeTab.path,
+      workspaceRoots,
+      activeWorkspaceRootId,
+      componentDefinitions: mdxComponentDefinitions,
+    });
+    triggerDownload(new Blob([html], { type: 'text/html' }), `${base}.html`);
+  };
+
+  const handleBatchExport = async () => {
+    const selectedTabs = tabs.filter((tab) => selectedTabIds.includes(tab.id));
+    const selectedCloud = availableCloudDocs.filter((doc) => selectedCloudIds.includes(doc.id));
+    const documents: BatchExportDocument[] = [
+      ...selectedTabs.map((tab) => ({
+        id: tab.id,
+        title: tab.title,
+        content: tab.content,
+        documentPath: tab.path,
+      })),
+      ...selectedCloud.map((doc) => ({
+        id: doc.id,
+        title: doc.title,
+        content: doc.content,
+      })),
+    ];
+
+    if (!documents.length) {
+      addToast({ type: 'warning', message: 'Select at least one document for batch export' });
+      return;
+    }
+
+    const zipBlob = await batchExport(documents, format, {
+      workspaceRoots,
+      activeWorkspaceRootId,
+      componentDefinitions: mdxComponentDefinitions,
+    });
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+    triggerDownload(zipBlob, `md-crafter-batch-export-${timestamp}.zip`);
+  };
+
+  const handleExport = async () => {
+    setIsExporting(true);
     try {
-      let content: string;
-      let filename: string;
-      let mimeType: string;
-      
-      if (format === 'html') {
-        const htmlContent = marked.parse(activeTab.content) as string;
-        content = generateHtmlDocument(activeTab.title, htmlContent);
-        filename = activeTab.title.replace(/\.(md|markdown)$/i, '') + '.html';
-        mimeType = 'text/html';
+      if (scope === 'batch') {
+        await handleBatchExport();
       } else {
-        content = activeTab.content;
-        filename = activeTab.title.endsWith('.md') ? activeTab.title : activeTab.title + '.md';
-        mimeType = 'text/markdown';
+        await handleCurrentExport();
       }
-      
-      // Create and download the file
-      const blob = new Blob([content], { type: mimeType });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      addToast({ type: 'success', message: `Exported as ${filename}` });
+      addToast({ type: 'success', message: scope === 'batch' ? 'Batch export complete' : 'Export complete' });
       onClose();
     } catch (error) {
-      addToast({ type: 'error', message: 'Failed to export file' });
+      addToast({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Failed to export file',
+      });
+    } finally {
+      setIsExporting(false);
     }
   };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal max-w-[860px] w-[92vw]" onClick={(event) => event.stopPropagation()}>
         <div className="modal-header">
           <h2 className="text-lg font-semibold" style={{ color: 'var(--editor-fg)' }}>
-            Export Document
+            Export
           </h2>
-          <button
-            onClick={onClose}
-            className="p-1 rounded hover:bg-sidebar-hover"
-          >
+          <button onClick={onClose} className="p-1 rounded hover:bg-sidebar-hover" aria-label="Close export modal">
             <X size={18} />
           </button>
         </div>
 
-        <div className="modal-body">
-          <p className="text-sm opacity-70 mb-4" style={{ color: 'var(--editor-fg)' }}>
-            Export "{activeTab.title}" to a file.
-          </p>
-
-          <div className="space-y-3">
-            <label
-              className={`flex items-center gap-3 p-3 rounded border cursor-pointer ${
-                format === 'html'
-                  ? 'border-editor-accent bg-sidebar-active'
-                  : 'border-tab-border hover:bg-sidebar-hover'
-              }`}
-              style={{ color: 'var(--editor-fg)' }}
-            >
-              <input
-                type="radio"
-                name="format"
-                value="html"
-                checked={format === 'html'}
-                onChange={() => setFormat('html')}
-                className="hidden"
-              />
-              <Globe size={20} />
-              <div>
-                <div className="font-medium">HTML</div>
-                <div className="text-sm opacity-60">
-                  Standalone HTML file with styling
+        <div className="modal-body space-y-4">
+          <div>
+            <p className="text-sm opacity-70 mb-3" style={{ color: 'var(--editor-fg)' }}>
+              Choose export scope and format.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                className={`p-3 rounded border text-left ${
+                  scope === 'current'
+                    ? 'border-editor-accent bg-sidebar-active'
+                    : 'border-tab-border hover:bg-sidebar-hover'
+                }`}
+                onClick={() => setScope('current')}
+              >
+                <div className="font-medium flex items-center gap-2">
+                  <FileText size={16} /> Current Document
                 </div>
-              </div>
-            </label>
+                <div className="text-xs opacity-70 mt-1">{currentFileLabel}</div>
+              </button>
 
-            <label
-              className={`flex items-center gap-3 p-3 rounded border cursor-pointer ${
-                format === 'md'
-                  ? 'border-editor-accent bg-sidebar-active'
-                  : 'border-tab-border hover:bg-sidebar-hover'
-              }`}
-              style={{ color: 'var(--editor-fg)' }}
-            >
-              <input
-                type="radio"
-                name="format"
-                value="md"
-                checked={format === 'md'}
-                onChange={() => setFormat('md')}
-                className="hidden"
-              />
-              <FileText size={20} />
-              <div>
-                <div className="font-medium">Markdown</div>
-                <div className="text-sm opacity-60">
-                  Raw markdown source file
+              <button
+                className={`p-3 rounded border text-left ${
+                  scope === 'batch'
+                    ? 'border-editor-accent bg-sidebar-active'
+                    : 'border-tab-border hover:bg-sidebar-hover'
+                }`}
+                onClick={() => setScope('batch')}
+              >
+                <div className="font-medium flex items-center gap-2">
+                  <Layers size={16} /> Batch Export
                 </div>
-              </div>
-            </label>
+                <div className="text-xs opacity-70 mt-1">Open tabs and selected cloud docs (ZIP)</div>
+              </button>
+            </div>
           </div>
+
+          <div>
+            <div className="text-sm font-medium mb-2">Format</div>
+            <div className="grid grid-cols-3 gap-3">
+              <label
+                className={`flex items-center gap-3 p-3 rounded border cursor-pointer ${
+                  format === 'html'
+                    ? 'border-editor-accent bg-sidebar-active'
+                    : 'border-tab-border hover:bg-sidebar-hover'
+                }`}
+                style={{ color: 'var(--editor-fg)' }}
+              >
+                <input
+                  type="radio"
+                  name="format"
+                  value="html"
+                  checked={format === 'html'}
+                  onChange={() => setFormat('html')}
+                  className="hidden"
+                />
+                <Globe size={18} />
+                <div>
+                  <div className="font-medium">Static HTML</div>
+                  <div className="text-xs opacity-70">MDX-aware HTML export</div>
+                </div>
+              </label>
+
+              <label
+                className={`flex items-center gap-3 p-3 rounded border cursor-pointer ${
+                  format === 'markdown'
+                    ? 'border-editor-accent bg-sidebar-active'
+                    : 'border-tab-border hover:bg-sidebar-hover'
+                }`}
+                style={{ color: 'var(--editor-fg)' }}
+              >
+                <input
+                  type="radio"
+                  name="format"
+                  value="markdown"
+                  checked={format === 'markdown'}
+                  onChange={() => setFormat('markdown')}
+                  className="hidden"
+                />
+                <FileText size={18} />
+                <div>
+                  <div className="font-medium">Markdown</div>
+                  <div className="text-xs opacity-70">Raw source</div>
+                </div>
+              </label>
+
+              <label
+                className={`flex items-center gap-3 p-3 rounded border cursor-pointer ${
+                  format === 'markdown-strip'
+                    ? 'border-editor-accent bg-sidebar-active'
+                    : 'border-tab-border hover:bg-sidebar-hover'
+                }`}
+                style={{ color: 'var(--editor-fg)' }}
+              >
+                <input
+                  type="radio"
+                  name="format"
+                  value="markdown-strip"
+                  checked={format === 'markdown-strip'}
+                  onChange={() => setFormat('markdown-strip')}
+                  className="hidden"
+                />
+                <FileText size={18} />
+                <div>
+                  <div className="font-medium">Markdown (strip MDX)</div>
+                  <div className="text-xs opacity-70">Remove MDX component syntax</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {scope === 'batch' && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="rounded border border-tab-border p-3">
+                <div className="text-sm font-medium mb-2">Open Tabs</div>
+                <div className="space-y-1 max-h-[180px] overflow-auto">
+                  {tabs.map((tab) => (
+                    <label key={tab.id} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={selectedTabIds.includes(tab.id)}
+                        onChange={(event) => {
+                          setSelectedTabIds((current) => (
+                            event.target.checked
+                              ? [...current, tab.id]
+                              : current.filter((id) => id !== tab.id)
+                          ));
+                        }}
+                      />
+                      <span className="truncate">{tab.title}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded border border-tab-border p-3">
+                <div className="text-sm font-medium mb-2">Cloud Documents</div>
+                <div className="space-y-1 max-h-[180px] overflow-auto">
+                  {availableCloudDocs.length === 0 && (
+                    <p className="text-xs opacity-60">No additional cloud docs loaded.</p>
+                  )}
+                  {availableCloudDocs.map((doc) => (
+                    <label key={doc.id} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={selectedCloudIds.includes(doc.id)}
+                        onChange={(event) => {
+                          setSelectedCloudIds((current) => (
+                            event.target.checked
+                              ? [...current, doc.id]
+                              : current.filter((id) => id !== doc.id)
+                          ));
+                        }}
+                      />
+                      <span className="truncate">{doc.title}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="modal-footer">
-          <button onClick={onClose} className="btn btn-ghost">
+          <button onClick={onClose} className="btn btn-ghost" disabled={isExporting}>
             Cancel
           </button>
-          <button onClick={handleExport} className="btn btn-primary flex items-center gap-2">
+          <button onClick={() => void handleExport()} className="btn btn-primary flex items-center gap-2" disabled={isExporting}>
             <Download size={16} />
-            Export
+            {isExporting ? 'Exporting...' : scope === 'batch' ? 'Export Batch' : 'Export'}
           </button>
         </div>
       </div>
     </div>
   );
-}
-
-function generateHtmlDocument(title: string, content: string): string {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${escapeHtml(title)}</title>
-  <style>
-    :root {
-      --bg: #1e1e1e;
-      --fg: #d4d4d4;
-      --accent: #007acc;
-      --code-bg: #2d2d30;
-      --border: #3c3c3c;
-    }
-    
-    @media (prefers-color-scheme: light) {
-      :root {
-        --bg: #ffffff;
-        --fg: #333333;
-        --accent: #0066b8;
-        --code-bg: #f5f5f5;
-        --border: #e0e0e0;
-      }
-    }
-    
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-      line-height: 1.6;
-      color: var(--fg);
-      background: var(--bg);
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 2rem;
-    }
-    
-    h1, h2, h3, h4, h5, h6 {
-      margin-top: 1.5em;
-      margin-bottom: 0.5em;
-      font-weight: 600;
-    }
-    
-    h1 { font-size: 2em; border-bottom: 1px solid var(--border); padding-bottom: 0.3em; }
-    h2 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 0.3em; }
-    h3 { font-size: 1.25em; }
-    
-    p { margin-bottom: 1em; }
-    
-    ul, ol { margin-bottom: 1em; padding-left: 2em; }
-    li { margin-bottom: 0.25em; }
-    
-    code {
-      font-family: 'Fira Code', 'Consolas', monospace;
-      background: var(--code-bg);
-      padding: 0.2em 0.4em;
-      border-radius: 3px;
-      font-size: 0.9em;
-    }
-    
-    pre {
-      background: var(--code-bg);
-      padding: 1em;
-      border-radius: 6px;
-      overflow-x: auto;
-      margin-bottom: 1em;
-    }
-    
-    pre code {
-      background: none;
-      padding: 0;
-    }
-    
-    blockquote {
-      border-left: 4px solid var(--accent);
-      padding-left: 1em;
-      margin: 1em 0;
-      color: var(--fg);
-      opacity: 0.8;
-      font-style: italic;
-    }
-    
-    a {
-      color: var(--accent);
-      text-decoration: none;
-    }
-    
-    a:hover {
-      text-decoration: underline;
-    }
-    
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 1em;
-    }
-    
-    th, td {
-      border: 1px solid var(--border);
-      padding: 0.5em 1em;
-      text-align: left;
-    }
-    
-    th {
-      background: var(--code-bg);
-    }
-    
-    img {
-      max-width: 100%;
-      height: auto;
-    }
-    
-    hr {
-      border: none;
-      border-top: 1px solid var(--border);
-      margin: 2em 0;
-    }
-  </style>
-</head>
-<body>
-  ${content}
-  <footer style="margin-top: 3em; padding-top: 1em; border-top: 1px solid var(--border); font-size: 0.8em; opacity: 0.6;">
-    Generated by md-crafter
-  </footer>
-</body>
-</html>`;
-}
-
-function escapeHtml(text: string): string {
-  const map: Record<string, string> = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;',
-  };
-  return text.replace(/[&<>"']/g, (m) => map[m]);
 }
 

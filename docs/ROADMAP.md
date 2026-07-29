@@ -127,26 +127,29 @@ This document outlines planned features and improvements for md-crafter. Feature
 ### Custom MDX Components
 > *Listed in MDX.md "Coming Soon"*
 
-- [ ] User-defined component library
-- [ ] Component definition editor/wizard
-- [ ] Import components from npm packages
-- [ ] Live component preview while editing
-- [ ] Component props documentation
+- [x] User-defined component library
+- [x] Component definition editor/wizard
+- [x] Import components from npm packages
+- [x] Import components from public GitHub repos
+- [x] Import components locally, by absolute and relative path
+- [x] Live component preview while editing
+- [x] Component props documentation
 
 ### Additional Built-in Components
-- [ ] `<Mermaid>` - Mermaid diagram support
-- [ ] `<Math>` - LaTeX math rendering (KaTeX)
-- [ ] `<Video>` - Embedded video player
-- [ ] `<Image>` - Enhanced image with lightbox
-- [ ] `<Table>` - Enhanced sortable/filterable tables
-- [ ] `<Chart>` - Simple chart visualizations
+- [x] `<Mermaid>` - Mermaid diagram support
+- [x] `<Math>` - LaTeX math rendering (KaTeX)
+- [x] `<Video>` - Embedded video player
+- [x] `<Image>` - Enhanced image with lightbox
+- [x] `<Table>` - Enhanced sortable/filterable tables
+- [x] `<Chart>` - Simple chart visualizations
 
 ### Export Enhancements
 > *Listed in MDX.md "Coming Soon"*
 
-- [ ] Export MDX to static HTML with embedded styles
-- [ ] Export to Markdown (strip MDX components)
-- [ ] Batch export multiple documents
+- [x] Export MDX to static HTML with embedded styles
+- [x] Export to Markdown (strip MDX components)
+- [x] Batch export multiple documents
+- [x] Edit option to strip MDX
 
 ---
 

@@ -86,6 +86,10 @@ const api = {
     ipcRenderer.on('menu:export-html', callback);
     return () => ipcRenderer.removeAllListeners('menu:export-html');
   },
+  onMenuBatchExport: (callback: () => void) => {
+    ipcRenderer.on('menu:batch-export', callback);
+    return () => ipcRenderer.removeAllListeners('menu:batch-export');
+  },
 
   // Menu events - Edit menu
   onMenuUndo: (callback: () => void) => {
@@ -135,6 +139,10 @@ const api = {
   onMenuGrammarClear: (callback: () => void) => {
     ipcRenderer.on('menu:grammar-clear', callback);
     return () => ipcRenderer.removeAllListeners('menu:grammar-clear');
+  },
+  onMenuStripMdx: (callback: () => void) => {
+    ipcRenderer.on('menu:strip-mdx', callback);
+    return () => ipcRenderer.removeAllListeners('menu:strip-mdx');
   },
   onMenuDictionary: (callback: () => void) => {
     ipcRenderer.on('menu:dictionary', callback);
@@ -189,6 +197,10 @@ const api = {
   onMenuDiffExit: (callback: () => void) => {
     ipcRenderer.on('menu:diff-exit', callback);
     return () => ipcRenderer.removeAllListeners('menu:diff-exit');
+  },
+  onMenuComponentLibrary: (callback: () => void) => {
+    ipcRenderer.on('menu:component-library', callback);
+    return () => ipcRenderer.removeAllListeners('menu:component-library');
   },
 
   // Menu events - Help menu

@@ -1,267 +1,195 @@
 # MDX Support in md-crafter
 
-md-crafter fully supports MDX (Markdown + JSX), allowing you to create interactive documents with React components.
+md-crafter supports MDX (Markdown + JSX) with built-in interactive components, user-defined component libraries, import resolution, and MDX-aware export workflows.
 
-## What is MDX?
+## MDX Pipeline
 
-MDX is a format that lets you seamlessly write JSX in your Markdown documents. It combines the simplicity of Markdown with the power of React components.
+The MDX runtime now uses a dedicated engine with:
 
-## Getting Started
+- GFM support (tables, task lists, strikethrough)
+- Math syntax (`$...$`, `$$...$$`) via KaTeX
+- Heading IDs for generated HTML anchors
+- Mermaid fence support (` ```mermaid `)
+- MDX import parsing + resolver-backed component loading
 
-Create a file with the `.mdx` extension and start writing:
-
-```mdx
-# Hello MDX
-
-This is a **bold** statement with a React component:
-
-<Callout type="info">
-  This is an info callout!
-</Callout>
-```
+Preview and export both use the same MDX engine.
 
 ## Built-in Components
 
-md-crafter comes with a library of pre-built components you can use immediately:
+Built-ins are available without imports.
 
-### Callout
+### Existing UI components
 
-Display important information with styled callouts:
+- `<Callout>`
+- `<Tabs>` / `<Tab>`
+- `<Accordion>`
+- `<CodeBlock>`
+- `<CodeGroup>`
+- `<Steps>` / `<Step>`
+- `<Card>`
+- `<Badge>`
+- `<Frame>`
+- `<Tooltip>`
 
-```mdx
-<Callout type="info">
-  This is informational content.
-</Callout>
+Aliases:
 
-<Callout type="warning">
-  Be careful with this operation!
-</Callout>
+- `<Note>` -> info callout
+- `<Tip>` -> success callout
+- `<Warning>` -> warning callout
 
-<Callout type="error">
-  Something went wrong.
-</Callout>
+### New v0.2.2 built-ins
 
-<Callout type="success">
-  Operation completed successfully!
-</Callout>
-
-<Callout type="info" title="Pro Tip">
-  You can add a title to callouts.
-</Callout>
-```
-
-**Props:**
-- `type`: `"info"` | `"warning"` | `"error"` | `"success"` (default: `"info"`)
-- `title`: Optional title string
-- `children`: Content to display
-
-### Tabs
-
-Create tabbed content panels:
+#### `<Mermaid>`
 
 ```mdx
-<Tabs items={['npm', 'yarn', 'pnpm']}>
-  <Tab>
-    ```bash
-    npm install md-crafter
-    ```
-  </Tab>
-  <Tab>
-    ```bash
-    yarn add md-crafter
-    ```
-  </Tab>
-  <Tab>
-    ```bash
-    pnpm add md-crafter
-    ```
-  </Tab>
-</Tabs>
+<Mermaid chart={`graph TD\n  A[Start] --> B[Done]`} />
 ```
 
-**Props:**
-- `items`: Array of tab labels
+Or markdown fence:
 
-### Accordion
+````md
+```mermaid
+graph TD
+  A --> B
+```
+````
 
-Collapsible content sections:
+#### `<Math>`
 
 ```mdx
-<Accordion title="Click to expand">
-  This content is hidden by default.
-</Accordion>
+<Math value="E = mc^2" inline />
 
-<Accordion title="Open by default" defaultOpen>
-  This starts expanded.
-</Accordion>
+<Math value={`\\int_0^1 x^2 \\; dx = 1/3`} />
 ```
 
-**Props:**
-- `title`: The header text
-- `defaultOpen`: Start expanded (default: `false`)
-- `children`: Content to show when expanded
+Math markdown is also supported:
 
-### CodeBlock
+```md
+Inline: $E = mc^2$
 
-Syntax-highlighted code with copy button:
+$$
+\\int_0^1 x^2 \\; dx = 1/3
+$$
+```
+
+#### `<Video>`
 
 ```mdx
-<CodeBlock language="typescript" filename="example.ts">
-const greeting = "Hello, MDX!";
-console.log(greeting);
-</CodeBlock>
+<Video src="https://www.youtube.com/watch?v=dQw4w9WgXcQ" title="Demo" />
+<Video src="https://vimeo.com/76979871" />
+<Video src="https://example.com/video.mp4" controls />
 ```
 
-**Props:**
-- `language`: Programming language for highlighting
-- `filename`: Optional filename to display
-- `children`: The code content
-
-### Steps
-
-Numbered step-by-step instructions:
+#### `<Image>`
 
 ```mdx
-<Steps>
-  <Step title="Install dependencies">
-    Run `npm install` to install all dependencies.
-  </Step>
-  <Step title="Configure settings">
-    Create a `.env` file with your configuration.
-  </Step>
-  <Step title="Start the app">
-    Run `npm run dev` to start development.
-  </Step>
-</Steps>
+<Image src="https://example.com/diagram.png" alt="Architecture" caption="System Overview" />
 ```
 
-**Props:**
-- `children`: `<Step>` components
+Includes lightbox/open-close behavior with keyboard accessibility in preview.
 
-**Step Props:**
-- `title`: Optional step title
-- `children`: Step content
-
-### Card
-
-Styled card containers with optional links:
+#### `<Table>`
 
 ```mdx
-<Card title="Getting Started" href="DOCS.md">
-  Learn how to set up md-crafter in your project.
-</Card>
-
-<Card title="API Reference" icon={<BookIcon />}>
-  Complete API documentation.
-</Card>
+<Table
+  columns={["name", "status"]}
+  rows={[
+    { name: "Service A", status: "Healthy" },
+    { name: "Service B", status: "Degraded" }
+  ]}
+  sortable
+  filterable
+/>
 ```
 
-**Props:**
-- `title`: Card title (required)
-- `href`: Optional link URL
-- `icon`: Optional React node for icon
-- `children`: Card description
+Standard markdown tables remain supported as normal markdown.
 
-### Badge
-
-Inline status badges:
+#### `<Chart>`
 
 ```mdx
-This feature is <Badge>New</Badge>
-
-Status: <Badge variant="success">Active</Badge>
-
-Warning: <Badge variant="warning">Deprecated</Badge>
+<Chart
+  type="line"
+  data={{
+    labels: ["Jan", "Feb", "Mar"],
+    datasets: [{ label: "Requests", data: [12, 19, 9] }]
+  }}
+/>
 ```
 
-**Props:**
-- `variant`: `"default"` | `"success"` | `"warning"` | `"error"` | `"info"`
-- `children`: Badge text
+Supports common chart types (`line`, `bar`, `pie`, `doughnut`, `area`).
 
-## Styling
+## User Component Library
 
-Components automatically adapt to your current theme. The styles are:
+Open **View -> MDX Component Library** (or command palette) to manage components.
 
-- **Dark themes**: Components use darker backgrounds and lighter text
-- **Light themes**: Components use lighter backgrounds and darker text
-- **Accent colors**: Match your selected editor accent color
+The library supports:
 
-## Examples
+- Create/edit/duplicate/delete component definitions
+- Enable/disable per component
+- Live preview while editing
+- Per-component docs + example blocks
+- Props documentation table (manual + auto-fill when doc metadata exists)
 
-### Documentation Page
+### Source types
 
-```mdx
-# API Reference
+Each component can be defined from:
 
-<Callout type="info">
-  This API requires authentication. See the auth guide.
-</Callout>
+- **Inline** source module
+- **npm** package (via ESM CDN resolution)
+- **GitHub** source (repo/ref/file via ESM CDN path)
+- **Local file** (relative or absolute path)
 
-## Installation
+Definition model fields include:
 
-<Tabs items={['npm', 'yarn']}>
-  <Tab>npm install @md-crafter/client</Tab>
-  <Tab>yarn add @md-crafter/client</Tab>
-</Tabs>
+- `id`, `name`, `sourceType`, `source`, `exportName`
+- `versionOrRef`, `enabled`, `docs`
+- `propsSchema`, `propDocs`, `example`
 
-## Quick Start
+## Import Resolution and Path Semantics
 
-<Steps>
-  <Step title="Import the client">
-    Import the client in your code.
-  </Step>
-  <Step title="Initialize">
-    Create a new instance with your API key.
-  </Step>
-</Steps>
+Document-level MDX imports are supported and merged with built-ins + library components at runtime.
 
-## Status Codes
+Resolution order in runtime component map:
 
-| Code | Status | Description |
-|------|--------|-------------|
-| 200 | <Badge variant="success">OK</Badge> | Request successful |
-| 401 | <Badge variant="error">Error</Badge> | Unauthorized |
-| 429 | <Badge variant="warning">Warning</Badge> | Rate limited |
-```
+1. Built-ins
+2. Enabled component library entries
+3. Document imports
 
-### Tutorial Page
+Local-path semantics are consistent across desktop and web:
 
-```mdx
-# Building Your First App
+- Relative imports resolve from the current document path
+- Absolute imports resolve against workspace roots
+- Desktop additionally accepts native OS absolute paths
+- Web uses File System Access workspace roots for local file loading
 
-<Card title="Prerequisites">
-  Make sure you have Node.js 18+ installed.
-</Card>
+## Export and Transform
 
-<Steps>
-  <Step title="Create project">
-    <CodeBlock language="bash">
-    npx create-md-crafter-app my-app
-    cd my-app
-    </CodeBlock>
-  </Step>
-  <Step title="Start development">
-    <CodeBlock language="bash">
-    npm run dev
-    </CodeBlock>
-  </Step>
-</Steps>
+### Static HTML export (MDX-aware)
 
-<Callout type="success" title="Done!">
-  Your app is running at http://localhost:3000
-</Callout>
-```
+- Renders MDX to static HTML with embedded styles
+- Includes KaTeX-compatible styling
+- Preserves heading IDs from the MDX pipeline
 
-## Limitations
+### Markdown export modes
 
-- **No custom imports**: You cannot import external React components
-- **No JavaScript execution**: Inline JS expressions are not evaluated
-- **Static components**: Components are pre-defined in the editor
+- **Markdown**: raw source
+- **Markdown (strip MDX)**: converts/removes MDX syntax
 
-## Coming Soon
+Strip-MDX transform behavior:
 
-- Custom component definitions
-- Live component preview
-- Import from npm packages
-- Export to static HTML with styles
+- Converts supported built-ins to markdown equivalents where possible
+- Removes `import`/`export` MDX ESM blocks
+- Preserves content for unknown components as plain markdown content
 
+### Batch export
+
+Batch export supports open tabs and selected cloud docs, packaged as ZIP.
+
+### In-editor strip action
+
+Use **Edit -> Strip MDX to Markdown** to rewrite the active document content in-place.
+
+## Notes
+
+- Trusted workspace code execution is enabled for local component modules.
+- Preview responsiveness is improved using compile/runtime/component-map caches keyed by document/component state.

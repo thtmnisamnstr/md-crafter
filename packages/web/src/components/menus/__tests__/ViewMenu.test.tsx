@@ -22,6 +22,7 @@ describe('ViewMenu', () => {
     setTheme: vi.fn(),
     theme: 'dark',
     setShowSettings: vi.fn(),
+    setShowMdxComponentLibrary: vi.fn(),
     activeTabId: 'tab-1',
     tabs: [
       { id: 'tab-1', title: 'test.md', content: 'test', language: 'markdown', isDirty: true, hasSavedVersion: true },
@@ -59,6 +60,13 @@ describe('ViewMenu', () => {
       expect(settingsItem).toBeTruthy();
       expect(settingsItem?.label).toBe('Settings');
       expect(settingsItem?.shortcut).toBe('⌘,');
+    });
+
+    it('should include MDX Component Library item', () => {
+      const items = getViewMenuItems();
+      const libraryItem = items.find(item => item.id === 'mdx-component-library');
+      expect(libraryItem).toBeTruthy();
+      expect(libraryItem?.label).toBe('MDX Component Library');
     });
   });
 
@@ -231,6 +239,13 @@ describe('ViewMenu', () => {
       const settingsItem = items.find(item => item.id === 'settings');
       settingsItem?.action?.();
       expect(mockStore.setShowSettings).toHaveBeenCalledWith(true);
+    });
+
+    it('should open MDX component library from menu action', () => {
+      const items = getViewMenuItems();
+      const item = items.find(entry => entry.id === 'mdx-component-library');
+      item?.action?.();
+      expect(mockStore.setShowMdxComponentLibrary).toHaveBeenCalledWith(true);
     });
   });
 });

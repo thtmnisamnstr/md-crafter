@@ -8,6 +8,12 @@ export { Card } from './Card';
 export { Badge } from './Badge';
 export { Frame } from './Frame';
 export { Tooltip } from './Tooltip';
+export { Mermaid } from './Mermaid';
+export { Math } from './Math';
+export { Video } from './Video';
+export { Image } from './Image';
+export { Table } from './Table';
+export { Chart } from './Chart';
 
 // Import components for mdxComponents object (re-exports don't create local bindings)
 import { Callout } from './Callout';
@@ -21,6 +27,12 @@ import { Card } from './Card';
 import { Badge } from './Badge';
 import { Frame } from './Frame';
 import { Tooltip } from './Tooltip';
+import { Mermaid } from './Mermaid';
+import { Math } from './Math';
+import { Video } from './Video';
+import { Image } from './Image';
+import { Table } from './Table';
+import { Chart } from './Chart';
 
 // Helper components for Callout aliases
 type CalloutProps = ComponentProps<typeof Callout>;
@@ -45,4 +57,10 @@ export const mdxComponents = {
   Badge,
   Frame,
   Tooltip,
+  Mermaid,
+  Math,
+  Video,
+  Image,
+  Table,
+  Chart,
 };

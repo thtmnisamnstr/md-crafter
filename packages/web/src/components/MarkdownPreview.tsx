@@ -18,6 +18,7 @@ interface MarkdownPreviewProps {
   content: string;
   isMdx?: boolean;
   tabId?: string;
+  documentPath?: string;
   resolveImageAssetSrc?: (assetId: string) => string | null;
   onContentChange?: (nextContent: string) => void;
   promoteEmbeddedImageToAsset?: (
@@ -52,6 +53,7 @@ function sanitizeHtml(html: string): string {
 export function MarkdownPreview({
   content,
   isMdx = false,
+  documentPath,
   resolveImageAssetSrc = () => null,
   onContentChange,
   promoteEmbeddedImageToAsset,
@@ -68,7 +70,11 @@ export function MarkdownPreview({
   const hasJsx = useMemo(() => {
     if (isMdx) return true;
     // Check for common MDX patterns
-    return /<[A-Z][a-zA-Z]*/.test(content) || /^import\s+/m.test(content);
+    return /<[A-Z][a-zA-Z]*/.test(content)
+      || /^import\s+/m.test(content)
+      || /```mermaid\b/.test(content)
+      || /\$\$[\s\S]+?\$\$/.test(content)
+      || /\\\(.+?\\\)/.test(content);
   }, [content, isMdx]);
 
   const renderModel = useMemo(() => {
@@ -256,7 +262,7 @@ export function MarkdownPreview({
   }, [hasJsx]);
 
   if (hasJsx) {
-    return <MDXPreview content={content} />;
+    return <MDXPreview content={content} documentPath={documentPath} />;
   }
 
   return (

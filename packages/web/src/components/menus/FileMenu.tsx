@@ -270,6 +270,13 @@ export function getFileMenuItems(): MenuItem[] {
       action: () => useStore.getState().setShowExport(true),
       disabled: !activeTab,
     },
+    {
+      id: 'batch-export',
+      label: 'Batch Export...',
+      icon: <Download size={14} />,
+      action: () => useStore.getState().setShowExport(true),
+      disabled: tabs.length === 0,
+    },
     { id: 'sep4', label: '', separator: true },
     {
       id: 'close',

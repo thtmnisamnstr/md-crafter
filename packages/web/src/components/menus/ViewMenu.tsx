@@ -9,6 +9,7 @@ import {
   SplitSquareHorizontal,
   Palette,
   FileText,
+  Blocks,
 } from 'lucide-react';
 import type { MenuItem } from './FileMenu';
 
@@ -29,6 +30,7 @@ export function getViewMenuItems(): MenuItem[] {
     setTheme,
     theme,
     setShowSettings,
+    setShowMdxComponentLibrary,
     activeTabId,
     tabs,
     setSplitMode,
@@ -141,6 +143,13 @@ export function getViewMenuItems(): MenuItem[] {
       })),
     },
     { id: 'sep4', label: '', separator: true },
+    {
+      id: 'mdx-component-library',
+      label: 'MDX Component Library',
+      icon: <Blocks size={14} />,
+      action: () => setShowMdxComponentLibrary(true),
+    },
+    { id: 'sep5', label: '', separator: true },
     {
       id: 'settings',
       label: 'Settings',

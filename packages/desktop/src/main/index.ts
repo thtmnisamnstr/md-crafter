@@ -166,6 +166,10 @@ function createMenu(): void {
           label: 'Export as HTML',
           click: () => mainWindow?.webContents.send('menu:export-html'),
         },
+        {
+          label: 'Batch Export...',
+          click: () => mainWindow?.webContents.send('menu:batch-export'),
+        },
         { type: 'separator' },
         {
           label: 'Close Tab',
@@ -237,6 +241,10 @@ function createMenu(): void {
           click: () => mainWindow?.webContents.send('menu:format'),
         },
         {
+          label: 'Strip MDX to Markdown',
+          click: () => mainWindow?.webContents.send('menu:strip-mdx'),
+        },
+        {
           label: 'Check Grammar',
           submenu: [
             {
@@ -273,6 +281,10 @@ function createMenu(): void {
           label: 'Command Palette',
           accelerator: 'CmdOrCtrl+Shift+P',
           click: () => mainWindow?.webContents.send('menu:command-palette'),
+        },
+        {
+          label: 'MDX Component Library',
+          click: () => mainWindow?.webContents.send('menu:component-library'),
         },
         { type: 'separator' },
         {

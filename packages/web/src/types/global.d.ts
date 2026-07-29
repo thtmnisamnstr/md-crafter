@@ -58,6 +58,7 @@ declare global {
       onMenuExportPdf: (callback: () => void) => () => void;
       onMenuExportWord: (callback: () => void) => () => void;
       onMenuExportHtml: (callback: () => void) => () => void;
+      onMenuBatchExport: (callback: () => void) => () => void;
 
       // Menu events - Edit menu
       onMenuUndo: (callback: () => void) => () => void;
@@ -72,6 +73,7 @@ declare global {
       onMenuFormat: (callback: () => void) => () => void;
       onMenuGrammar: (callback: () => void) => () => void;
       onMenuGrammarClear: (callback: () => void) => () => void;
+      onMenuStripMdx: (callback: () => void) => () => void;
       onMenuDictionary: (callback: () => void) => () => void;
 
       // Menu events - View menu
@@ -87,6 +89,7 @@ declare global {
       onMenuDiffWithSaved: (callback: () => void) => () => void;
       onMenuDiffWithFile: (callback: () => void) => () => void;
       onMenuDiffExit: (callback: () => void) => () => void;
+      onMenuComponentLibrary: (callback: () => void) => () => void;
 
       // Menu events - Help menu
       onMenuAbout: (callback: () => void) => () => void;

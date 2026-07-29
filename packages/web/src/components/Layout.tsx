@@ -241,6 +241,7 @@ export function Layout() {
                         content={activeTab?.content || ''}
                         isMdx={isMdx}
                         tabId={activeTab?.id}
+                        documentPath={activeTab?.path}
                         resolveImageAssetSrc={(assetId) => imageAssets[assetId]?.dataUrl || null}
                         promoteEmbeddedImageToAsset={async (dataUrl, imageIndex, format) => {
                           const convertedDataUrl = await convertDataUrlToImageFormat(dataUrl, format);

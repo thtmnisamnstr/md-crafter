@@ -25,6 +25,7 @@ const ShortcutsModal = lazy(() => import('./components/ShortcutsModal').then(m =
 const SearchModal = lazy(() => import('./components/SearchModal').then(m => ({ default: m.SearchModal })));
 const GrammarReviewModal = lazy(() => import('./components/GrammarReviewModal').then(m => ({ default: m.GrammarReviewModal })));
 const DictionaryModal = lazy(() => import('./components/DictionaryModal').then(m => ({ default: m.DictionaryModal })));
+const MdxComponentLibraryModal = lazy(() => import('./components/MdxComponentLibraryModal').then(m => ({ default: m.MdxComponentLibraryModal })));
 
 export default function App() {
   return (
@@ -57,6 +58,8 @@ function AppContent() {
     setShowShortcuts,
     showSearch,
     setShowSearch,
+    showMdxComponentLibrary,
+    setShowMdxComponentLibrary,
     showGrammarReview,
     showDictionaryModal,
     conflict,
@@ -199,6 +202,7 @@ function AppContent() {
         {showSearch && <SearchModal onClose={() => setShowSearch(false)} />}
         {showGrammarReview && <GrammarReviewModal />}
         {showDictionaryModal && <DictionaryModal />}
+        {showMdxComponentLibrary && <MdxComponentLibraryModal onClose={() => setShowMdxComponentLibrary(false)} />}
         {conflict && <ConflictModal />}
       </Suspense>
       
